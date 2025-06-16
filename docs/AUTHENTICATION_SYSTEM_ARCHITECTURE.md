@@ -109,31 +109,6 @@ sequenceDiagram
   - Mixed case letters, numbers, special characters
   - No common passwords (dictionary check)
 
-**Password Reset Flow**
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant F as Frontend
-    participant B as Backend
-    participant E as Email Service
-    participant D as Database
-    
-    U->>F: Request password reset
-    F->>B: POST /api/v2/auth/forgot-password
-    B->>B: Rate limit check
-    B->>D: Verify email exists
-    B->>B: Generate secure token (32 bytes)
-    B->>D: Store token with expiry (15 min)
-    B->>E: Send reset email
-    E->>U: Password reset email
-    U->>F: Click reset link
-    F->>B: POST /api/v2/auth/reset-password
-    B->>D: Validate token & expiry
-    B->>B: Hash new password
-    B->>D: Update password & invalidate token
-    B->>F: Success response
-```
-
 ### 1.4 Session Management
 
 **Session Configuration**
@@ -463,7 +438,7 @@ paths:
         200:
           description: Logout successful
 
-  /api/v2/auth/me:
+  /api/v2/me:
     get:
       summary: Get current user
       security:
@@ -475,48 +450,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
-
-  /api/v2/auth/forgot-password:
-    post:
-      summary: Request password reset
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [email]
-              properties:
-                email:
-                  type: string
-                  format: email
-                captchaToken:
-                  type: string
-      responses:
-        200:
-          description: Reset email sent (always returns 200 for security)
-
-  /api/v2/auth/reset-password:
-    post:
-      summary: Reset password with token
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [token, password]
-              properties:
-                token:
-                  type: string
-                password:
-                  type: string
-                  minLength: 12
-      responses:
-        200:
-          description: Password reset successful
-        400:
-          description: Invalid or expired token
 
   /api/v2/auth/change-password:
     post:
@@ -670,8 +603,6 @@ interface AuthContextType extends AuthState {
   
   // Password management
   changePassword: (currentPassword: string, newPassword: string) => Promise<AuthResult>;
-  forgotPassword: (email: string) => Promise<AuthResult>;
-  resetPassword: (token: string, password: string) => Promise<AuthResult>;
   
   // Permission checking
   hasPermission: (permission: string) => boolean;

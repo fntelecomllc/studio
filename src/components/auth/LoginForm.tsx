@@ -32,7 +32,6 @@ type LoginFormData = z.infer<typeof loginSchema>;
 interface LoginFormProps {
   redirectTo?: string;
   showSignUpLink?: boolean;
-  showForgotPassword?: boolean;
   title?: string;
   description?: string;
   enableCaptcha?: boolean;
@@ -50,7 +49,6 @@ interface SecurityState {
 export function LoginForm({
   redirectTo,
   showSignUpLink = true,
-  showForgotPassword = true,
   title = 'Sign in to DomainFlow',
   description = 'Enter your credentials to access your account',
   enableCaptcha = false,
@@ -68,7 +66,6 @@ export function LoginForm({
   
   const [errors, setErrors] = useState<Partial<Record<keyof LoginFormData, string>>>({});
   const [isMainLoginLoading, setIsMainLoginLoading] = useState(false);
-  const [isDemoLoginLoading, setIsDemoLoginLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   
@@ -260,31 +257,6 @@ export function LoginForm({
     }
   };
 
-  // Handle demo login (for development)
-  const handleDemoLogin = async () => {
-    setIsDemoLoginLoading(true);
-    setLoginError(null);
-
-    try {
-      const result = await login({
-        email: 'admin@domainflow.local',
-        password: 'admin123', // Updated to match backend expectations
-        rememberMe: false
-      });
-
-      if (!result.success) {
-        setLoginError(result.error || 'Demo login failed. Please ensure the backend is running.');
-      } else {
-        // Login successful - redirect will happen automatically via AuthContext
-      }
-    } catch (error) {
-      console.error('Demo login error:', error);
-      setLoginError('Demo login failed. Please check if the backend is running and try again.');
-    } finally {
-      setIsDemoLoginLoading(false);
-    }
-  };
-
   // Show loading if already authenticated
   if (isAuthenticated && !authLoading) {
     return (
@@ -314,7 +286,7 @@ export function LoginForm({
                   placeholder="Enter your email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  disabled={isMainLoginLoading || isDemoLoginLoading}
+                  disabled={isMainLoginLoading}
                   className={errors.email ? 'border-destructive' : ''}
                 />
               {errors.email && (
@@ -332,7 +304,7 @@ export function LoginForm({
                   placeholder="Enter your password"
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
-                  disabled={isMainLoginLoading || isDemoLoginLoading}
+                  disabled={isMainLoginLoading}
                   className={errors.password ? 'border-destructive pr-10' : 'pr-10'}
                 />
                 <Button
@@ -341,7 +313,7 @@ export function LoginForm({
                   size="sm"
                   className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                   onClick={() => setShowPassword(!showPassword)}
-                  disabled={isMainLoginLoading || isDemoLoginLoading}
+                  disabled={isMainLoginLoading}
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -361,7 +333,7 @@ export function LoginForm({
                 id="rememberMe"
                 checked={formData.rememberMe}
                 onCheckedChange={(checked) => handleInputChange('rememberMe', !!checked)}
-                disabled={isMainLoginLoading || isDemoLoginLoading}
+                disabled={isMainLoginLoading}
               />
               <Label htmlFor="rememberMe" className="text-sm">
                 Remember me
@@ -419,7 +391,7 @@ export function LoginForm({
             <Button
               type="submit"
               className="w-full"
-              disabled={isMainLoginLoading || isDemoLoginLoading || securityState.isLocked}
+              disabled={isMainLoginLoading || securityState.isLocked}
             >
               {isMainLoginLoading ? (
                 <>
@@ -438,39 +410,10 @@ export function LoginForm({
                 </>
               )}
             </Button>
-
-            {/* Demo Login Button */}
-            <Button 
-              type="button" 
-              variant="outline" 
-              className="w-full" 
-              onClick={handleDemoLogin}
-              disabled={isMainLoginLoading || isDemoLoginLoading}
-            >
-              {isDemoLoginLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Loading demo...
-                </>
-              ) : (
-                'Try Demo Account'
-              )}
-            </Button>
           </form>
 
           {/* Additional Links */}
           <div className="mt-6 space-y-4">
-            {showForgotPassword && (
-              <div className="text-center">
-                <Link 
-                  href="/forgot-password" 
-                  className="text-sm text-muted-foreground hover:text-primary"
-                >
-                  Forgot your password?
-                </Link>
-              </div>
-            )}
-            
             {showSignUpLink && (
               <div className="text-center">
                 <span className="text-sm text-muted-foreground">

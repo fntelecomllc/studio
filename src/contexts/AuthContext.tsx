@@ -24,8 +24,6 @@ interface AuthContextType extends AuthState {
   logout: () => Promise<void>;
   refreshSession: () => Promise<boolean>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<AuthResponse<void>>;
-  forgotPassword: (email: string) => Promise<AuthResponse<void>>;
-  resetPassword: (token: string, newPassword: string) => Promise<AuthResponse<void>>;
   validatePassword: (password: string) => Promise<PasswordValidationResult>;
   hasPermission: (permission: string) => boolean;
   hasRole: (role: string) => boolean;
@@ -50,7 +48,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [authState, setAuthState] = useState<AuthState>({
     isAuthenticated: false,
     user: null,
-    tokens: null,
     isLoading: true,
     sessionExpiry: null
   });
@@ -84,31 +81,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
           console.log('[AuthContext] Auth service initialized successfully');
           
           // Get current state after initialization
-          const state = authService.getAuthState();
+          const state = authService.getState();
           console.log('[AuthContext] Post-initialization auth state:', {
             isAuthenticated: state.isAuthenticated,
             hasUser: !!state.user,
-            hasTokens: !!state.tokens,
             userPermissions: state.user?.permissions?.length || 0
           });
           
-          // Only perform aggressive session validation if we have tokens but no user data
-          // This prevents clearing valid authentication state due to temporary network issues
-          if (state.isAuthenticated && state.tokens && !state.user) {
-            console.log('[AuthContext] Authenticated with tokens but no user data, attempting recovery...');
-            try {
-              // Try to load user data without clearing auth state on failure
-              const isValid = await authService.refreshSession();
-              if (!isValid) {
-                console.warn('[AuthContext] Session refresh failed but maintaining auth state - user data may load later');
-              }
-            } catch (error) {
-              console.error('[AuthContext] Session recovery error (maintaining auth state):', error);
-              // Don't clear auth state - let the user try to use the app and handle auth errors gracefully
-            }
-          } else if (state.isAuthenticated && state.user && state.user.permissions.length === 0) {
-            console.warn('[AuthContext] User authenticated but has no permissions - this may indicate a backend sync issue');
-          }
+          // In session-based auth, the initialize() method already checks for active session
+          // No need for additional session validation since it's handled by cookies
           
           setIsInitialized(true);
         }
@@ -142,7 +123,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       // Get initial state
       if (mountedRef.current) {
-        setAuthState(authService.getAuthState());
+        setAuthState(authService.getState());
       }
     };
 
@@ -192,48 +173,35 @@ export function AuthProvider({ children }: AuthProviderProps) {
     await authService.logout();
   }, []);
 
-  // Refresh session function
+  // In session-based auth, sessions are automatically managed by cookies
+  // No manual refresh needed
   const refreshSession = useCallback(async () => {
     const features = getFeatureFlags();
     
     if (features.enableDebugMode) {
-      console.log('[Auth] Refreshing session');
+      console.log('[Auth] Session refresh not needed in cookie-based auth');
     }
     
-    return await authService.refreshSession();
+    return true; // Sessions are handled automatically
   }, []);
 
   // Change password function
-  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string): Promise<AuthResponse<void>> => {
     const features = getFeatureFlags();
     
     if (features.enableDebugMode) {
       console.log('[Auth] Changing password');
     }
     
-    return await authService.changePassword(currentPassword, newPassword);
-  }, []);
+    const result = await authService.updatePassword({
+      currentPassword,
+      newPassword
+    });
 
-  // Forgot password function
-  const forgotPassword = useCallback(async (email: string) => {
-    const features = getFeatureFlags();
-    
-    if (features.enableDebugMode) {
-      console.log('[Auth] Requesting password reset for:', email);
-    }
-    
-    return await authService.forgotPassword(email);
-  }, []);
-
-  // Reset password function
-  const resetPassword = useCallback(async (token: string, newPassword: string) => {
-    const features = getFeatureFlags();
-    
-    if (features.enableDebugMode) {
-      console.log('[Auth] Resetting password');
-    }
-    
-    return await authService.resetPassword(token, newPassword);
+    return {
+      success: result.success,
+      error: result.error ? { code: 'PASSWORD_CHANGE_ERROR', message: result.error } : undefined
+    };
   }, []);
 
   // Validate password function
@@ -243,7 +211,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Simplified permission checking - wait for auth state to be ready
   const hasPermission = useCallback((permission: string): boolean => {
-    const authState = authService.getAuthState();
+    const authState = authService.getState();
     
     // ENTERPRISE AUTH FIX: Don't check permissions until user data is fully loaded
     // This prevents race conditions where sidebar renders before permissions load
@@ -267,7 +235,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const hasRole = useCallback((role: string): boolean => {
-    const authState = authService.getAuthState();
+    const authState = authService.getState();
     
     // ENTERPRISE AUTH FIX: Wait for auth state to be ready
     if (!authState.isAuthenticated || !authState.user || authState.isLoading) {
@@ -278,7 +246,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const hasAnyRole = useCallback((roles: string[]): boolean => {
-    const authState = authService.getAuthState();
+    const authState = authService.getState();
     
     // ENTERPRISE AUTH FIX: Wait for auth state to be ready
     if (!authState.isAuthenticated || !authState.user || authState.isLoading) {
@@ -289,7 +257,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const hasAllPermissions = useCallback((permissions: string[]): boolean => {
-    const authState = authService.getAuthState();
+    const authState = authService.getState();
     
     // ENTERPRISE AUTH FIX: Wait for auth state to be ready
     if (!authState.isAuthenticated || !authState.user || authState.isLoading) {
@@ -299,28 +267,52 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return permissions.every(permission => authService.hasPermission(permission));
   }, []);
 
-  // Session and security functions
+  // In session-based auth, sessions are managed by server cookies
+  // No need to check expiration client-side
   const isSessionExpiringSoon = useCallback((): boolean => {
-    return authService.isSessionExpiringSoon();
+    return false; // Sessions are managed automatically
   }, []);
 
 
 
   // User management functions (admin only)
-  const getUsers = useCallback(async (page?: number, limit?: number) => {
-    return await authService.getUsers(page, limit);
+  const getUsers = useCallback(async (page?: number, limit?: number): Promise<AuthResponse<UserListResponse>> => {
+    const result = await authService.getUsers(page, limit);
+    
+    return {
+      success: result.status === 'success',
+      data: result,
+      error: result.status === 'error' ? { code: 'GET_USERS_ERROR', message: result.message || 'Failed to get users' } : undefined
+    };
   }, []);
 
-  const createUser = useCallback(async (userData: CreateUserRequest) => {
-    return await authService.createUser(userData);
+  const createUser = useCallback(async (userData: CreateUserRequest): Promise<AuthResponse<User>> => {
+    const result = await authService.createUser(userData);
+    
+    return {
+      success: result.success,
+      data: result.user,
+      error: result.error ? { code: 'CREATE_USER_ERROR', message: result.error } : undefined
+    };
   }, []);
 
-  const updateUser = useCallback(async (userId: string, userData: UpdateUserRequest) => {
-    return await authService.updateUser(userId, userData);
+  const updateUser = useCallback(async (userId: string, userData: UpdateUserRequest): Promise<AuthResponse<User>> => {
+    const result = await authService.updateUser(userId, userData);
+    
+    return {
+      success: result.success,
+      data: result.user,
+      error: result.error ? { code: 'UPDATE_USER_ERROR', message: result.error } : undefined
+    };
   }, []);
 
-  const deleteUser = useCallback(async (userId: string) => {
-    return await authService.deleteUser(userId);
+  const deleteUser = useCallback(async (userId: string): Promise<AuthResponse<void>> => {
+    const result = await authService.deleteUser(userId);
+    
+    return {
+      success: result.success,
+      error: result.error ? { code: 'DELETE_USER_ERROR', message: result.error } : undefined
+    };
   }, []);
 
   // PERFORMANCE OPTIMIZATION: Memoize context value to prevent cascade re-renders
@@ -331,8 +323,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     logout,
     refreshSession,
     changePassword,
-    forgotPassword,
-    resetPassword,
     validatePassword,
     hasPermission,
     hasRole,
@@ -353,8 +343,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     logout,
     refreshSession,
     changePassword,
-    forgotPassword,
-    resetPassword,
     validatePassword,
     hasPermission,
     hasRole,
@@ -500,51 +488,6 @@ export function ConditionalRender({
   });
 
   return hasAccess ? <>{children}</> : <>{fallback}</>;
-}
-
-// Auth status component for debugging
-export function AuthStatus() {
-  const { isAuthenticated, user, isLoading, isInitialized } = useAuth();
-  const [mounted, setMounted] = useState(false);
-  const [showDebug, setShowDebug] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    // Only check feature flags after mount to prevent hydration issues
-    const features = getFeatureFlags();
-    setShowDebug(features.enableDebugMode);
-  }, []);
-
-  // Prevent hydration mismatch by only rendering after mount
-  if (!mounted || !showDebug) {
-    return null;
-  }
-
-  return (
-    <div style={{
-      position: 'fixed',
-      top: 10,
-      right: 10,
-      background: 'rgba(0,0,0,0.8)',
-      color: 'white',
-      padding: '8px',
-      borderRadius: '4px',
-      fontSize: '12px',
-      zIndex: 9999
-    }}>
-      <div>Auth Status:</div>
-      <div>Initialized: {isInitialized ? 'Yes' : 'No'}</div>
-      <div>Loading: {isLoading ? 'Yes' : 'No'}</div>
-      <div>Authenticated: {isAuthenticated ? 'Yes' : 'No'}</div>
-      {user && (
-        <>
-          <div>User: {user.email}</div>
-          <div>Role: {user.role}</div>
-          <div>Permissions: {user.permissions.length}</div>
-        </>
-      )}
-    </div>
-  );
 }
 
 export default AuthContext;

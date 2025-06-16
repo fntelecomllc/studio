@@ -12,7 +12,6 @@ function LoginPageContent() {
         title="Welcome back to DomainFlow"
         description="Sign in to your account to continue"
         showSignUpLink={true}
-        showForgotPassword={true}
       />
     </div>
   );

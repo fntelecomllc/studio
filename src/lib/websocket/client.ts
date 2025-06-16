@@ -7,7 +7,7 @@ import {
   getWebSocketPerformanceConfig,
   webSocketReconnectionConfig 
 } from '@/lib/config/websocket';
-import { authService } from '@/lib/services/auth';
+import { authService } from '@/lib/services/authService';
 
 export interface WebSocketMessage {
   type: string;
@@ -179,7 +179,7 @@ class SessionWebSocketClient {
 
   private validateSessionForConnection(): boolean {
     // Check if user is authenticated
-    if (!authService.getAuthState().isAuthenticated) {
+    if (!authService.getState().isAuthenticated) {
       return false;
     }
     
@@ -253,11 +253,10 @@ class SessionWebSocketClient {
 
   private async validateSession(): Promise<void> {
     try {
-      // Check if session is still valid
-      const isValid = await authService.validateSession();
-      
-      if (!isValid) {
+      // For session-based auth, we just check if user is authenticated
+      if (!authService.isAuthenticated()) {
         this.handleSessionExpired();
+        return;
       }
       
       this.lastSessionValidation = Date.now();

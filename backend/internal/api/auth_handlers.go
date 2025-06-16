@@ -183,14 +183,81 @@ func (h *AuthHandler) Me(c *gin.Context) {
 
 	ctx := securityContext.(*models.SecurityContext)
 
-	// Return user information from security context (session-based)
-	c.JSON(http.StatusOK, gin.H{
-		"user_id":                  ctx.UserID,
-		"permissions":             ctx.Permissions,
-		"roles":                   ctx.Roles,
-		"requires_password_change": ctx.RequiresPasswordChange,
-		"session_expires_at":      ctx.SessionExpiry.Format(time.RFC3339),
-	})
+	// Fetch full user data from database
+	var user models.User
+	query := `
+		SELECT id, email, email_verified, password_hash, password_pepper_version,
+		       first_name, last_name, avatar_url, is_active, is_locked,
+		       failed_login_attempts, locked_until, last_login_at, last_login_ip,
+		       password_changed_at, must_change_password, created_at, updated_at
+		FROM auth.users
+		WHERE id = $1`
+	
+	err := h.db.Get(&user, query, ctx.UserID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "User not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve user information",
+		})
+		return
+	}
+
+	// Get user roles and permissions using the same logic as sessionService
+	// Load roles
+	rolesQuery := `
+		SELECT r.name
+		FROM auth.roles r
+		JOIN auth.user_roles ur ON r.id = ur.role_id
+		WHERE ur.user_id = $1 AND (ur.expires_at IS NULL OR ur.expires_at > NOW())`
+
+	var roleNames []string
+	err = h.db.Select(&roleNames, rolesQuery, ctx.UserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to fetch user roles",
+		})
+		return
+	}
+
+	// Load permissions
+	permissionsQuery := `
+		SELECT DISTINCT p.name
+		FROM auth.permissions p
+		JOIN auth.role_permissions rp ON p.id = rp.permission_id
+		JOIN auth.user_roles ur ON rp.role_id = ur.role_id
+		WHERE ur.user_id = $1 AND (ur.expires_at IS NULL OR ur.expires_at > NOW())`
+
+	var permissionNames []string
+	err = h.db.Select(&permissionNames, permissionsQuery, ctx.UserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to fetch user permissions",
+		})
+		return
+	}
+
+	// Convert to Role and Permission structs (similar to how login handler works)
+	var roles []models.Role
+	for _, roleName := range roleNames {
+		roles = append(roles, models.Role{Name: roleName})
+	}
+
+	var permissions []models.Permission
+	for _, permName := range permissionNames {
+		permissions = append(permissions, models.Permission{Name: permName})
+	}
+
+	// Set roles and permissions on user object
+	user.Roles = roles
+	user.Permissions = permissions
+
+	// Return full user information (same format as login)
+	c.JSON(http.StatusOK, user.PublicUser())
 }
 
 // ChangePassword handles password change requests

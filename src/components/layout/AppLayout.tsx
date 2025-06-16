@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState, memo, useMemo, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
-import { AuthStatus } from '@/contexts/AuthContext';
 import { WebSocketStatusProvider } from '@/contexts/WebSocketStatusContext';
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from '@/components/ui/sidebar';
 import { Home, Target, Users, Settings, Zap, Database, Shield, LogOut } from 'lucide-react';
@@ -211,7 +210,6 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
           {/* Performance optimized conditional rendering - only after mount */}
           {mounted && (
             <>
-              <AuthStatus />
               <MemoryMonitor position="bottom-right" />
             </>
           )}

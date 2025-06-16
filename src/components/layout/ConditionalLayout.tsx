@@ -11,7 +11,7 @@ export default function ConditionalLayout({ children }: ConditionalLayoutProps) 
   const pathname = usePathname();
   
   // Pages that should NOT use AppLayout (no sidebar/navigation)
-  const excludedPaths = ['/login', '/signup', '/forgot-password', '/reset-password'];
+  const excludedPaths = ['/login', '/signup'];
   
   const shouldExcludeLayout = excludedPaths.includes(pathname);
   

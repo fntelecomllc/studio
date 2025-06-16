@@ -231,9 +231,7 @@ For service-to-service communication and temporary access tokens.
 |--------|----------|-------------|----------------|
 | POST | `/api/v2/auth/login` | User login | None |
 | POST | `/api/v2/auth/logout` | User logout | Session |
-| GET | `/api/v2/auth/me` | Get current user | Session |
-| POST | `/api/v2/auth/forgot-password` | Request password reset | None |
-| POST | `/api/v2/auth/reset-password` | Reset password with token | None |
+| GET | `/api/v2/me` | Get current user | Session |
 | POST | `/api/v2/auth/change-password` | Change password | Session |
 | POST | `/api/v2/auth/api-keys` | Create API key | Session |
 | GET | `/api/v2/auth/api-keys` | List API keys | Session |

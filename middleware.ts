@@ -9,7 +9,7 @@ export function middleware(request: NextRequest) {
   console.log('[MIDDLEWARE] Session-based security check for:', pathname);
   
   // Public routes that don't require authentication
-  const publicRoutes = ['/login', '/forgot-password', '/reset-password', '/signup'];
+  const publicRoutes = ['/login', '/signup'];
   
   // Static assets and API routes (handled by backend middleware)
   const staticRoutes = ['/favicon.ico', '/_next', '/api'];

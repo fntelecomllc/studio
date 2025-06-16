@@ -268,9 +268,6 @@ func main() {
 	{
 		authRoutes.POST("/login", rateLimitMiddleware.LoginRateLimit(), authHandler.Login)
 		authRoutes.POST("/logout", authHandler.Logout)
-		// TODO: Implement forgot password and reset password in session-based system
-		// authRoutes.POST("/forgot-password", rateLimitMiddleware.PasswordResetRateLimit(), authHandler.ForgotPassword)
-		// authRoutes.POST("/reset-password", authHandler.ResetPassword)
 		authRoutes.POST("/refresh", authHandler.RefreshSession)
 	}
 	log.Println("Registered authentication routes under /api/v2/auth")

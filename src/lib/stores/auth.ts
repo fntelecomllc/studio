@@ -1,13 +1,12 @@
 // src/lib/stores/auth.ts
 // Simplified Authentication State Management - Cookie-based session validation only
-import { authService, type AuthState, type AuthUser, type LoginCredentials } from '@/lib/services/auth';
+import { authService, type AuthState, type AuthUser, type LoginCredentials } from '@/lib/services/authService';
 
 class AuthStore {
   private static instance: AuthStore;
   private authState: AuthState = {
     isAuthenticated: false,
     user: null,
-    tokens: null,
     isLoading: false,
     sessionExpiry: null
   };
@@ -30,7 +29,7 @@ class AuthStore {
     });
 
     // Initialize with current auth service state
-    this.authState = authService.getAuthState();
+    this.authState = authService.getState();
   }
 
   // Get current authentication state
@@ -74,9 +73,9 @@ class AuthStore {
     return authService.logout();
   }
 
-  // Validate current session
+  // Check session status (for session-based auth, just check if authenticated)
   async validateSession(): Promise<boolean> {
-    return authService.validateSession();
+    return authService.isAuthenticated();
   }
 
   // Initialize auth store
@@ -104,9 +103,9 @@ class AuthStore {
     return permissions.every(permission => this.hasPermission(permission));
   }
 
-  // Refresh session
+  // Session refresh (for session-based auth, just check current status)
   async refreshSession(): Promise<boolean> {
-    return authService.validateSession();
+    return authService.isAuthenticated();
   }
 
   // Check if auth is initialized (always true for session-based auth)

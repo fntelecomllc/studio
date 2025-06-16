@@ -481,17 +481,6 @@ export interface UserRole {
   expiresAt?: string;
 }
 
-// Password Reset Token - matches backend PasswordResetToken exactly
-export interface PasswordResetToken {
-  id: string;
-  userId: string;
-  expiresAt: string;
-  usedAt?: string;
-  ipAddress?: string;
-  userAgent?: string;
-  createdAt: string;
-}
-
 // Auth Audit Log - matches backend AuthAuditLog exactly
 export interface AuthAuditLog {
   id: number;
@@ -559,18 +548,6 @@ export interface RefreshSessionResponse {
 export interface ChangePasswordRequest {
   currentPassword: string;
   newPassword: string;
-}
-
-// Forgot Password Request - matches backend ForgotPasswordRequest exactly
-export interface ForgotPasswordRequest {
-  email: string;
-  captchaToken?: string;
-}
-
-// Reset Password Request - matches backend ResetPasswordRequest exactly
-export interface ResetPasswordRequest {
-  token: string;
-  password: string;
 }
 
 // Create User Request - matches backend CreateUserRequest exactly

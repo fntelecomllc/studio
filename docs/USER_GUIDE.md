@@ -93,14 +93,6 @@ Your password must meet these security requirements:
 6. Enter your new password twice
 7. Click "Update Password"
 
-#### Password Reset
-If you forget your password:
-1. Click "Forgot your password?" on the login page
-2. Enter your email address
-3. Check your email for a reset link
-4. Click the link and enter a new password
-5. The reset link expires in 15 minutes for security
-
 ### Multi-Factor Authentication (MFA)
 
 #### Setting Up MFA

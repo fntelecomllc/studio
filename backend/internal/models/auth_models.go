@@ -136,18 +136,6 @@ type RolePermission struct {
 	PermissionID uuid.UUID `json:"permissionId" db:"permission_id"`
 }
 
-// PasswordResetToken represents a password reset token
-type PasswordResetToken struct {
-	ID        uuid.UUID  `json:"id" db:"id"`
-	UserID    uuid.UUID  `json:"userId" db:"user_id"`
-	TokenHash string     `json:"-" db:"token_hash"`
-	ExpiresAt time.Time  `json:"expiresAt" db:"expires_at"`
-	UsedAt    *time.Time `json:"usedAt" db:"used_at"`
-	IPAddress *string    `json:"ipAddress" db:"ip_address"`
-	UserAgent *string    `json:"userAgent" db:"user_agent"`
-	CreatedAt time.Time  `json:"createdAt" db:"created_at"`
-}
-
 // AuthAuditLog represents an enhanced authentication audit log entry
 type AuthAuditLog struct {
 	ID                 int64      `json:"id" db:"id"`
@@ -198,18 +186,6 @@ type LoginResponse struct {
 type ChangePasswordRequest struct {
 	CurrentPassword string `json:"currentPassword" binding:"required"`
 	NewPassword     string `json:"newPassword" binding:"required,min=12"`
-}
-
-// ForgotPasswordRequest represents a forgot password request
-type ForgotPasswordRequest struct {
-	Email        string `json:"email" binding:"required,email"`
-	CaptchaToken string `json:"captchaToken"`
-}
-
-// ResetPasswordRequest represents a password reset request
-type ResetPasswordRequest struct {
-	Token    string `json:"token" binding:"required"`
-	Password string `json:"password" binding:"required,min=12"`
 }
 
 // CreateUserRequest represents a user creation request
