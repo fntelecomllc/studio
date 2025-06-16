@@ -91,14 +91,24 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// Set simple session cookie without database storage
-	sessionExpiry := time.Now().Add(24 * time.Hour) // 24 hour session
-	sessionValue := "session_" + user.ID.String() // Simple session identifier
+	// Create proper session using session service
+	fmt.Println("DEBUG: Creating session using session service")
+	sessionData, err := h.sessionService.CreateSession(user.ID, ipAddress, c.GetHeader("User-Agent"))
+	if err != nil {
+		fmt.Printf("DEBUG: Session creation failed: %v\n", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to create session",
+			"code":    "SESSION_ERROR",
+		})
+		return
+	}
 
+	// Set session cookie
 	c.SetCookie(
 		h.config.CookieName,
-		sessionValue,
-		int(sessionExpiry.Sub(time.Now()).Seconds()),
+		sessionData.ID,
+		int(sessionData.ExpiresAt.Sub(time.Now()).Seconds()),
 		h.config.CookiePath,
 		h.config.CookieDomain,
 		h.config.CookieSecure,
@@ -110,11 +120,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	// Return successful login response
 	c.JSON(http.StatusOK, gin.H{
-		"success":    true,
-		"message":    "Login successful",
-		"user":       user.PublicUser(),
-		"session_id": sessionValue,
-		"expires_at": sessionExpiry.Format(time.RFC3339),
+		"success":   true,
+		"message":   "Login successful",
+		"user":      user.PublicUser(),
+		"sessionId": sessionData.ID,
+		"expiresAt": sessionData.ExpiresAt.Format(time.RFC3339),
 	})
 }
 

@@ -81,9 +81,9 @@ func GetDefaultSessionSettings() *SessionSettings {
 		CookieSameSite: "strict",       // Strong CSRF protection
 		CookieMaxAge:   CookieMaxAge,
 
-		// CSRF Protection without tokens
-		RequireOriginValidation: true,
-		RequireCustomHeader:     true,
+		// CSRF Protection disabled - session-only authentication
+		RequireOriginValidation: false,
+		RequireCustomHeader:     false,
 		AllowedOrigins: []string{
 			"https://localhost:3000",
 			"http://localhost:3000", // Development only
