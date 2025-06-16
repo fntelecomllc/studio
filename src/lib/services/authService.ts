@@ -1133,27 +1133,22 @@ class AuthService {
 
   private storeTokens(tokens: AuthTokens): void {
     try {
-      // Store in localStorage for client-side access
-      localStorage.setItem('auth_tokens', JSON.stringify(tokens));
+      // Store only in localStorage for session state tracking
+      // Note: Backend session cookie handles the actual authentication
+      localStorage.setItem('session_state', JSON.stringify(tokens));
       
-      // CRITICAL: Also store in cookies for middleware access
-      if (typeof document !== 'undefined') {
-        // Note: auth_tokens cookie might be too large, so we avoid storing the full object
-        // The backend's domainflow_session cookie should handle the session
-        
-        console.log('[AuthService] Tokens stored in localStorage');
-      }
+      console.log('[AuthService] Session state stored in localStorage');
     } catch (error) {
-      console.warn('Failed to store auth tokens:', error);
+      console.warn('Failed to store session state:', error);
     }
   }
 
   private getStoredTokens(): AuthTokens | null {
     try {
-      const stored = localStorage.getItem('auth_tokens');
+      const stored = localStorage.getItem('session_state');
       return stored ? JSON.parse(stored) : null;
     } catch (error) {
-      console.warn('Failed to retrieve stored tokens:', error);
+      console.warn('Failed to retrieve stored session state:', error);
       return null;
     }
   }
@@ -1161,20 +1156,21 @@ class AuthService {
   private clearStoredTokens(): void {
     try {
       // Clear localStorage
-      localStorage.removeItem('auth_tokens');
+      localStorage.removeItem('session_state');
+      localStorage.removeItem('auth_tokens'); // Remove legacy storage
       
-      // CRITICAL: Also clear cookies
+      // CRITICAL: Also clear legacy cookies
       if (typeof document !== 'undefined') {
         const isProduction = window.location.protocol === 'https:';
         const cookieOptions = `expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; ${isProduction ? 'secure; ' : ''}samesite=lax`;
         
+        // Clear legacy cookies (backend session cookie is cleared by server)
         document.cookie = `auth_tokens=; ${cookieOptions}`;
-        document.cookie = `domainflow_session=; ${cookieOptions}`;
         document.cookie = `session=; ${cookieOptions}`;
-        console.log('[AuthService] Tokens cleared from localStorage and cookies');
+        console.log('[AuthService] Session state and legacy tokens cleared');
       }
     } catch (error) {
-      console.warn('Failed to clear stored tokens:', error);
+      console.warn('Failed to clear stored session state:', error);
     }
   }
 

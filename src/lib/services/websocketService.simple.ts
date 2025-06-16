@@ -70,6 +70,8 @@ class SimpleWebSocketService {
   private createConnection(): WebSocket {
     const url = this.getWebSocketUrl();
     console.log(`[WebSocket] Connecting to: ${url}`);
+    console.log(`[WebSocket] Current origin: ${window.location.origin}`);
+    console.log(`[WebSocket] Current protocol: ${window.location.protocol}`);
     
     const ws = new WebSocket(url);
     

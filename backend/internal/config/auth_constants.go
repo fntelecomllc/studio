@@ -2,18 +2,18 @@ package config
 
 // Cookie names - shared between frontend and backend
 const (
-	SessionCookieName    = "sessionId"
+	SessionCookieName    = "domainflow_session"  // Fixed to match frontend expectation
 	AuthTokensCookieName = "auth_tokens"
 
 	// Legacy cookie name for backward compatibility
-	LegacySessionCookieName = "domainflow_session"
+	LegacySessionCookieName = "sessionId"  // Swapped: old name is now legacy
 )
 
 // Cookie settings
 const (
 	CookieMaxAge   = 7200 // 2 hours in seconds (as per security audit)
 	CookiePath     = "/"
-	CookieSecure   = true // HTTPS only for production security
+	CookieSecure   = false // Disabled for development (HTTP localhost)
 	CookieHttpOnly = true
-	CookieSameSite = "Strict"
+	CookieSameSite = "Lax" // More flexible for development
 )

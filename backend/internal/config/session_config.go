@@ -76,14 +76,14 @@ func GetDefaultSessionSettings() *SessionSettings {
 		CookieName:     SessionCookieName,
 		CookiePath:     CookiePath,
 		CookieDomain:   CookieDomain,
-		CookieSecure:   CookieSecure,   // HTTPS only in production
+		CookieSecure:   false,   // Disabled for development (HTTP)
 		CookieHttpOnly: CookieHttpOnly, // No JavaScript access
-		CookieSameSite: "strict",       // Strong CSRF protection
+		CookieSameSite: "lax",       // More flexible for development
 		CookieMaxAge:   CookieMaxAge,
 
 		// CSRF Protection disabled - session-only authentication
-		RequireOriginValidation: false,
-		RequireCustomHeader:     false,
+		RequireOriginValidation: false,  // DISABLED for session-only auth
+		RequireCustomHeader:     false,  // DISABLED for session-only auth
 		AllowedOrigins: []string{
 			"https://localhost:3000",
 			"http://localhost:3000", // Development only

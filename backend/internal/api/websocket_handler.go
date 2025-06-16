@@ -149,7 +149,6 @@ func (h *WebSocketHandler) HandleConnections(c *gin.Context) {
 
 	// Origin validation for cross-site request protection (no token-based CSRF needed)
 	origin := c.GetHeader("Origin")
-	customHeader := c.GetHeader("X-Requested-With")
 	
 	// Validate origin for cross-site request protection
 	if !h.isValidOrigin(origin) {
@@ -158,12 +157,7 @@ func (h *WebSocketHandler) HandleConnections(c *gin.Context) {
 		return
 	}
 
-	// For additional cross-site protection, require custom header from non-same-origin requests
-	if origin != "" && customHeader != "XMLHttpRequest" {
-		log.Printf("WebSocket connection rejected: missing required custom header")
-		c.JSON(http.StatusForbidden, gin.H{"error": "Invalid request headers"})
-		return
-	}
+	// Session-only authentication: No need for additional custom headers
 
 	// Validate the session with enhanced security checks
 	clientIP := c.ClientIP()

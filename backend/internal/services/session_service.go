@@ -139,6 +139,7 @@ func (s *SessionService) CreateSession(userID uuid.UUID, ipAddress, userAgent st
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate session ID: %w", err)
 	}
+	fmt.Printf("DEBUG: Generated session ID: %s\n", sessionID)
 
 	// Check concurrent session limits
 	if err := s.enforceSessionLimits(userID); err != nil {
@@ -167,12 +168,16 @@ func (s *SessionService) CreateSession(userID uuid.UUID, ipAddress, userAgent st
 	}
 
 	// Store in database
+	fmt.Printf("DEBUG: Persisting session to database: %s\n", session.ID)
 	if err := s.persistSession(session); err != nil {
 		return nil, fmt.Errorf("failed to persist session: %w", err)
 	}
+	fmt.Printf("DEBUG: Session successfully persisted to database\n")
 
 	// Store in memory for fast access
+	fmt.Printf("DEBUG: Storing session in memory: %s\n", session.ID)
 	s.storeInMemory(session)
+	fmt.Printf("DEBUG: Session successfully stored in memory\n")
 
 	// Update metrics
 	s.inMemoryStore.metrics.mutex.Lock()
@@ -209,18 +214,23 @@ func (s *SessionService) CreateSession(userID uuid.UUID, ipAddress, userAgent st
 // ValidateSession validates a session and returns session data
 func (s *SessionService) ValidateSession(sessionID, clientIP string) (*SessionData, error) {
 	startTime := time.Now()
+	fmt.Printf("DEBUG: Validating session ID: %s for client IP: %s\n", sessionID, clientIP)
 	
 	// Try memory first for performance
 	session, found := s.getFromMemory(sessionID)
 	cacheHit := found
+	fmt.Printf("DEBUG: Memory lookup result: found=%v\n", found)
 	
 	if !found {
 		// Fallback to database
+		fmt.Printf("DEBUG: Session not in memory, checking database\n")
 		var err error
 		session, err = s.loadFromDatabase(sessionID)
 		if err != nil {
+			fmt.Printf("DEBUG: Database lookup failed: %v\n", err)
 			return nil, ErrSessionNotFound
 		}
+		fmt.Printf("DEBUG: Session found in database, caching in memory\n")
 		// Cache in memory
 		s.storeInMemory(session)
 	}

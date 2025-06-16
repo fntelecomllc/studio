@@ -280,12 +280,13 @@ class SessionApiClient {
   private handleSessionExpired(): void {
     // Clear any local storage session data
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('auth_tokens');
+      localStorage.removeItem('session_state');
+      localStorage.removeItem('auth_tokens'); // Remove legacy storage
       localStorage.removeItem('user_data');
       
-      // Clear session cookies by setting them to expire
-      document.cookie = 'domainflow_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      // Clear session cookies by setting them to expire (backend handles domainflow_session)
       document.cookie = 'session_id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      document.cookie = 'auth_tokens=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
       
       // Redirect to login page if not already there
       if (!window.location.pathname.includes('/login')) {

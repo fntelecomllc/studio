@@ -1,6 +1,9 @@
 /**
  * @fileOverview Comprehensive environment configuration for DomainFlow
- * Handles API endpoints, security settings, and deployment-specific configurations
+ * Handles API endpoints, security settings, and deplo    auth: {
+      sessionCheckIntervalMinutes: 5,
+      sessionTimeoutMinutes: 120, // 2 hours
+    },-specific configurations
  */
 
 export interface EnvironmentConfig {
@@ -14,8 +17,7 @@ export interface EnvironmentConfig {
   
   // Authentication Configuration
   auth: {
-    tokenStorageKey: string;
-    refreshThresholdMinutes: number;
+    sessionCheckIntervalMinutes: number;
     sessionTimeoutMinutes: number;
   };
   
@@ -60,9 +62,8 @@ const environments: Record<string, EnvironmentConfig> = {
       retryDelay: 1000,
     },
     auth: {
-      tokenStorageKey: 'domainflow_auth_dev',
-      refreshThresholdMinutes: 5,
-      sessionTimeoutMinutes: 480, // 8 hours
+      sessionCheckIntervalMinutes: 5,
+      sessionTimeoutMinutes: 120, // 2 hours
     },
     websocket: {
       url: 'ws://localhost:8080/api/v2/ws',
@@ -96,9 +97,8 @@ const environments: Record<string, EnvironmentConfig> = {
       retryDelay: 1000,
     },
     auth: {
-      tokenStorageKey: 'domainflow_auth_staging',
-      refreshThresholdMinutes: 5,
-      sessionTimeoutMinutes: 240, // 4 hours
+      sessionCheckIntervalMinutes: 5,
+      sessionTimeoutMinutes: 120, // 2 hours
     },
     websocket: {
       url: '/api/v2/ws',
@@ -132,8 +132,7 @@ const environments: Record<string, EnvironmentConfig> = {
       retryDelay: 2000,
     },
     auth: {
-      tokenStorageKey: 'domainflow_auth',
-      refreshThresholdMinutes: 10,
+      sessionCheckIntervalMinutes: 10,
       sessionTimeoutMinutes: 120, // 2 hours
     },
     websocket: {
@@ -331,8 +330,8 @@ export function validateConfiguration(): boolean {
       return false;
     }
     
-    if (!config.auth.tokenStorageKey) {
-      console.error('Invalid configuration: Auth token storage key is required');
+    if (config.auth.sessionTimeoutMinutes <= 0) {
+      console.error('Invalid configuration: Session timeout must be positive');
       return false;
     }
     

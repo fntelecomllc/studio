@@ -91,13 +91,4 @@ export const getCookieOptions = () => {
   };
 };
 
-// CSRF protection headers
-export const getSecurityHeaders = () => {
-  const settings = getSessionAuthSettings();
-  return {
-    [settings.security.customHeaders.csrfProtection]: 'XMLHttpRequest',
-    'Content-Type': 'application/json',
-  };
-};
-
 export default sessionAuthConfig;

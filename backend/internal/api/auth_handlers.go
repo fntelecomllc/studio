@@ -92,7 +92,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	// Create proper session using session service
-	fmt.Println("DEBUG: Creating session using session service")
+	fmt.Printf("DEBUG: Creating session using session service for user ID: %s\n", user.ID.String())
 	sessionData, err := h.sessionService.CreateSession(user.ID, ipAddress, c.GetHeader("User-Agent"))
 	if err != nil {
 		fmt.Printf("DEBUG: Session creation failed: %v\n", err)
@@ -103,8 +103,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		})
 		return
 	}
+	fmt.Printf("DEBUG: Session created successfully with ID: %s\n", sessionData.ID)
 
 	// Set session cookie
+	fmt.Printf("DEBUG: Setting session cookie with name: %s, value: %s\n", h.config.CookieName, sessionData.ID)
 	c.SetCookie(
 		h.config.CookieName,
 		sessionData.ID,
@@ -114,17 +116,19 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		h.config.CookieSecure,
 		h.config.CookieHttpOnly,
 	)
+	fmt.Printf("DEBUG: Cookie set with domain: %s, path: %s, secure: %v, httpOnly: %v\n", 
+		h.config.CookieDomain, h.config.CookiePath, h.config.CookieSecure, h.config.CookieHttpOnly)
 
 	// Update last login information
 	h.updateLastLogin(user.ID, ipAddress)
 
-	// Return successful login response
+	// Return successful login response with correct field names
 	c.JSON(http.StatusOK, gin.H{
 		"success":   true,
 		"message":   "Login successful",
 		"user":      user.PublicUser(),
-		"sessionId": sessionData.ID,
-		"expiresAt": sessionData.ExpiresAt.Format(time.RFC3339),
+		"sessionId": sessionData.ID,  // Frontend expects sessionId (camelCase)
+		"expiresAt": sessionData.ExpiresAt.Format(time.RFC3339),  // Frontend expects expiresAt (camelCase)
 	})
 }
 
@@ -275,8 +279,8 @@ func (h *AuthHandler) RefreshSession(c *gin.Context) {
 	)
 
 	c.JSON(http.StatusOK, gin.H{
-		"success":    true,
-		"expires_at": newExpiry.Format(time.RFC3339),
+		"success":   true,
+		"expiresAt": newExpiry.Format(time.RFC3339),  // Frontend expects expiresAt (camelCase)
 	})
 }
 
