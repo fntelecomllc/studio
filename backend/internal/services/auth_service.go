@@ -833,6 +833,8 @@ func (s *AuthService) createSession(userID uuid.UUID, ipAddress, userAgent strin
 		CreatedAt:      time.Now(),
 	}
 
+	// Note: This is a legacy method. Current implementation uses SessionService.
+	// Updated to be consistent with database trigger for fingerprint generation.
 	query := `
 		INSERT INTO auth.sessions (id, user_id, ip_address, user_agent, is_active, expires_at, last_activity_at, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`

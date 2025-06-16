@@ -263,7 +263,7 @@ create_backend_config() {
     "port": "$BACKEND_PORT",
     "apiKey": "$api_key",
     "streamChunkSize": 50,
-    "ginMode": "release"
+    "ginMode": "debug"
   },
   "database": {
     "host": "$DB_HOST",

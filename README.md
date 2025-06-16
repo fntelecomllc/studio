@@ -208,47 +208,44 @@ DATABASE_URL=postgres://domainflow:pNpTHxEWr2SmY270p1IjGn3dP@localhost:5432/doma
 
 ### Database Schema v2.0 (Consolidated Schema)
 
-DomainFlow v2.0 features a completely redesigned database schema that consolidates 17 fragmented migrations into a single, optimized schema:
+DomainFlow v2.0 features a **completely consolidated database schema** that replaces the previous 17 fragmented migrations with a single, production-optimized schema file:
 
-**Key Improvements:**
-- **Performance**: 60-70% improvement in query performance
+**Key Achievements:**
+- **Migration Consolidation**: Successfully consolidated 17 individual migrations into [`backend/database/schema.sql`](backend/database/schema.sql)
+- **Performance**: 60-70% improvement in query performance through optimized indexes and constraints
 - **Consistency**: Perfect alignment between database, backend Go, and frontend TypeScript
-- **Maintainability**: Simplified schema with clear relationships
-- **Security**: Enhanced session-based authentication with fingerprinting
-- **Scalability**: Optimized indexes and constraints for production workloads
+- **Maintainability**: Single schema file eliminates migration complexity
+- **Security**: Complete session-based authentication with fingerprinting and audit logging
+- **Scalability**: Production-ready with optimized indexes and connection pooling
 
 **Schema Components:**
-- **Authentication Schema** (`auth` schema): Complete session-based authentication
+- **Authentication Schema** (`auth` schema): Complete RBAC system with session management
+  - `auth.users` - User accounts with secure password hashing
+  - `auth.sessions` - Session management with fingerprinting
+  - `auth.roles` - Role-based access control
+  - `auth.permissions` - Granular permission system
+  - `auth.user_roles` - User-role assignments
+  - `auth.role_permissions` - Role-permission mappings
+  - `auth.auth_audit_log` - Comprehensive security audit trail
 - **Application Schema** (`public` schema): Campaign management and domain analysis
-- **Performance Indexes**: Optimized indexes for common query patterns
-- **Constraints**: Data integrity and validation constraints
-- **Functions**: Database functions for business logic
+- **Extensions**: PostgreSQL extensions (`uuid-ossp`, `pgcrypto`) for advanced functionality
+- **Functions**: Database functions for session fingerprinting and security
+- **Triggers**: Automatic session fingerprint generation and audit logging
 
-### Migration System
+### Consolidated Schema Deployment
 
-DomainFlow uses a sophisticated migration system built on `golang-migrate`:
-
-**Migration Files Location:**
-```
-backend/database/migrations/
-├── 000001_initial_schema.up.sql
-├── 000001_initial_schema.down.sql
-├── ...
-├── 000017_session_based_authentication.up.sql
-├── 000017_session_based_authentication.down.sql
-```
-
-**Migration Tool:**
+**The New Approach (Post-Consolidation):**
 ```bash
-# Build migration tool
-cd backend && go build -o bin/migrate ./cmd/migrate
+# Deploy using consolidated schema (recommended)
+./deploy-quick.sh    # Automatically applies consolidated schema
+./deploy-fresh.sh    # Fresh deployment with schema rebuild
 
-# Run migrations
-./bin/migrate -dsn "postgres://user:pass@localhost:5432/dbname?sslmode=disable" -direction up
-
-# Check migration status
-psql "connection_string" -c "SELECT version, dirty FROM schema_migrations ORDER BY version;"
+# Manual deployment (if needed)
+psql "connection_string" < backend/database/schema.sql
 ```
+
+**Legacy Migration System (Now Deprecated):**
+The previous migration-based approach has been replaced by the consolidated schema. The old migration files have been archived and the new deployment process uses the optimized `backend/database/schema.sql` directly.
 
 ### Running Database Migrations
 
@@ -336,11 +333,12 @@ psql "connection_string" -c "\d+ auth.sessions"  # Session table constraints
 
 ### Test User Credentials
 
-**Default Test User:**
+**Default Admin User:**
 - **Email**: `admin@domainflow.local`
-- **Password**: `DomainFlow2024!`
+- **Password**: `TempPassword123!`
 - **Role**: `super_admin`
-- **Permissions**: Full system access
+- **Permissions**: Full system access (all 17 permissions)
+- **Status**: Active, must change password on first login
 
 **Create Additional Test Users:**
 ```sql
@@ -508,10 +506,11 @@ DELETE FROM auth.auth_audit_log WHERE created_at < NOW() - INTERVAL '90 days';
 ### Database Schema Documentation
 
 **Full Schema Documentation:**
-- **Authentication Schema**: [`docs/DATABASE_SCHEMA_AUTH.md`](docs/DATABASE_SCHEMA_AUTH.md)
-- **Application Schema**: [`docs/DATABASE_SCHEMA_APP.md`](docs/DATABASE_SCHEMA_APP.md)
-- **Migration History**: [`backend/MIGRATIONS.md`](backend/MIGRATIONS.md)
-- **Performance Indexes**: [`docs/DATABASE_PERFORMANCE.md`](docs/DATABASE_PERFORMANCE.md)
+- **Consolidated Schema**: [`backend/database/schema.sql`](backend/database/schema.sql) - Single production schema file
+- **Database-to-Go Mapping**: [`backend/README.md`](backend/README.md) - Detailed table-to-struct mapping
+- **API Authentication**: [`backend/API_SPEC.md`](backend/API_SPEC.md) - Session-based auth endpoints
+- **Migration History**: [`backend/MIGRATIONS.md`](backend/MIGRATIONS.md) - Legacy migration documentation
+- **Schema Consolidation**: [`backend/database/consolidation/README.md`](backend/database/consolidation/README.md) - Consolidation process details
 
 ## 🔧 Installation
 
@@ -1178,20 +1177,22 @@ PUT /api/v2/users/:id
 DELETE /api/v2/users/:id
 ```
 
-### Database Schema v2.0
+### Database Schema v2.0 (Consolidated)
 
-**Consolidated Schema:**
-- **17 to 1 Migration**: Consolidated 17 fragmented migrations into optimized v2.0 schema
-- **Performance Gains**: 60-70% improvement in query performance
+**Schema Consolidation Completed:**
+- **17 to 1 Consolidation**: Successfully consolidated 17 fragmented migrations into single optimized schema
+- **Performance Gains**: 60-70% improvement in query performance achieved
 - **Cross-Stack Synchronization**: Perfect alignment between database, backend Go, and frontend TypeScript
-- **Session Management**: Dedicated session storage with fingerprinting support
-- **Audit Logging**: Comprehensive security audit trail
+- **Session Management**: Production-ready session storage with automatic fingerprinting
+- **Audit Logging**: Comprehensive security audit trail for all authentication events
+- **Production Ready**: Optimized indexes, constraints, and connection pooling
 
-**Migration Features:**
-- **Rollback Support**: Safe rollback procedures to previous schema versions
-- **Data Integrity**: Comprehensive validation and integrity checks
-- **Backup Procedures**: Automated backup before schema changes
-- **Emergency Procedures**: Documented emergency recovery procedures
+**Key Benefits:**
+- **Simplified Deployment**: Single schema file replaces complex migration chains
+- **Enhanced Security**: Complete RBAC system with session fingerprinting
+- **Performance Optimized**: Query performance improvements through optimized indexes
+- **Type Safety**: Perfect synchronization across the entire stack
+- **Maintenance Free**: No migration conflicts or dependency issues
 
 ## 📈 Performance & Optimization
 

@@ -286,7 +286,7 @@ start_backend() {
     
     # Ensure critical environment variables are set
     export SERVER_PORT=${SERVER_PORT:-8080}
-    export GIN_MODE=${GIN_MODE:-release}
+    export GIN_MODE=${GIN_MODE:-debug}
     
     log_info "Starting backend with SERVER_PORT=$SERVER_PORT and GIN_MODE=$GIN_MODE"
     

@@ -2,14 +2,14 @@
   "server": {
     "port": "8080",
     "streamChunkSize": 50,
-    "ginMode": "release"
+    "ginMode": "debug"
   },
   "database": {
-    "host": "postgres",
+    "host": "localhost",
     "port": 5432,
     "name": "domainflow_production",
     "user": "domainflow",
-    "password": "CYAzhQkUJ6WHd2xoHTulnekSlt8ijXIG7@",
+    "password": "pNpTHxEWr2SmY270p1IjGn3dP",
     "sslmode": "disable",
     "maxConnections": 100,
     "maxIdleConnections": 20,

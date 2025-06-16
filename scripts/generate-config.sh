@@ -122,7 +122,7 @@ cat > backend/config.template.json << 'EOF'
   "server": {
     "port": "${SERVER_PORT:-8080}",
     "streamChunkSize": 50,
-    "ginMode": "${GIN_MODE:-release}"
+    "ginMode": "${GIN_MODE:-debug}"
   },
   "database": {
     "host": "${DATABASE_HOST}",

@@ -1,8 +1,9 @@
 -- Production-Ready PostgreSQL Schema for DomainFlow (Version with metadata in param tables)
 -- Updated for Session-Based Authentication (No CSRF Tokens)
 
--- Enable UUID extension if not already enabled
+-- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- Create auth schema for authentication system
 CREATE SCHEMA IF NOT EXISTS auth;
@@ -790,3 +791,197 @@ COMMENT ON COLUMN audit_logs.action IS 'e.g., CampaignCreated, PersonaUpdated, P
 COMMENT ON COLUMN audit_logs.entity_type IS 'e.g., Campaign, Persona, Proxy';
 COMMENT ON COLUMN campaign_jobs.job_type IS 'e.g., DomainGeneration, DNSValidation, HTTPKeywordScan (matches campaign_type usually)';
 COMMENT ON COLUMN campaign_jobs.status IS 'e.g., Pending, Queued, Running, Completed, Failed, Retry';
+
+-- =====================================================
+-- DEFAULT DATA FOR PRODUCTION-READY SETUP
+-- =====================================================
+
+-- Insert default roles
+INSERT INTO auth.roles (id, name, display_name, description, is_system_role) VALUES
+    ('00000000-0000-0000-0000-000000000001', 'super_admin', 'Super Administrator', 'Full system access with all permissions', true),
+    ('00000000-0000-0000-0000-000000000002', 'admin', 'Administrator', 'Administrative access to most system features', true),
+    ('00000000-0000-0000-0000-000000000003', 'user', 'Standard User', 'Standard user with basic access permissions', true),
+    ('00000000-0000-0000-0000-000000000004', 'viewer', 'Viewer', 'Read-only access to system resources', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Insert default permissions
+INSERT INTO auth.permissions (id, name, display_name, description, resource, action) VALUES
+    ('00000000-0000-0000-0001-000000000001', 'campaigns:create', 'Create Campaigns', 'Create new campaigns', 'campaigns', 'create'),
+    ('00000000-0000-0000-0001-000000000002', 'campaigns:read', 'Read Campaigns', 'View campaign details', 'campaigns', 'read'),
+    ('00000000-0000-0000-0001-000000000003', 'campaigns:update', 'Update Campaigns', 'Modify existing campaigns', 'campaigns', 'update'),
+    ('00000000-0000-0000-0001-000000000004', 'campaigns:delete', 'Delete Campaigns', 'Remove campaigns from system', 'campaigns', 'delete'),
+    ('00000000-0000-0000-0001-000000000005', 'campaigns:execute', 'Execute Campaigns', 'Start and stop campaign execution', 'campaigns', 'execute'),
+    ('00000000-0000-0000-0001-000000000006', 'personas:create', 'Create Personas', 'Create new validation personas', 'personas', 'create'),
+    ('00000000-0000-0000-0001-000000000007', 'personas:read', 'Read Personas', 'View persona configurations', 'personas', 'read'),
+    ('00000000-0000-0000-0001-000000000008', 'personas:update', 'Update Personas', 'Modify existing personas', 'personas', 'update'),
+    ('00000000-0000-0000-0001-000000000009', 'personas:delete', 'Delete Personas', 'Remove personas from system', 'personas', 'delete'),
+    ('00000000-0000-0000-0001-000000000010', 'proxies:create', 'Create Proxies', 'Add new proxy servers', 'proxies', 'create'),
+    ('00000000-0000-0000-0001-000000000011', 'proxies:read', 'Read Proxies', 'View proxy configurations and status', 'proxies', 'read'),
+    ('00000000-0000-0000-0001-000000000012', 'proxies:update', 'Update Proxies', 'Modify existing proxy settings', 'proxies', 'update'),
+    ('00000000-0000-0000-0001-000000000013', 'proxies:delete', 'Delete Proxies', 'Remove proxy servers', 'proxies', 'delete'),
+    ('00000000-0000-0000-0001-000000000014', 'system:admin', 'System Administration', 'Full administrative access to system', 'system', 'admin'),
+    ('00000000-0000-0000-0001-000000000015', 'system:config', 'System Configuration', 'Modify system configuration settings', 'system', 'config'),
+    ('00000000-0000-0000-0001-000000000016', 'users:manage', 'User Management', 'Create, update, and delete user accounts', 'users', 'manage'),
+    ('00000000-0000-0000-0001-000000000017', 'reports:generate', 'Generate Reports', 'Generate and export system reports', 'reports', 'generate')
+ON CONFLICT (id) DO NOTHING;
+
+-- Assign all permissions to super_admin role
+INSERT INTO auth.role_permissions (role_id, permission_id) VALUES
+    ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0001-000000000001'),
+    ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0001-000000000002'),
+    ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0001-000000000003'),
+    ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0001-000000000004'),
+    ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0001-000000000005'),
+    ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0001-000000000006'),
+    ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0001-000000000007'),
+    ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0001-000000000008'),
+    ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0001-000000000009'),
+    ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0001-000000000010'),
+    ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0001-000000000011'),
+    ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0001-000000000012'),
+    ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0001-000000000013'),
+    ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0001-000000000014'),
+    ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0001-000000000015'),
+    ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0001-000000000016'),
+    ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0001-000000000017')
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- Assign appropriate permissions to admin role
+INSERT INTO auth.role_permissions (role_id, permission_id) VALUES
+    ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0001-000000000001'),
+    ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0001-000000000002'),
+    ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0001-000000000003'),
+    ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0001-000000000004'),
+    ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0001-000000000005'),
+    ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0001-000000000006'),
+    ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0001-000000000007'),
+    ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0001-000000000008'),
+    ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0001-000000000009'),
+    ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0001-000000000010'),
+    ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0001-000000000011'),
+    ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0001-000000000012'),
+    ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0001-000000000013'),
+    ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0001-000000000016'),
+    ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0001-000000000017')
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- Assign basic permissions to user role
+INSERT INTO auth.role_permissions (role_id, permission_id) VALUES
+    ('00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0001-000000000001'),
+    ('00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0001-000000000002'),
+    ('00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0001-000000000003'),
+    ('00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0001-000000000005'),
+    ('00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0001-000000000007'),
+    ('00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0001-000000000011')
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- Assign read-only permissions to viewer role
+INSERT INTO auth.role_permissions (role_id, permission_id) VALUES
+    ('00000000-0000-0000-0000-000000000004', '00000000-0000-0000-0001-000000000002'),
+    ('00000000-0000-0000-0000-000000000004', '00000000-0000-0000-0001-000000000007'),
+    ('00000000-0000-0000-0000-000000000004', '00000000-0000-0000-0001-000000000011')
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- Insert default admin user (matches deploy-quick.sh credentials)
+-- Email: admin@domainflow.local, Password: TempPassword123!
+INSERT INTO auth.users (
+    id,
+    email,
+    email_verified,
+    password_hash,
+    password_pepper_version,
+    first_name,
+    last_name,
+    is_active,
+    is_locked,
+    failed_login_attempts,
+    must_change_password
+) VALUES (
+    '00000000-0000-0000-0000-000000000001',
+    'admin@domainflow.local',
+    true,
+    crypt('TempPassword123!', gen_salt('bf', 12)),
+    1,
+    'System',
+    'Administrator',
+    true,
+    false,
+    0,
+    true
+) ON CONFLICT (email) DO NOTHING;
+
+-- Assign super_admin role to default admin user
+INSERT INTO auth.user_roles (user_id, role_id) VALUES
+    ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001')
+ON CONFLICT (user_id, role_id) DO NOTHING;
+
+-- Insert example regular user
+-- Password: user123! (bcrypt hash with standard cost)
+INSERT INTO auth.users (
+    id,
+    email,
+    email_verified,
+    password_hash,
+    password_pepper_version,
+    first_name,
+    last_name,
+    is_active,
+    is_locked,
+    failed_login_attempts,
+    must_change_password
+) VALUES (
+    '00000000-0000-0000-0000-000000000002',
+    'user@domainflow.com',
+    true,
+    '$2a$12$4.5XY0w0Zz9lCKIjFJbTm.jJKvJPCMYdEzUYYKnqK3YnJWzCFUyN.',
+    1,
+    'Test',
+    'User',
+    true,
+    false,
+    0,
+    false
+) ON CONFLICT (email) DO NOTHING;
+
+-- Assign user role to example user
+INSERT INTO auth.user_roles (user_id, role_id) VALUES
+    ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003')
+ON CONFLICT (user_id, role_id) DO NOTHING;
+
+-- Insert default database admin user for easy database access
+-- Email: dbadmin@domainflow.local, Password: dbpassword123!
+INSERT INTO auth.users (
+    id,
+    email,
+    email_verified,
+    password_hash,
+    password_pepper_version,
+    first_name,
+    last_name,
+    is_active,
+    is_locked,
+    failed_login_attempts,
+    must_change_password
+) VALUES (
+    '00000000-0000-0000-0000-000000000003',
+    'dbadmin@domainflow.local',
+    true,
+    crypt('dbpassword123!', gen_salt('bf', 12)),
+    1,
+    'Database',
+    'Administrator',
+    true,
+    false,
+    0,
+    false
+) ON CONFLICT (email) DO NOTHING;
+
+-- Assign super_admin role to database admin user for full access
+INSERT INTO auth.user_roles (user_id, role_id) VALUES
+    ('00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001')
+ON CONFLICT (user_id, role_id) DO NOTHING;
+
+-- Comments for default data
+COMMENT ON TABLE auth.roles IS 'System roles with default setup: super_admin (full access), admin (administrative), user (standard), viewer (read-only)';
+COMMENT ON TABLE auth.permissions IS 'System permissions covering all major resources: campaigns, personas, proxies, system, users, reports';
+COMMENT ON TABLE auth.users IS 'Default users: admin@domainflow.local (TempPassword123!), user@domainflow.com (user123!), dbadmin@domainflow.local (dbpassword123!)';
