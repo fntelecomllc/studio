@@ -60,7 +60,6 @@ class EnhancedAuthDiagnostics {
           parsedTokens = JSON.parse(storedTokens);
           this.addTrace('stored_tokens_found', {
             hasSessionId: !!parsedTokens.sessionId,
-            hasCSRFToken: !!parsedTokens.csrfToken,
             expiresAt: parsedTokens.expiresAt,
             isExpired: new Date(parsedTokens.expiresAt).getTime() <= Date.now()
           });
@@ -91,7 +90,6 @@ class EnhancedAuthDiagnostics {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': parsedTokens.csrfToken,
         },
         credentials: 'include',
       });
@@ -136,7 +134,6 @@ class EnhancedAuthDiagnostics {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': parsedTokens.csrfToken,
         },
         credentials: 'include',
         body: JSON.stringify({ sessionId: parsedTokens.sessionId }),

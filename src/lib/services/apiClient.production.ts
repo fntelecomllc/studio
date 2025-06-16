@@ -62,12 +62,10 @@ export interface RequestOptions extends Omit<RequestInit, 'body'> {
 
 class ProductionApiClient {
   private baseUrl: string;
-  private csrfToken: string | null = null;
   private static instance: ProductionApiClient;
 
   constructor(baseUrl: string = '') {
     this.baseUrl = baseUrl;
-    this.loadAuthFromStorage();
   }
 
   static getInstance(baseUrl: string = ''): ProductionApiClient {
@@ -77,83 +75,6 @@ class ProductionApiClient {
     return ProductionApiClient.instance;
   }
 
-  /**
-   * Set CSRF token
-   */
-  setCSRFToken(token: string): void {
-    this.csrfToken = token;
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('csrf_token', token);
-      // Also update in cookies for consistency
-      const expiryDate = new Date();
-      expiryDate.setDate(expiryDate.getDate() + 1); // 1 day expiry
-      document.cookie = `csrfToken=${token}; expires=${expiryDate.toUTCString()}; path=/; secure; samesite=strict`;
-    }
-  }
-
-  /**
-   * Clear authentication
-   */
-  clearAuth(): void {
-    this.csrfToken = null;
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('csrf_token');
-      // Clear CSRF cookie
-      document.cookie = 'csrfToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    }
-  }
-
-  /**
-   * Load auth from storage (only CSRF token, cookies are handled automatically)
-   */
-  private loadAuthFromStorage(): void {
-    if (typeof window !== 'undefined') {
-      // Try localStorage first
-      this.csrfToken = localStorage.getItem('csrf_token');
-      // If not in localStorage, try cookies
-      if (!this.csrfToken) {
-        this.csrfToken = this.getCSRFTokenFromCookies();
-      }
-    }
-  }
-
-  /**
-   * Get CSRF token from cookies if available
-   */
-  private getCSRFTokenFromCookies(): string | null {
-    if (typeof document === 'undefined') return null;
-    
-    // Try to get CSRF token from auth_tokens cookie
-    const authTokensCookie = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('auth_tokens='));
-    
-    if (authTokensCookie) {
-      try {
-        const cookieValue = authTokensCookie.split('=')[1];
-        if (cookieValue) {
-          const authTokens = JSON.parse(decodeURIComponent(cookieValue));
-          return authTokens.csrfToken || null;
-        }
-      } catch {
-        // Ignore parsing errors
-      }
-    }
-    
-    // Try to get from csrfToken cookie
-    const csrfCookie = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('csrfToken='));
-    
-    if (csrfCookie) {
-      const cookieValue = csrfCookie.split('=')[1];
-      if (cookieValue) {
-        return decodeURIComponent(cookieValue);
-      }
-    }
-    
-    return null;
-  }
 
   /**
    * Generic request method with retry logic and security
@@ -182,16 +103,9 @@ class ProductionApiClient {
     // Prepare headers
     const requestHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest', // Session-based protection header
       ...(typeof headers === 'object' && headers !== null ? headers as Record<string, string> : {}),
     };
-
-    // Add CSRF protection (try from storage first, then cookies)
-    if (!skipAuth) {
-      const csrfToken = this.csrfToken || this.getCSRFTokenFromCookies();
-      if (csrfToken) {
-        requestHeaders['X-CSRF-Token'] = csrfToken;
-      }
-    }
 
     // Prepare request config with credentials for cookie-based auth
     const config: RequestInit = {
@@ -227,14 +141,13 @@ class ProductionApiClient {
 
         // Handle authentication errors
         if (response.status === 401) {
-          this.clearAuth();
           return {
             status: 'error',
             message: 'Authentication required',
           };
         }
 
-        // Handle CSRF errors
+        // Handle session-based access errors
         if (response.status === 403) {
           return {
             status: 'error',
@@ -306,15 +219,6 @@ class ProductionApiClient {
         
         if (contentType.includes('application/json')) {
           const responseData = await response.json();
-          
-          // Update CSRF token if provided
-          const newCSRFToken = response.headers.get('X-CSRF-Token');
-          if (newCSRFToken) {
-            this.csrfToken = newCSRFToken;
-            if (typeof window !== 'undefined') {
-              localStorage.setItem('csrf_token', newCSRFToken);
-            }
-          }
           
           // Handle unified success format
           if (responseData.success === true && 'data' in responseData) {
@@ -444,21 +348,6 @@ export const apiClient = {
     return _apiClient.delete<T>(endpoint, options);
   },
   
-  setCSRFToken(token: string): void {
-    if (!_apiClient) {
-      const apiConfig = getApiConfig();
-      _apiClient = ProductionApiClient.getInstance(apiConfig.baseUrl);
-    }
-    _apiClient.setCSRFToken(token);
-  },
-  
-  clearAuth(): void {
-    if (!_apiClient) {
-      const apiConfig = getApiConfig();
-      _apiClient = ProductionApiClient.getInstance(apiConfig.baseUrl);
-    }
-    _apiClient.clearAuth();
-  }
 };
 
 export default apiClient;

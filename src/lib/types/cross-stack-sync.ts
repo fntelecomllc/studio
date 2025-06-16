@@ -371,7 +371,6 @@ export interface LoginResponseSynced {
   error?: string;                  // string `json:"error,omitempty"`
   requiresCaptcha?: boolean;       // bool   `json:"requires_captcha,omitempty"`
   sessionId?: string;              // string `json:"sessionId,omitempty"`
-  csrfToken?: string;              // string `json:"csrfToken,omitempty"` - Deprecated, handled server-side
   expiresAt?: string;              // string `json:"expiresAt,omitempty"`
 }
 
@@ -379,7 +378,6 @@ export interface LoginResponseSynced {
 export interface SecurityContextSynced {
   userId: string;                  // uuid.UUID `json:"userId"`
   sessionId: string;               // string    `json:"sessionId"`
-  csrfToken: string;               // string    `json:"csrfToken"` - Server-side only
   lastActivity: string;            // time.Time `json:"lastActivity"`
   sessionExpiry: string;           // time.Time `json:"sessionExpiry"`
   requiresPasswordChange: boolean; // bool      `json:"requiresPasswordChange"`

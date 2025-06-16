@@ -63,8 +63,8 @@ class AuthenticationFixTester {
       // Test 5: Session Validation Flow
       await this.testSessionValidationFlow();
 
-      // Test 6: CSRF Token Handling
-      await this.testCSRFTokenHandling();
+      // Test 6: Session-Based Authentication
+      await this.testSessionBasedAuthentication();
 
       // Test 7: Campaign Page Access
       await this.testCampaignPageAccess();
@@ -171,18 +171,10 @@ class AuthenticationFixTester {
     
     try {
       // Test by making a request to /api/v2/me to trigger backend permission loading
-      const csrfToken = authService.getCSRFToken();
-      
-      if (!csrfToken) {
-        this.addResult(testName, 'SKIP', 'No CSRF token available, cannot test backend loading');
-        return;
-      }
-
       const response = await fetch('/api/v2/me', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken,
         },
         credentials: 'include',
       });
@@ -417,15 +409,13 @@ class AuthenticationFixTester {
 
       // Check if session data is consistent after refresh
       const authState = authService.getAuthState();
-      const sessionId = authService.getSessionId();
-      const csrfToken = authService.getCSRFToken();
 
-      if (!sessionId || !csrfToken) {
+      if (!authState.isAuthenticated) {
         this.addResult(
           testName,
           'FAIL',
-          'Missing session data after refresh',
-          { hasSessionId: !!sessionId, hasCSRFToken: !!csrfToken }
+          'Session refresh did not maintain authentication state',
+          { isAuthenticated: authState.isAuthenticated }
         );
         return;
       }
@@ -436,9 +426,7 @@ class AuthenticationFixTester {
         'Session validation flow working correctly',
         {
           refreshSuccess: refreshResult,
-          isAuthenticated: authState.isAuthenticated,
-          hasSessionId: !!sessionId,
-          hasCSRFToken: !!csrfToken
+          isAuthenticated: authState.isAuthenticated
         }
       );
 
@@ -452,34 +440,22 @@ class AuthenticationFixTester {
     }
   }
 
-  private async testCSRFTokenHandling() {
-    const testName = 'csrf_token_handling';
+  private async testSessionBasedAuthentication() {
+    const testName = 'session_based_authentication';
     
     try {
-      const csrfToken = authService.getCSRFToken();
+      const authState = authService.getAuthState();
       
-      if (!csrfToken) {
-        this.addResult(testName, 'FAIL', 'No CSRF token available');
+      if (!authState.isAuthenticated) {
+        this.addResult(testName, 'FAIL', 'User not authenticated');
         return;
       }
 
-      // Test CSRF token format
-      if (typeof csrfToken !== 'string' || csrfToken.length < 32) {
-        this.addResult(
-          testName,
-          'FAIL',
-          'CSRF token has invalid format',
-          { tokenType: typeof csrfToken, tokenLength: csrfToken.length }
-        );
-        return;
-      }
-
-      // Test CSRF token in authenticated request
+      // Test session-based authenticated request
       const testResponse = await fetch('/api/v2/me', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken,
         },
         credentials: 'include',
       });
@@ -488,7 +464,7 @@ class AuthenticationFixTester {
         this.addResult(
           testName,
           'FAIL',
-          'CSRF token not accepted by backend',
+          'Session-based authentication failed',
           { status: testResponse.status, statusText: testResponse.statusText }
         );
         return;
@@ -497,15 +473,15 @@ class AuthenticationFixTester {
       this.addResult(
         testName,
         'PASS',
-        'CSRF token handling working correctly',
-        { tokenLength: csrfToken.length, requestSuccess: testResponse.ok }
+        'Session-based authentication working correctly',
+        { requestSuccess: testResponse.ok }
       );
 
     } catch (error) {
       this.addResult(
         testName,
         'FAIL',
-        'Error testing CSRF token handling',
+        'Error testing session-based authentication',
         { error: error instanceof Error ? error.message : String(error) }
       );
     }
@@ -530,17 +506,10 @@ class AuthenticationFixTester {
       }
 
       // Test making a request to campaigns API
-      const csrfToken = authService.getCSRFToken();
-      if (!csrfToken) {
-        this.addResult(testName, 'SKIP', 'No CSRF token for API test');
-        return;
-      }
-
       const campaignsResponse = await fetch('/api/v2/campaigns', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken,
         },
         credentials: 'include',
       });
@@ -621,26 +590,22 @@ class AuthenticationFixTester {
         }
 
         // Test admin API access
-        const csrfToken = authService.getCSRFToken();
-        if (csrfToken) {
-          const usersResponse = await fetch('/api/v2/users', {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRF-Token': csrfToken,
-            },
-            credentials: 'include',
-          });
+        const usersResponse = await fetch('/api/v2/users', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        });
 
-          if (usersResponse.status === 403) {
-            this.addResult(
-              testName,
-              'FAIL',
-              'Admin user cannot access user management API',
-              { status: usersResponse.status, hasUserManagement }
-            );
-            return;
-          }
+        if (usersResponse.status === 403) {
+          this.addResult(
+            testName,
+            'FAIL',
+            'Admin user cannot access user management API',
+            { status: usersResponse.status, hasUserManagement }
+          );
+          return;
         }
 
         this.addResult(

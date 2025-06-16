@@ -55,7 +55,6 @@ type DatabaseConfig struct {
 type EnvAuthConfig struct {
 	JWTSecret      string `json:"jwtSecret"`
 	SessionSecret  string `json:"sessionSecret"`
-	CSRFSecret     string `json:"csrfSecret"`
 	EncryptionKey  string `json:"encryptionKey"`
 	APIKeySalt     string `json:"apiKeySalt"`
 	SessionTimeout string `json:"sessionTimeout"`
@@ -106,7 +105,6 @@ func loadAuthConfig() *EnvAuthConfig {
 	return &EnvAuthConfig{
 		JWTSecret:      getEnvOrDefault("JWT_SECRET", ""),
 		SessionSecret:  getEnvOrDefault("SESSION_SECRET", ""),
-		CSRFSecret:     getEnvOrDefault("CSRF_SECRET", ""),
 		EncryptionKey:  getEnvOrDefault("ENCRYPTION_KEY", ""),
 		APIKeySalt:     getEnvOrDefault("API_KEY_SALT", ""),
 		SessionTimeout: getEnvOrDefault("SESSION_TIMEOUT", "24h"),

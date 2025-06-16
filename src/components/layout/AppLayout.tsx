@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, memo, useMemo, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AuthStatus } from '@/contexts/AuthContext';
 import { WebSocketStatusProvider } from '@/contexts/WebSocketStatusContext';
@@ -131,6 +132,17 @@ AppSidebar.displayName = 'AppSidebar';
 // Memoized main layout component for optimal performance
 const AppLayout = memo(({ children }: AppLayoutProps) => {
   const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
+
+  // SECURITY: Isolated routes that should bypass the main app layout
+  const isolatedRoutes = ['/dbgui'];
+  const isIsolatedRoute = isolatedRoutes.some(route => pathname?.startsWith(route));
+
+  // If this is an isolated route (like dbgui), render children directly without any app layout
+  if (isIsolatedRoute) {
+    console.log('[AppLayout] 🔒 SECURITY: Isolated route detected, bypassing main app layout:', pathname);
+    return <>{children}</>;
+  }
 
   // Optimized mounting effect with proper cleanup
   useEffect(() => {
@@ -194,33 +206,31 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
   }, []); // Empty dependency array - cleanup only on unmount
 
   return (
-    <AuthProvider>
-      <WebSocketStatusProvider>
-        <SidebarProvider>
-          <div className="min-h-screen bg-background flex" suppressHydrationWarning>
-            {/* Performance optimized conditional rendering - only after mount */}
-            {mounted && (
-              <>
-                <AuthStatus />
-                <MemoryMonitor position="bottom-right" />
-              </>
-            )}
-            
-            <AppSidebar />
-            
-            {/* Main content area with optimized structure */}
-            <main className="flex-1 flex flex-col">
-              <div className="p-4 border-b">
-                <SidebarTrigger className="lg:hidden" />
-              </div>
-              <div className="flex-1 p-6">
-                {children}
-              </div>
-            </main>
-          </div>
-        </SidebarProvider>
-      </WebSocketStatusProvider>
-    </AuthProvider>
+    <WebSocketStatusProvider>
+      <SidebarProvider>
+        <div className="min-h-screen bg-background flex" suppressHydrationWarning>
+          {/* Performance optimized conditional rendering - only after mount */}
+          {mounted && (
+            <>
+              <AuthStatus />
+              <MemoryMonitor position="bottom-right" />
+            </>
+          )}
+          
+          <AppSidebar />
+          
+          {/* Main content area with optimized structure */}
+          <main className="flex-1 flex flex-col">
+            <div className="p-4 border-b">
+              <SidebarTrigger className="lg:hidden" />
+            </div>
+            <div className="flex-1 p-6">
+              {children}
+            </div>
+          </main>
+        </div>
+      </SidebarProvider>
+    </WebSocketStatusProvider>
   );
 });
 

@@ -610,7 +610,7 @@ curl http://localhost:3000/api/health  # Frontend health check
 The application uses session-based authentication with HTTP-only cookies:
 
 1. **Web Interface**: Automatic session handling via secure HTTP-only cookies
-2. **API Access**: Session cookies with X-Requested-With header for CSRF protection
+2. **API Access**: Session cookies with X-Requested-With header for request validation
 
 ```bash
 # Example API call with curl (after login)
@@ -1125,7 +1125,7 @@ DomainFlow implements a secure, production-ready session-based authentication sy
 
 **API Authentication:**
 - **Session Cookies**: HTTP-only cookies for all API access
-- **CSRF Protection**: X-Requested-With header required for state-changing operations
+- **Request Validation**: X-Requested-With header required for state-changing operations to prevent unauthorized requests
 - **CORS Configuration**: Configurable origins for cross-origin requests
 
 ### Security Features

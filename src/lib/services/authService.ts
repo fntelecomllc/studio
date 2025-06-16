@@ -1,12 +1,11 @@
 // src/lib/services/authService.ts
-// Enhanced authentication service with CSRF, session management, and security features
+// Enhanced authentication service with session management and security features
 import { getApiBaseUrl } from '@/lib/config';
 import { apiClient } from '@/lib/services/apiClient.production';
 import {
   logAuthOperation,
   logApiCall,
   logSessionEvent,
-  logCSRFEvent,
   logSecurityEvent,
   logPerformanceMetrics,
   logAuthFlow,
@@ -54,8 +53,7 @@ export interface LoginCredentials {
 }
 
 export interface AuthTokens {
-  sessionId: string;
-  csrfToken: string;
+  sessionActive: boolean;  // Simple flag indicating session exists
   expiresAt: number;
 }
 
@@ -97,7 +95,6 @@ class AuthService {
   }
   private refreshTimer: NodeJS.Timeout | null = null;
   private sessionCheckTimer: NodeJS.Timeout | null = null;
-  private csrfToken: string | null = null;
 
   static getInstance(): AuthService {
     if (!AuthService.instance) {
@@ -113,11 +110,9 @@ class AuthService {
     
     try {
       const tokens = this.getStoredTokens();
-      logAuth.init('Stored tokens analysis', {
-        hasTokens: !!tokens,
+      logAuth.init('Stored session analysis', {
+        hasSession: !!tokens,
         isValid: tokens ? this.isTokenValid(tokens) : false,
-        sessionId: tokens?.sessionId,
-        csrfTokenLength: tokens?.csrfToken?.length || 0,
         expiresAt: tokens?.expiresAt ? new Date(tokens.expiresAt).toISOString() : null,
         timeUntilExpiry: tokens?.expiresAt ? Math.round((tokens.expiresAt - Date.now()) / 1000) : null
       });
@@ -133,8 +128,6 @@ class AuthService {
           isLoading: true, // Keep loading true while user data loads
           sessionExpiry: tokens.expiresAt
         });
-        this.csrfToken = tokens.csrfToken;
-        apiClient.setCSRFToken(tokens.csrfToken);
         
         // Start session management immediately
         this.scheduleTokenRefresh(tokens);
@@ -193,7 +186,6 @@ class AuthService {
         hasUser: !!this.authState.user,
         userId: this.authState.user?.id,
         hasTokens: !!this.authState.tokens,
-        hasCSRFToken: !!this.csrfToken,
         isLoading: this.authState.isLoading,
         sessionExpiry: this.authState.sessionExpiry ? new Date(this.authState.sessionExpiry).toISOString() : null
       });
@@ -238,6 +230,7 @@ class AuthService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest', // Session-based protection header
         },
         credentials: 'include', // Include cookies for session
         body: requestBody,
@@ -313,8 +306,8 @@ class AuthService {
       const data: LoginResponse = await response.json();
       const parseDuration = performance.now() - parseStart;
       
-      // Check if login was successful
-      if (!data.success || !data.user || !data.sessionId || !data.csrfToken || !data.expiresAt) {
+      // Check if login was successful (session-based auth)
+      if (!data.success || !data.user || !data.expiresAt) {
         logAuthFlow('login_failed', 7, 7, false, performance.now() - startTime, {
           error: data.error || 'Invalid response structure',
         } as Record<string, unknown>);
@@ -324,38 +317,18 @@ class AuthService {
       
       logAuthFlow('response_parsed', 3, 7, true, parseDuration, {
         user_id: data.user.id,
-        session_id: data.sessionId,
       });
       
-      // Step 5: Process tokens
-      const tokenStart = performance.now();
+      // Step 5: Process session info
+      const sessionStart = performance.now();
       const tokens: AuthTokens = {
-        sessionId: data.sessionId,
-        csrfToken: data.csrfToken,
+        sessionActive: true,
         expiresAt: new Date(data.expiresAt).getTime()
       };
       
-      // Set CSRF token for future requests
-      this.csrfToken = data.csrfToken;
-      // CRITICAL: Update apiClient with the new CSRF token
-      apiClient.setCSRFToken(data.csrfToken);
+      const sessionDuration = performance.now() - sessionStart;
       
-      const tokenDuration = performance.now() - tokenStart;
-      
-      // Log CSRF token received
-      logCSRFEvent(
-        'csrf_token_received',
-        true,
-        data.sessionId,
-        {
-          token_length: data.csrfToken.length,
-          processing_duration: tokenDuration,
-        }
-      );
-      
-      logAuthFlow('tokens_processed', 4, 7, true, tokenDuration, {
-        session_id: data.sessionId,
-        csrf_token_length: data.csrfToken.length,
+      logAuthFlow('session_processed', 4, 7, true, sessionDuration, {
         expires_at: data.expiresAt,
       });
 
@@ -378,7 +351,7 @@ class AuthService {
         previousState,
         'authenticated',
         data.user.id,
-        data.sessionId,
+        'session_cookie', // Session ID is in HTTP-only cookie
         {
           state_update_duration: stateDuration,
         }
@@ -401,7 +374,7 @@ class AuthService {
       
       // Log session setup
       const sessionMetrics: SessionMetrics = {
-        sessionId: data.sessionId,
+        sessionId: 'session_cookie', // Session ID is in cookie only
         expiresAt: data.expiresAt,
         lastActivity: new Date().toISOString(),
         renewalCount: 0,
@@ -428,7 +401,7 @@ class AuthService {
         'INFO',
         'login_success',
         data.user.id,
-        data.sessionId,
+        'session_cookie',
         totalDuration,
         true,
         undefined,
@@ -449,11 +422,10 @@ class AuthService {
           riskScore: 0,
           threatLevel: 'low',
           suspiciousActivity: false,
-          csrfTokenValid: true,
           sessionHijackingAttempt: false,
         },
         data.user.id,
-        data.sessionId,
+        'session_cookie',
         {
           email: credentials.email,
           user_agent: navigator.userAgent,
@@ -475,7 +447,7 @@ class AuthService {
           url_resolution_time: urlDuration,
           request_preparation_time: performance.now() - requestStart - apiDuration,
           response_parsing_time: parseDuration,
-          token_processing_time: tokenDuration,
+          token_processing_time: sessionDuration,
           state_update_time: stateDuration,
           session_setup_time: setupDuration,
           request_size_bytes: requestSize,
@@ -485,7 +457,6 @@ class AuthService {
       
       logAuthFlow('login_complete', 7, 7, true, totalDuration, {
         user_id: data.user.id,
-        session_id: data.sessionId,
         total_duration: totalDuration,
       });
       
@@ -543,21 +514,18 @@ class AuthService {
   // Logout
   async logout(): Promise<void> {
     try {
-      const tokens = this.authState.tokens;
-      if (tokens) {
-        const baseUrl = await getApiBaseUrl();
-        // Attempt to notify server of logout (fire and forget)
-        fetch(`${baseUrl}/api/v2/auth/logout`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': tokens.csrfToken,
-          },
-          credentials: 'include',
-        }).catch(() => {
-          // Ignore errors - we're logging out anyway
-        });
-      }
+      const baseUrl = await getApiBaseUrl();
+      // Attempt to notify server of logout (fire and forget)
+      fetch(`${baseUrl}/api/v2/auth/logout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest', // Session-based protection header
+        },
+        credentials: 'include',
+      }).catch(() => {
+        // Ignore errors - we're logging out anyway
+      });
       
       // Log security event
       if (this.authState.user) {
@@ -565,15 +533,13 @@ class AuthService {
       }
     } finally {
       this.clearAuth();
-      // Clear CSRF token from apiClient
-      apiClient.clearAuth();
     }
   }
 
-  // Refresh session
+  // Refresh session - extends session without any tokens
   async refreshSession(): Promise<boolean> {
     const tokens = this.authState.tokens;
-    if (!tokens?.sessionId) {
+    if (!tokens?.sessionActive) {
       this.clearAuth();
       return false;
     }
@@ -584,14 +550,13 @@ class AuthService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': tokens.csrfToken,
+          'X-Requested-With': 'XMLHttpRequest', // Session-based protection header
         },
         credentials: 'include',
-        body: JSON.stringify({ sessionId: tokens.sessionId }),
       });
 
       if (!response.ok) {
-        // CRITICAL FIX: Only clear auth state for definitive authentication failures
+        // Only clear auth state for definitive authentication failures
         if (response.status === 401 || response.status === 403) {
           console.log('[AuthService] Session refresh failed - authentication invalid, clearing auth state');
           this.clearAuth();
@@ -606,23 +571,17 @@ class AuthService {
 
       const data: RefreshSessionResponse = await response.json();
       const newTokens: AuthTokens = {
-        sessionId: data.sessionId,
-        csrfToken: data.csrfToken,
+        sessionActive: true,
         expiresAt: new Date(data.expiresAt).getTime()
       };
-
-      this.csrfToken = data.csrfToken;
-      // Update apiClient with refreshed CSRF token
-      apiClient.setCSRFToken(data.csrfToken);
       
       this.updateTokens(newTokens);
-      this.storeTokens(newTokens);
       this.scheduleTokenRefresh(newTokens);
       
       console.log('[AuthService] Session refresh successful');
       return true;
     } catch (error) {
-      // CRITICAL FIX: Don't clear auth state for network errors - they're likely temporary
+      // Don't clear auth state for network errors - they're likely temporary
       console.error('[AuthService] Session refresh failed with network error:', error);
       console.warn('[AuthService] Keeping auth state - network error is likely temporary');
       
@@ -654,7 +613,7 @@ class AuthService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': tokens.csrfToken,
+          'X-Requested-With': 'XMLHttpRequest', // Session-based protection header
         },
         credentials: 'include',
         body: JSON.stringify({
@@ -803,14 +762,9 @@ class AuthService {
     };
   }
 
-  // Get current CSRF token
-  getCSRFToken(): string | null {
-    return this.csrfToken || this.authState.tokens?.csrfToken || null;
-  }
-
-  // Get current session ID
-  getSessionId(): string | null {
-    return this.authState.tokens?.sessionId || null;
+  // Check if session is active
+  isSessionActive(): boolean {
+    return this.authState.tokens?.sessionActive || false;
   }
 
   // Get current auth state
@@ -857,7 +811,7 @@ class AuthService {
 
       const response = await fetch(`${baseUrl}/api/v2/users?page=${page}&limit=${limit}`, {
         headers: {
-          'X-CSRF-Token': tokens.csrfToken,
+          'X-Requested-With': 'XMLHttpRequest', // Session-based protection header
         },
         credentials: 'include',
       });
@@ -888,7 +842,7 @@ class AuthService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': tokens.csrfToken,
+          'X-Requested-With': 'XMLHttpRequest', // Session-based protection header
         },
         credentials: 'include',
         body: JSON.stringify(userData),
@@ -920,7 +874,7 @@ class AuthService {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': tokens.csrfToken,
+          'X-Requested-With': 'XMLHttpRequest', // Session-based protection header
         },
         credentials: 'include',
         body: JSON.stringify(userData),
@@ -951,7 +905,7 @@ class AuthService {
       const response = await fetch(`${baseUrl}/api/v2/users/${userId}`, {
         method: 'DELETE',
         headers: {
-          'X-CSRF-Token': tokens.csrfToken,
+          'X-Requested-With': 'XMLHttpRequest', // Session-based protection header
         },
         credentials: 'include',
       });
@@ -980,7 +934,7 @@ class AuthService {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': tokens.csrfToken,
+          'X-Requested-With': 'XMLHttpRequest', // Session-based protection header
         },
         credentials: 'include',
       });
@@ -1030,9 +984,6 @@ class AuthService {
         sessionExpiry: tokens.expiresAt
       });
       
-      this.csrfToken = tokens.csrfToken;
-      // Ensure apiClient has the CSRF token
-      apiClient.setCSRFToken(tokens.csrfToken);
       
       console.log(`[AuthService] User validation successful - auth state updated`);
     } catch (error) {
@@ -1144,9 +1095,6 @@ class AuthService {
     this.authState.tokens = tokens;
     this.authState.sessionExpiry = tokens.expiresAt;
     // Keep internal reference in sync
-    this.csrfToken = tokens.csrfToken;
-    // Propagate to api client for REST calls
-    apiClient.setCSRFToken(tokens.csrfToken);
     this.notifyListeners();
     // Broadcast that fresh authentication tokens are available
     this.emit('token_refreshed');
@@ -1162,10 +1110,6 @@ class AuthService {
     this.clearRefreshTimer();
     this.clearSessionCheckTimer();
     this.clearStoredTokens();
-    this.csrfToken = null;
-    
-    // Clear CSRF token from apiClient
-    apiClient.clearAuth();
     
     // CRITICAL: Ensure state is completely cleared and synchronized
     this.authState = {
@@ -1199,9 +1143,6 @@ class AuthService {
         const isProduction = window.location.protocol === 'https:';
         const cookieOptions = `expires=${expiryDate.toUTCString()}; path=/; ${isProduction ? 'secure; ' : ''}samesite=lax`;
         
-        // Store individual tokens for easier access (using backend-expected names)
-        document.cookie = `session_id=${tokens.sessionId}; ${cookieOptions}`;
-        document.cookie = `csrfToken=${tokens.csrfToken}; ${cookieOptions}`;
         
         // Note: auth_tokens cookie might be too large, so we avoid storing the full object
         // The backend's domainflow_session cookie should handle the session
@@ -1234,8 +1175,6 @@ class AuthService {
         const cookieOptions = `expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; ${isProduction ? 'secure; ' : ''}samesite=lax`;
         
         document.cookie = `auth_tokens=; ${cookieOptions}`;
-        document.cookie = `session_id=; ${cookieOptions}`;
-        document.cookie = `csrfToken=; ${cookieOptions}`;
         document.cookie = `domainflow_session=; ${cookieOptions}`;
         document.cookie = `session=; ${cookieOptions}`;
         console.log('[AuthService] Tokens cleared from localStorage and cookies');
@@ -1335,9 +1274,6 @@ export function useAuth() {
   return authService.getAuthState();
 }
 
-export function getCSRFToken(): string | null {
-  return authService.getCSRFToken();
-}
 
 export function isAuthenticated(): boolean {
   return authService.getAuthState().isAuthenticated;

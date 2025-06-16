@@ -32,8 +32,6 @@ interface AuthContextType extends AuthState {
   hasAnyRole: (roles: string[]) => boolean;
   hasAllPermissions: (permissions: string[]) => boolean;
   isSessionExpiringSoon: () => boolean;
-  getCSRFToken: () => string | null;
-  getSessionId: () => string | null;
   isInitialized: boolean;
   // User management (admin only)
   getUsers: (page?: number, limit?: number) => Promise<AuthResponse<UserListResponse>>;
@@ -306,13 +304,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return authService.isSessionExpiringSoon();
   }, []);
 
-  const getCSRFToken = useCallback((): string | null => {
-    return authService.getCSRFToken();
-  }, []);
 
-  const getSessionId = useCallback((): string | null => {
-    return authService.getSessionId();
-  }, []);
 
   // User management functions (admin only)
   const getUsers = useCallback(async (page?: number, limit?: number) => {
@@ -347,8 +339,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     hasAnyRole,
     hasAllPermissions,
     isSessionExpiringSoon,
-    getCSRFToken,
-    getSessionId,
     isInitialized,
     getUsers,
     createUser,
@@ -371,8 +361,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     hasAnyRole,
     hasAllPermissions,
     isSessionExpiringSoon,
-    getCSRFToken,
-    getSessionId,
     getUsers,
     createUser,
     updateUser,

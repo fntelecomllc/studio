@@ -3,7 +3,6 @@ package config
 // Cookie names - shared between frontend and backend
 const (
 	SessionCookieName    = "sessionId"
-	CSRFCookieName       = "csrfToken"
 	AuthTokensCookieName = "auth_tokens"
 
 	// Legacy cookie name for backward compatibility

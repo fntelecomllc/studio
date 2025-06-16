@@ -44,8 +44,8 @@ export interface SessionEventDetails {
   metadata?: Record<string, string | number | boolean>;
 }
 
-export interface CSRFEventDetails {
-  token_valid?: boolean;
+export interface SessionEventDetails {
+  session_valid?: boolean;
   tokenSource?: string;
   expectedToken?: string;
   actualToken?: string;
@@ -101,7 +101,7 @@ export interface AuthFlowDetails {
   session_id?: string;
   error?: string;
   status_code?: number;
-  csrf_token_length?: number;
+  session_token_length?: number;
   user_roles?: string;
   total_duration?: number;
   error_type?: string;
@@ -122,7 +122,7 @@ export interface SessionStateChangeDetails {
 export interface AuthLogEntry {
   timestamp: string;
   level: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR';
-  category: 'AUTH' | 'SESSION' | 'CSRF' | 'PASSWORD' | 'API' | 'SECURITY' | 'PERFORMANCE';
+  category: 'AUTH' | 'SESSION' | 'PASSWORD' | 'API' | 'SECURITY' | 'PERFORMANCE';
   operation: string;
   userId?: string;
   sessionId?: string;
@@ -130,7 +130,7 @@ export interface AuthLogEntry {
   success?: boolean;
   errorCode?: string;
   errorMessage?: string;
-  details?: AuthOperationDetails | ApiCallDetails | SessionEventDetails | CSRFEventDetails | PasswordEventDetails | SecurityEventDetails | PerformanceEventDetails | AuthFlowDetails | SessionStateChangeDetails;
+  details?: AuthOperationDetails | ApiCallDetails | SessionEventDetails | PasswordEventDetails | SecurityEventDetails | PerformanceEventDetails | AuthFlowDetails | SessionStateChangeDetails;
   userAgent: string;
   url: string;
   requestId?: string;
@@ -159,7 +159,6 @@ export interface SecurityMetrics {
   riskScore: number;
   threatLevel: 'low' | 'medium' | 'high' | 'critical';
   suspiciousActivity: boolean;
-  csrfTokenValid?: boolean;
   sessionHijackingAttempt?: boolean;
   deviceFingerprint?: string;
 }
@@ -294,31 +293,7 @@ class AuthLogger {
     });
   }
 
-  // Log CSRF token operations
-  logCSRFEvent(
-    operation: string,
-    tokenValid: boolean,
-    sessionId?: string,
-    details?: CSRFEventDetails
-  ): void {
-    const level = tokenValid ? 'INFO' : 'WARN';
-    
-    this.log({
-      timestamp: new Date().toISOString(),
-      level,
-      category: 'CSRF',
-      operation,
-      sessionId,
-      success: tokenValid,
-      details: {
-        ...details,
-        token_valid: tokenValid,
-      },
-      userAgent: this.getUserAgent(),
-      url: this.getCurrentUrl(),
-      requestId: this.generateRequestId(),
-    });
-  }
+  
 
   // Log password operations
   logPasswordEvent(
@@ -591,14 +566,6 @@ export function logSessionEvent(
   authLogger.logSessionEvent(operation, sessionMetrics, success, details);
 }
 
-export function logCSRFEvent(
-  operation: string,
-  tokenValid: boolean,
-  sessionId?: string,
-  details?: CSRFEventDetails
-): void {
-  authLogger.logCSRFEvent(operation, tokenValid, sessionId, details);
-}
 
 export function logPasswordEvent(
   operation: string,

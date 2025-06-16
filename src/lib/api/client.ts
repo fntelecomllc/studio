@@ -1,5 +1,5 @@
 // src/lib/api/client.ts
-// Enhanced API Client for session-based authentication - removes CSRF token handling
+// Enhanced API Client for session-based authentication
 import type { ApiResponse } from '@/lib/types';
 import { getApiConfig } from '@/lib/config/environment';
 
@@ -93,10 +93,10 @@ class SessionApiClient {
       });
     }
 
-    // Prepare headers - NO CSRF token handling
+    // Prepare headers - session-based authentication
     const requestHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
-      'X-Requested-With': 'XMLHttpRequest', // CSRF protection header
+      'X-Requested-With': 'XMLHttpRequest', // Session-based protection header
       ...(typeof headers === 'object' && headers !== null ? headers as Record<string, string> : {}),
     };
 
@@ -142,7 +142,7 @@ class SessionApiClient {
           };
         }
 
-        // Handle CSRF/access errors
+        // Handle session-based access errors
         if (response.status === 403) {
           return {
             status: 'error',

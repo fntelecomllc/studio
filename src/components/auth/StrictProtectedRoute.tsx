@@ -4,7 +4,7 @@
 
 import React, { ReactNode, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { useAuth } from '@/lib/stores/auth';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Lock, AlertTriangle, Shield, Clock } from 'lucide-react';

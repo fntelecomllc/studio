@@ -351,7 +351,7 @@ func main() {
 	// Protected routes with session authentication only
 	apiV2 := router.Group("/api/v2")
 	apiV2.Use(authMiddleware.SessionAuth())
-	apiV2.Use(securityMiddleware.CSRFProtection()) // CSRF protection for session-based requests
+	apiV2.Use(securityMiddleware.SessionProtection()) // Session-based protection for session-based requests
 	{
 		// Session-based user management routes (admin only)
 		userRoutes := apiV2.Group("/users")
@@ -450,7 +450,7 @@ func main() {
 	// V2 Campaign routes with permission-based access control (outside v2 context)
 	campaignApiV2 := router.Group("/api/v2")
 	campaignApiV2.Use(authMiddleware.SessionAuth())
-	campaignApiV2.Use(securityMiddleware.CSRFProtection())
+	campaignApiV2.Use(securityMiddleware.SessionProtection())
 	newCampaignRoutesGroup := campaignApiV2.Group("/campaigns")
 	campaignOrchestratorAPIHandler.RegisterCampaignOrchestrationRoutes(newCampaignRoutesGroup, authMiddleware)
 	log.Println("Registered new campaign orchestration routes under /api/v2/campaigns.")

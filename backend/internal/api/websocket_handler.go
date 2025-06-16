@@ -135,25 +135,30 @@ func NewWebSocketHandler(hub internalwebsocket.Broadcaster, authService *service
 // HandleConnections upgrades HTTP GET requests to WebSocket connections.
 func (h *WebSocketHandler) HandleConnections(c *gin.Context) {
 	// Session-based authentication: Validate session before upgrading to WebSocket
-	sessionID, err := c.Cookie("session_id")
+	// Try the primary session cookie name first
+	sessionID, err := c.Cookie("domainflow_session")
 	if err != nil {
-		log.Printf("WebSocket connection rejected: no session cookie")
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
-		return
+		// Try legacy cookie name for backward compatibility
+		sessionID, err = c.Cookie("session_id")
+		if err != nil {
+			log.Printf("WebSocket connection rejected: no session cookie found")
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+			return
+		}
 	}
 
-	// CSRF protection through origin validation and custom headers (no tokens)
+	// Origin validation for cross-site request protection (no token-based CSRF needed)
 	origin := c.GetHeader("Origin")
 	customHeader := c.GetHeader("X-Requested-With")
 	
-	// Validate origin for CSRF protection
+	// Validate origin for cross-site request protection
 	if !h.isValidOrigin(origin) {
 		log.Printf("WebSocket connection rejected: invalid origin '%s'", origin)
 		c.JSON(http.StatusForbidden, gin.H{"error": "Invalid origin"})
 		return
 	}
 
-	// For additional CSRF protection, require custom header from non-same-origin requests
+	// For additional cross-site protection, require custom header from non-same-origin requests
 	if origin != "" && customHeader != "XMLHttpRequest" {
 		log.Printf("WebSocket connection rejected: missing required custom header")
 		c.JSON(http.StatusForbidden, gin.H{"error": "Invalid request headers"})
@@ -208,7 +213,7 @@ func (h *WebSocketHandler) HandleConnections(c *gin.Context) {
 	log.Printf("WebSocket client connected for user: %s (IP: %s) with session-based authentication", sessionInfo.UserID, clientIP)
 }
 
-// isValidOrigin validates the origin for CSRF protection
+// isValidOrigin validates the origin for cross-site request protection
 func (h *WebSocketHandler) isValidOrigin(origin string) bool {
 	if origin == "" {
 		// Allow same-origin requests (no origin header)

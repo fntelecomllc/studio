@@ -68,8 +68,8 @@ class AuthFlowDiagnosticsTool {
       // Step 5: Check session validation
       await this.checkSessionValidation();
 
-      // Step 6: Check CSRF token
-      await this.checkCSRFToken();
+      // Step 6: Check session-based authentication
+      await this.checkSessionBasedAuth();
 
       // Step 7: Check API connectivity
       await this.checkAPIConnectivity();
@@ -104,7 +104,7 @@ class AuthFlowDiagnosticsTool {
       }
 
       // Check if authService methods exist
-      const requiredMethods = ['getAuthState', 'hasPermission', 'hasRole', 'getCSRFToken', 'getSessionId'];
+      const requiredMethods = ['getAuthState', 'hasPermission', 'hasRole'];
       const missingMethods = requiredMethods.filter(method => typeof (authService as any)[method] !== 'function');
       
       if (missingMethods.length > 0) {
@@ -146,7 +146,7 @@ class AuthFlowDiagnosticsTool {
       }
 
       // Check token structure
-      const requiredFields = ['sessionId', 'csrfToken', 'expiresAt'];
+      const requiredFields = ['sessionId', 'expiresAt'];
       const missingFields = requiredFields.filter(field => !parsedTokens[field]);
       
       if (missingFields.length > 0) {
@@ -341,10 +341,10 @@ class AuthFlowDiagnosticsTool {
 
   private async checkSessionValidation() {
     try {
-      const sessionId = authService.getSessionId();
+      const authState = authService.getAuthState();
       
-      if (!sessionId) {
-        this.addResult('session_validation', 'warning', 'No session ID available');
+      if (!authState.isAuthenticated) {
+        this.addResult('session_validation', 'warning', 'User not authenticated');
         return;
       }
 
@@ -355,7 +355,7 @@ class AuthFlowDiagnosticsTool {
         'session_validation',
         isValid ? 'success' : 'error',
         isValid ? 'Session validation successful' : 'Session validation failed',
-        { sessionId, isValid }
+        { isValid }
       );
 
     } catch (error) {
@@ -368,38 +368,45 @@ class AuthFlowDiagnosticsTool {
     }
   }
 
-  private async checkCSRFToken() {
+  private async checkSessionBasedAuth() {
     try {
-      const csrfToken = authService.getCSRFToken();
+      const authState = authService.getAuthState();
       
-      if (!csrfToken) {
-        this.addResult('csrf_token', 'error', 'No CSRF token available');
+      if (!authState.isAuthenticated) {
+        this.addResult('session_auth', 'warning', 'User not authenticated');
         return;
       }
 
-      // Check token format
-      if (typeof csrfToken !== 'string' || csrfToken.length < 32) {
+      // Test session-based authenticated request
+      const testResponse = await fetch('/api/v2/me', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (testResponse.ok) {
         this.addResult(
-          'csrf_token',
-          'error',
-          'CSRF token appears invalid',
-          { tokenLength: csrfToken.length, tokenType: typeof csrfToken }
+          'session_auth',
+          'success',
+          'Session-based authentication working correctly',
+          { status: testResponse.status }
         );
-        return;
+      } else {
+        this.addResult(
+          'session_auth',
+          'error',
+          'Session-based authentication failed',
+          { status: testResponse.status, statusText: testResponse.statusText }
+        );
       }
-
-      this.addResult(
-        'csrf_token',
-        'success',
-        'CSRF token available and valid format',
-        { tokenLength: csrfToken.length }
-      );
 
     } catch (error) {
       this.addResult(
-        'csrf_token',
+        'session_auth',
         'error',
-        'Error checking CSRF token',
+        'Error checking session-based authentication',
         { error: error instanceof Error ? error.message : String(error) }
       );
     }
@@ -509,8 +516,7 @@ class AuthFlowDiagnosticsTool {
         },
         cookies: {
           available: typeof document !== 'undefined',
-          sessionId: null as string | null,
-          csrfToken: null as string | null
+          sessionId: null as string | null
         }
       };
 
@@ -536,7 +542,6 @@ class AuthFlowDiagnosticsTool {
         }, {} as Record<string, string>);
 
         storageChecks.cookies.sessionId = cookies.session_id || null;
-        storageChecks.cookies.csrfToken = cookies.csrfToken || null;
       }
 
       this.addResult(
@@ -566,15 +571,11 @@ class AuthFlowDiagnosticsTool {
         return;
       }
 
-      const csrfToken = authService.getCSRFToken();
-      const sessionId = authService.getSessionId();
-
       // Check if we can make an authenticated request
       const testResponse = await fetch('/api/v2/me', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
         },
         credentials: 'include',
       });

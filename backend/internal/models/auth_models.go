@@ -41,12 +41,23 @@ type User struct {
 	UpdatedAt                time.Time  `json:"updatedAt" db:"updated_at"`
 
 	// Computed fields (not stored in DB)
+	Name        string       `json:"name,omitempty" db:"-"`
 	Roles       []Role       `json:"roles,omitempty" db:"-"`
 	Permissions []Permission `json:"permissions,omitempty" db:"-"`
 }
 
 // PublicUser returns a user struct with sensitive fields removed
 func (u *User) PublicUser() *User {
+	// Compute full name from firstName and lastName
+	fullName := ""
+	if u.FirstName != "" && u.LastName != "" {
+		fullName = u.FirstName + " " + u.LastName
+	} else if u.FirstName != "" {
+		fullName = u.FirstName
+	} else if u.LastName != "" {
+		fullName = u.LastName
+	}
+
 	return &User{
 		ID:                 u.ID,
 		Email:              u.Email,
@@ -57,11 +68,13 @@ func (u *User) PublicUser() *User {
 		IsActive:           u.IsActive,
 		IsLocked:           u.IsLocked,
 		LastLoginAt:        u.LastLoginAt,
+		LastLoginIP:        u.LastLoginIP,
 		MustChangePassword: u.MustChangePassword,
 		MFAEnabled:         u.MFAEnabled,
 		MFALastUsedAt:      u.MFALastUsedAt,
 		CreatedAt:          u.CreatedAt,
 		UpdatedAt:          u.UpdatedAt,
+		Name:               fullName,
 		Roles:              u.Roles,
 		Permissions:        u.Permissions,
 	}
@@ -178,7 +191,6 @@ type LoginResponse struct {
 	Error           string `json:"error,omitempty"`
 	RequiresCaptcha bool   `json:"requires_captcha,omitempty"`
 	SessionID       string `json:"sessionId,omitempty"`
-	CSRFToken       string `json:"csrfToken,omitempty"`
 	ExpiresAt       string `json:"expiresAt,omitempty"`
 }
 
@@ -228,7 +240,6 @@ type AuthResult struct {
 type SecurityContext struct {
 	UserID                 uuid.UUID `json:"userId"`
 	SessionID              string    `json:"sessionId"`
-	CSRFToken              string    `json:"csrfToken"`
 	LastActivity           time.Time `json:"lastActivity"`
 	SessionExpiry          time.Time `json:"sessionExpiry"`
 	RequiresPasswordChange bool      `json:"requiresPasswordChange"`

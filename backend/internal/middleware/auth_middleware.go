@@ -80,7 +80,7 @@ func (m *AuthMiddleware) SessionAuth() gin.HandlerFunc {
 			return
 		}
 
-		// Enhanced CSRF protection through origin validation (instead of tokens)
+		// Enhanced session-based CSRF protection through origin validation
 		if !m.validateRequestOrigin(c) {
 			duration := time.Since(startTime)
 			
@@ -213,7 +213,7 @@ func (m *AuthMiddleware) SessionAuth() gin.HandlerFunc {
 		if err != nil {
 			duration := time.Since(startTime)
 
-			// Clear invalid session cookies (simplified - no CSRF or auth tokens)
+			// Clear invalid session cookies (session-based approach)
 			m.clearSessionCookies(c)
 
 			// Log session validation failure
@@ -528,7 +528,7 @@ func (m *AuthMiddleware) RequireResourceAccess(resource, action string) gin.Hand
 	}
 }
 
-// validateRequestOrigin checks if the request origin is allowed for CSRF protection
+// validateRequestOrigin checks if the request origin is allowed for session-based CSRF protection
 func (m *AuthMiddleware) validateRequestOrigin(c *gin.Context) bool {
 	origin := c.GetHeader("Origin")
 	referer := c.GetHeader("Referer")
@@ -563,7 +563,7 @@ func (m *AuthMiddleware) validateRequestOrigin(c *gin.Context) bool {
 		}
 	}
 
-	// For API requests, require custom header as additional CSRF protection
+	// For API requests, require custom header as additional session-based CSRF protection
 	if m.config.RequireCustomHeader {
 		headerValue := c.GetHeader(m.config.CustomHeaderName)
 		if !m.config.ValidateCustomHeader(headerValue) {
@@ -590,7 +590,6 @@ func (m *AuthMiddleware) clearSessionCookies(c *gin.Context) {
 
 	// Clear legacy cookies for backward compatibility
 	c.SetCookie(config.LegacySessionCookieName, "", -1, config.CookiePath, "", config.CookieSecure, config.CookieHttpOnly)
-	c.SetCookie(config.CSRFCookieName, "", -1, config.CookiePath, "", config.CookieSecure, false)
 	c.SetCookie(config.AuthTokensCookieName, "", -1, config.CookiePath, "", config.CookieSecure, false)
 }
 

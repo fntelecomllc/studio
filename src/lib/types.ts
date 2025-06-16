@@ -418,10 +418,12 @@ export interface User {
   emailVerified: boolean;
   firstName: string;
   lastName: string;
+  name?: string;
   avatarUrl?: string;
   isActive: boolean;
   isLocked: boolean;
   lastLoginAt?: string;
+  lastLoginIp?: string;
   mustChangePassword: boolean;
   mfaEnabled: boolean;
   mfaLastUsedAt?: string;
@@ -520,7 +522,6 @@ export interface RateLimit {
 export interface SecurityContext {
   userId: string;
   sessionId: string;
-  csrfToken: string;
   lastActivity: string;
   sessionExpiry: string;
   requiresPasswordChange: boolean;
@@ -546,14 +547,11 @@ export interface LoginResponse {
   error?: string;
   requires_captcha?: boolean;
   sessionId?: string;
-  csrfToken?: string;
   expiresAt?: string;
 }
 
 // Refresh Session Response - matches backend RefreshSessionResponse exactly
 export interface RefreshSessionResponse {
-  sessionId: string;
-  csrfToken: string;
   expiresAt: string;
 }
 

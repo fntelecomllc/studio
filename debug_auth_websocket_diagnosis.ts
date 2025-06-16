@@ -18,7 +18,7 @@ const runDiagnosis = (): DiagnosticResult => {
     isAuthenticated: window.localStorage.getItem('auth_session'),
     userPermissions: window.localStorage.getItem('user_permissions'),
     sessionExpiry: window.localStorage.getItem('session_expiry'),
-    csrfToken: window.localStorage.getItem('csrf_token')
+    authTokens: window.localStorage.getItem('auth_tokens')
   };
 
   // Check WebSocket service imports

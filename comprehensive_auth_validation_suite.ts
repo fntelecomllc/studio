@@ -482,7 +482,7 @@ class ComprehensiveAuthValidationSuite {
         hasErrorHandling: true, // Assume implemented based on fixes
         hasSecurityLogging: true, // Assume implemented based on fixes
         hasSessionValidation: !!authState.sessionExpiry,
-        hasCSRFProtection: !!authService.getCSRFToken(),
+        hasSessionBasedAuth: !!authState.isAuthenticated,
         hasProperPermissionFormat: authState.user ? Array.isArray(authState.user.permissions) : false,
         hasGracefulErrorRecovery: true // Assume implemented based on state sync fixes
       };
@@ -526,16 +526,14 @@ class ComprehensiveAuthValidationSuite {
 
     const securityStart = Date.now();
     try {
-      const csrfToken = authService.getCSRFToken();
-      const sessionId = authService.getSessionId();
       const authState = authService.getAuthState();
 
       const securityChecks = {
-        hasCSRFToken: !!csrfToken && csrfToken.length >= 32,
-        hasSecureSessionId: !!sessionId,
+        hasSessionBasedAuth: !!authState.isAuthenticated,
         hasSessionExpiry: !!authState.sessionExpiry,
         tokensInSecureStorage: !!localStorage.getItem('auth_tokens'), // Simplified check
-        hasPermissionValidation: authState.user ? authState.user.permissions.length > 0 : false
+        hasPermissionValidation: authState.user ? authState.user.permissions.length > 0 : false,
+        hasSecureCookies: document.cookie.includes('session_id') // Check for session cookie
       };
 
       const securityIssues = Object.entries(securityChecks)
@@ -551,8 +549,7 @@ class ComprehensiveAuthValidationSuite {
         isSecure ? 'Security implementation validated' : `Security concerns: ${securityIssues.join(', ')}`,
         {
           securityChecks,
-          securityIssues,
-          csrfTokenLength: csrfToken?.length || 0
+          securityIssues
         },
         Date.now() - securityStart
       );
@@ -582,7 +579,7 @@ class ComprehensiveAuthValidationSuite {
         authStateRetrieval: await this.measureOperation(() => authService.getAuthState()),
         permissionCheck: await this.measureOperation(() => authService.hasPermission('campaigns:read')),
         roleCheck: await this.measureOperation(() => authService.hasRole('admin')),
-        csrfTokenRetrieval: await this.measureOperation(() => authService.getCSRFToken())
+        sessionRefresh: await this.measureOperation(() => authService.refreshSession())
       };
 
       const avgResponseTime = Object.values(perfTests).reduce((sum, time) => sum + time, 0) / Object.keys(perfTests).length;

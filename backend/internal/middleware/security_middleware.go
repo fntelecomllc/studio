@@ -4,8 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-
-	"github.com/fntelecomllc/studio/backend/internal/models"
 )
 
 // SecurityMiddleware provides various security-related middleware
@@ -56,8 +54,8 @@ func (m *SecurityMiddleware) SecurityHeaders() gin.HandlerFunc {
 	}
 }
 
-// CSRFProtection validates CSRF tokens for state-changing requests
-func (m *SecurityMiddleware) CSRFProtection() gin.HandlerFunc {
+// SessionProtection validates X-Requested-With headers for session-based CSRF protection
+func (m *SecurityMiddleware) SessionProtection() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Skip GET, HEAD, OPTIONS requests
 		if c.Request.Method == "GET" || c.Request.Method == "HEAD" || c.Request.Method == "OPTIONS" {
@@ -72,8 +70,8 @@ func (m *SecurityMiddleware) CSRFProtection() gin.HandlerFunc {
 			return
 		}
 
-		// Get security context
-		securityContext, exists := c.Get("security_context")
+		// Get security context (must be authenticated)
+		_, exists = c.Get("security_context")
 		if !exists {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"error": "Authentication required",
@@ -81,21 +79,12 @@ func (m *SecurityMiddleware) CSRFProtection() gin.HandlerFunc {
 			return
 		}
 
-		ctx := securityContext.(*models.SecurityContext)
-
-		// Get CSRF token from header
-		csrfToken := c.GetHeader("X-CSRF-Token")
-		if csrfToken == "" {
+		// For session-based authentication, require X-Requested-With header
+		// This provides session-based CSRF protection by validating proper AJAX requests
+		requestedWith := c.GetHeader("X-Requested-With")
+		if requestedWith == "" {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-				"error": "CSRF token required",
-			})
-			return
-		}
-
-		// Validate CSRF token
-		if csrfToken != ctx.CSRFToken {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-				"error": "Invalid CSRF token",
+				"error": "X-Requested-With header required for session-based protection",
 			})
 			return
 		}
@@ -145,7 +134,7 @@ func (m *SecurityMiddleware) EnhancedCORS() gin.HandlerFunc {
 		}
 
 		c.Header("Access-Control-Allow-Credentials", "true")
-		c.Header("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, Authorization, accept, origin, Cache-Control, X-Requested-With")
 		c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, PATCH")
 		c.Header("Access-Control-Max-Age", "86400") // 24 hours
 

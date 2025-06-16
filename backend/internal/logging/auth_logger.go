@@ -27,7 +27,6 @@ type LogCategory string
 const (
 	CategoryAuth        LogCategory = "AUTH"
 	CategorySession     LogCategory = "SESSION"
-	CategoryCSRF        LogCategory = "CSRF"
 	CategoryPassword    LogCategory = "PASSWORD"
 	CategoryDatabase    LogCategory = "DATABASE"
 	CategoryMiddleware  LogCategory = "MIDDLEWARE"
@@ -276,29 +275,6 @@ func (l *AuthLogger) LogRateLimitEvent(
 	l.log(level, CategoryRateLimit, operation, nil, nil, ipAddress, "", "", &success, "", "", details, nil, nil, nil)
 }
 
-// LogCSRFEvent logs CSRF token operations
-func (l *AuthLogger) LogCSRFEvent(
-	operation string,
-	userID *uuid.UUID,
-	sessionID *string,
-	ipAddress, userAgent string,
-	success bool,
-	tokenValid bool,
-	details map[string]interface{},
-) {
-	if details == nil {
-		details = make(map[string]interface{})
-	}
-	details["token_valid"] = tokenValid
-
-	level := LogLevelInfo
-	if !success || !tokenValid {
-		level = LogLevelWarn
-	}
-
-	l.log(level, CategoryCSRF, operation, userID, sessionID, ipAddress, userAgent, "", &success, "", "", details, nil, nil, nil)
-}
-
 // LogPasswordEvent logs password-related operations
 func (l *AuthLogger) LogPasswordEvent(
 	operation string,
@@ -518,18 +494,6 @@ func LogRateLimitEvent(
 	details map[string]interface{},
 ) {
 	GlobalAuthLogger.LogRateLimitEvent(operation, identifier, ipAddress, attempts, maxAttempts, windowStart, blocked, details)
-}
-
-func LogCSRFEvent(
-	operation string,
-	userID *uuid.UUID,
-	sessionID *string,
-	ipAddress, userAgent string,
-	success bool,
-	tokenValid bool,
-	details map[string]interface{},
-) {
-	GlobalAuthLogger.LogCSRFEvent(operation, userID, sessionID, ipAddress, userAgent, success, tokenValid, details)
 }
 
 func LogPasswordEvent(

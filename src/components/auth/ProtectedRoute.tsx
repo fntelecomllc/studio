@@ -4,7 +4,7 @@
 
 import React, { ReactNode, useEffect, useState, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useAuth } from '@/lib/stores/auth';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';

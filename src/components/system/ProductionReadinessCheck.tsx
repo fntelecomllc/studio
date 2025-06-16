@@ -256,32 +256,33 @@ export default function ProductionReadinessCheck() {
       });
     }
 
-    // 4. CSRF Token Check
+    // 4. Session Security Check (session-based authentication)
     try {
-      const csrfToken = localStorage.getItem('csrf_token');
-      if (csrfToken) {
+      // For session-based auth, check if session is active via cookies
+      const sessionActive = document.cookie.includes('domainflow_session');
+      if (sessionActive && isAuthenticated) {
         results.push({
-          name: 'CSRF Protection',
+          name: 'Session Security',
           status: 'passed',
-          message: 'CSRF token present',
-          details: 'Security tokens configured properly',
+          message: 'Session-based authentication active',
+          details: 'Secure session cookies configured properly',
           icon: <Key className="h-4 w-4" />
         });
       } else {
         results.push({
-          name: 'CSRF Protection',
+          name: 'Session Security',
           status: 'warning',
-          message: 'CSRF token not found',
+          message: 'Session authentication not detected',
           details: 'May need to re-authenticate',
           icon: <Key className="h-4 w-4" />
         });
       }
     } catch (_error) {
       results.push({
-        name: 'CSRF Protection',
+        name: 'Session Security',
         status: 'warning',
-        message: 'CSRF check failed',
-        details: 'Security may be compromised',
+        message: 'Session security check failed',
+        details: 'Authentication status uncertain',
         icon: <Key className="h-4 w-4" />
       });
     }

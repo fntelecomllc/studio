@@ -148,15 +148,17 @@ func (h *AuthHandler) Me(c *gin.Context) {
 
 	ctx := securityContext.(*models.SecurityContext)
 
-	// Get user details (this would need to be added to auth service)
-	// For now, return basic info from security context
-	c.JSON(http.StatusOK, gin.H{
-		"user_id":                  ctx.UserID,
-		"session_id":               ctx.SessionID,
-		"requires_password_change": ctx.RequiresPasswordChange,
-		"permissions":              ctx.Permissions,
-		"roles":                    ctx.Roles,
-	})
+	// Get complete user details with roles and permissions from auth service
+	user, err := h.authService.GetUserWithRolesAndPermissions(ctx.UserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to get user details",
+		})
+		return
+	}
+
+	// Return complete user object in the format expected by frontend
+	c.JSON(http.StatusOK, user.PublicUser())
 }
 
 // ChangePassword handles password change requests
@@ -404,7 +406,6 @@ func (h *AuthHandler) clearSessionCookies(c *gin.Context) {
 
 	// Clear legacy cookies for backward compatibility
 	c.SetCookie(config.LegacySessionCookieName, "", -1, config.CookiePath, "", config.CookieSecure, config.CookieHttpOnly)
-	c.SetCookie(config.CSRFCookieName, "", -1, config.CookiePath, "", config.CookieSecure, false)
 	c.SetCookie(config.AuthTokensCookieName, "", -1, config.CookiePath, "", config.CookieSecure, false)
 }
 

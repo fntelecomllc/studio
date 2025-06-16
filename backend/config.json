@@ -18,7 +18,6 @@
   "auth": {
     "jwtSecret": "GJXAq8KTjbwLsAFXm4gVxI645KHlZuz4KopcOkBavWcq1vmM475gFARqBSYxduR",
     "sessionSecret": "L8SWxyX889JG8tia5Jj3ynAZUZrwy6RiiqqRDB2P2Xa5OQ7nLOoTzZQPP7LUBr",
-    "csrfSecret": "PfIXU36O2NqkjryytnZDXddGTe7TVnHc",
     "encryptionKey": "H9dfQ9hpTXvWV3qoyHyGkDpFus2ryAQa",
     "apiKeySalt": "GLm5y3pL3jugFKK0hArjosgC5208WP7a",
     "sessionTimeout": "24h",

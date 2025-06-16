@@ -10,7 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Shield, Database, Users, Key, Server, Activity } from 'lucide-react';
+// Only import icons that are actually used in the component
+import { Database, Server } from 'lucide-react';
 
 interface QueryResult {
   columns: string[];

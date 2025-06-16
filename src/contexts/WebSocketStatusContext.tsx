@@ -111,32 +111,6 @@ export function WebSocketStatusProvider({ children }: { children: React.ReactNod
       // Removed complex diagnostic - simple approach
       logWebSocket.connect('Starting WebSocket test connection...');
       
-      // CRITICAL FIX: Ensure fresh CSRF token before WebSocket connection
-      // This is essential for manual recheck operations to avoid stale token issues
-      logWebSocket.connect('Ensuring fresh authentication state for recheck...');
-      
-      // Import authService dynamically to avoid circular dependencies
-      const { authService } = await import('@/lib/services/authService');
-      
-      // Verify we have a valid CSRF token
-      let csrfToken = authService.getCSRFToken();
-      if (!csrfToken) {
-        logWebSocket.warn('No CSRF token available, attempting to refresh session...');
-        const refreshSuccess = await authService.refreshSession();
-        if (!refreshSuccess) {
-          throw new Error('Failed to refresh session for WebSocket recheck');
-        }
-        csrfToken = authService.getCSRFToken();
-        if (!csrfToken) {
-          throw new Error('CSRF token still unavailable after session refresh');
-        }
-      }
-      
-      logWebSocket.connect('Starting test connection with fresh authentication...', {
-        hasCSRFToken: !!csrfToken,
-        csrfTokenLength: csrfToken?.length || 0
-      });
-      
       const testResult = await new Promise<boolean>((resolve) => {
         let connected = false;
         let errorDetails: string | undefined;

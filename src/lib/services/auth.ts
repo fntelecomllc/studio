@@ -169,7 +169,7 @@ class AuthService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest', // CSRF protection header
+          'X-Requested-With': 'XMLHttpRequest', // Session-based protection header
         },
         credentials: 'include', // Include session cookie
         body: requestBody,
@@ -468,7 +468,7 @@ class AuthService {
       credentials: 'include', // Always include session cookie
       headers: {
         'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest', // CSRF protection
+        'X-Requested-With': 'XMLHttpRequest', // Session-based protection
         ...options.headers,
         // NO authentication headers needed
       },

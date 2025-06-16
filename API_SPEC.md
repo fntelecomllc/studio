@@ -8,7 +8,7 @@ DomainFlow provides a comprehensive RESTful API for domain analysis and campaign
 
 **API Version**: v1 (with v2 extensions for campaigns)
 
-**Authentication**: Session-based with HTTP-only cookies and X-Requested-With header for CSRF protection
+**Authentication**: Session-based with HTTP-only cookies and X-Requested-With header validation
 
 ---
 
@@ -429,7 +429,7 @@ X-RateLimit-Reset: 1671883200
 ## Security Considerations
 
 1. **Authentication**: All endpoints except `/ping` require valid session cookies
-2. **CSRF Protection**: X-Requested-With header required for all state-changing operations
+2. **Request Validation**: X-Requested-With header required for all state-changing operations to prevent unauthorized requests
 3. **Session Security**: HTTP-only cookies with session fingerprinting and hijacking prevention
 4. **Input Validation**: All inputs are validated and sanitized
 5. **SQL Injection**: Prevented through prepared statements

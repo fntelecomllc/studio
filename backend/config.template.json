@@ -18,7 +18,6 @@
   "auth": {
     "jwtSecret": "${JWT_SECRET}",
     "sessionSecret": "${SESSION_SECRET}",
-    "csrfSecret": "${CSRF_SECRET}",
     "encryptionKey": "${ENCRYPTION_KEY}",
     "apiKeySalt": "${API_KEY_SALT}",
     "sessionTimeout": "${SESSION_TIMEOUT:-24h}",
