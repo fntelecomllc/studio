@@ -1,0 +1,74 @@
+# Phase 7.1: Comprehensive Monitoring Stack Configuration
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: 'production'
+    service: 'domainflow'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# Load rules
+rule_files:
+  - '/etc/prometheus/rules/*.yml'
+
+# Scrape configurations
+scrape_configs:
+  # DomainFlow Backend
+  - job_name: 'domainflow-backend'
+    static_configs:
+      - targets: 
+          - 'backend-1:8080'
+          - 'backend-2:8080'
+          - 'backend-3:8080'
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    
+  # DomainFlow Frontend
+  - job_name: 'domainflow-frontend'
+    static_configs:
+      - targets:
+          - 'frontend-1:3000'
+          - 'frontend-2:3000'
+          - 'frontend-3:3000'
+    metrics_path: '/api/metrics'
+    
+  # PostgreSQL Exporter
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    
+  # Redis Exporter
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+      
+  # Node Exporter (for system metrics)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+      
+  # HAProxy Exporter
+  - job_name: 'haproxy'
+    static_configs:
+      - targets: ['load-balancer:8404']
+
+# Service discovery for dynamic targets
+# Uncomment when using Kubernetes
+# - job_name: 'kubernetes-pods'
+#   kubernetes_sd_configs:
+#     - role: pod
+#   relabel_configs:
+#     - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+#       action: keep
+#       regex: true
+#     - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+#       action: replace
+#       target_label: __metrics_path__
+#       regex: (.+)

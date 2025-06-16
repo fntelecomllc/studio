@@ -1,0 +1,101 @@
+# Options for analysis running
+run:
+  # Default concurrency is a available CPU number
+  concurrency: 4
+  # Timeout for analysis, e.g. 30s, 5m, default is 1m
+  timeout: 5m
+  # Include test files or not, default is true
+  tests: true
+  # Which dirs to skip: issues from them won't be reported
+  skip-dirs:
+    - vendor
+    - third_party
+
+# Output configuration options
+output:
+  # Format: colored-line-number|line-number|json|tab|checkstyle|code-climate, default is "colored-line-number"
+  format: colored-line-number
+  # Print lines of code with issue, default is true
+  print-issued-lines: true
+  # Print linter name in the end of issue text, default is true
+  print-linter-name: true
+
+# All available linters
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    - gosec
+    - gofmt
+    - goimports
+    - misspell
+    - unconvert
+    - unparam
+    - prealloc
+    - gocyclo
+    - dupl
+    - goconst
+    - nakedret
+    - dogsled
+    - whitespace
+    - bodyclose
+    - nolintlint
+    - revive
+
+# Linters settings
+linters-settings:
+  errcheck:
+    # Report about not checking of errors in type assertions: `a := b.(MyStruct)`.
+    check-type-assertions: true
+  gocyclo:
+    # Minimal code complexity to report, 30 by default
+    min-complexity: 15
+  dupl:
+    # Tokens count to trigger issue, 150 by default
+    threshold: 100
+  goconst:
+    # Minimal length of string constant, 3 by default
+    min-len: 3
+    # Minimal occurrences count to trigger, 3 by default
+    min-occurrences: 3
+  gosec:
+    # To select a subset of rules to run
+    includes:
+      - G101 # Look for hard coded credentials
+      - G102 # Bind to all interfaces
+      - G103 # Audit the use of unsafe block
+      - G104 # Audit errors not checked
+      - G107 # Url provided to HTTP request as taint input
+      - G201 # SQL query construction using format string
+      - G202 # SQL query construction using string concatenation
+  revive:
+    # Minimal confidence for issues, default is 0.8
+    min-confidence: 0.8
+    rules:
+      - name: exported
+        severity: warning
+        disabled: false
+        arguments:
+          - "checkPrivateReceivers"
+          - "disableStutteringCheck"
+
+# Issues configuration
+issues:
+  # Maximum issues count per one linter. Set to 0 to disable. Default is 50.
+  max-issues-per-linter: 0
+  # Maximum count of issues with the same text. Set to 0 to disable. Default is 3.
+  max-same-issues: 0
+  # Excluding configuration
+  exclude-rules:
+    # Exclude some linters from running on tests files.
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - dupl
+        - gosec
+        - errcheck

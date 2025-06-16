@@ -1,0 +1,89 @@
+{
+  "server": {
+    "port": "${SERVER_PORT:-8080}",
+    "streamChunkSize": 50,
+    "ginMode": "${GIN_MODE:-release}"
+  },
+  "database": {
+    "host": "${DATABASE_HOST}",
+    "port": ${DATABASE_PORT},
+    "name": "${DATABASE_NAME}",
+    "user": "${DATABASE_USER}",
+    "password": "${DATABASE_PASSWORD}",
+    "sslmode": "${DATABASE_SSL_MODE:-disable}",
+    "maxConnections": 100,
+    "maxIdleConnections": 20,
+    "connectionLifetime": 600
+  },
+  "auth": {
+    "jwtSecret": "${JWT_SECRET}",
+    "sessionSecret": "${SESSION_SECRET}",
+    "csrfSecret": "${CSRF_SECRET}",
+    "encryptionKey": "${ENCRYPTION_KEY}",
+    "apiKeySalt": "${API_KEY_SALT}",
+    "sessionTimeout": "${SESSION_TIMEOUT:-24h}",
+    "cookieSecure": ${COOKIE_SECURE:-true},
+    "cookieHttpOnly": true,
+    "cookieSameSite": "strict"
+  },
+  "dnsValidator": {
+    "resolvers": [
+      "https://cloudflare-dns.com/dns-query",
+      "1.1.1.1:53",
+      "https://dns.google/dns-query",
+      "8.8.8.8:53",
+      "9.9.9.9:53"
+    ],
+    "useSystemResolvers": false,
+    "queryTimeoutSeconds": 5,
+    "maxDomainsPerRequest": 100,
+    "resolverStrategy": "random_rotation",
+    "concurrentQueriesPerDomain": 2,
+    "queryDelayMaxMs": 20,
+    "maxConcurrentGoroutines": 15,
+    "rateLimitDps": 10,
+    "rateLimitBurst": 5
+  },
+  "httpValidator": {
+    "userAgents": [
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36",
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36",
+      "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0"
+    ],
+    "defaultHeaders": {
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.5",
+      "Accept-Encoding": "gzip, deflate",
+      "DNT": "1",
+      "Connection": "keep-alive",
+      "Upgrade-Insecure-Requests": "1"
+    },
+    "timeoutSeconds": 30,
+    "followRedirects": true,
+    "maxRedirects": 5,
+    "maxDomainsPerRequest": 50,
+    "concurrentRequestsPerDomain": 1,
+    "requestDelayMaxMs": 100,
+    "maxConcurrentGoroutines": 10,
+    "rateLimitRps": 5,
+    "rateLimitBurst": 10
+  },
+  "logging": {
+    "level": "${LOG_LEVEL:-info}",
+    "enableFileLogging": true,
+    "logDirectory": "logs",
+    "maxFileSize": 100,
+    "maxBackups": 5,
+    "maxAge": 30,
+    "enableJSONFormat": true,
+    "enableRequestLogging": true,
+    "enablePerformanceLogging": true
+  },
+  "worker": {
+    "numWorkers": ${WORKER_COUNT:-5},
+    "pollIntervalSeconds": 5,
+    "batchSize": ${WORKER_BATCH_SIZE:-100},
+    "maxRetries": 3,
+    "retryDelaySeconds": 30
+  }
+}

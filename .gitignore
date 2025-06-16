@@ -1,0 +1,63 @@
+
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# Next.js build output
+/.next/
+/out/
+
+# Distribution / Build artifacts
+/dist
+/build
+
+# Local Environment Variables
+.env
+.env*.local
+!.env.example
+
+# IDE / Editor specific
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# Test results
+/coverage
+/reports
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Firebase
+.firebase/
+firebase-debug.log
+*.firebase.*.log
+
+# Other
+.cache
+*.bak
+*.tmp
+
+# IDX specific (if any, good to have as a general rule for cloud IDEs)
+.idx/
+*.gz
+go1.22.3.linux-amd64.tar.gz

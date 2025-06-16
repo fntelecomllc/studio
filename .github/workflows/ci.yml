@@ -1,0 +1,58 @@
+name: Node.js CI
+
+on:
+  push:
+    branches: [ main ] # Or your default branch
+  pull_request:
+    branches: [ main ] # Or your default branch
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x] # Test against current LTS versions
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm' # or 'yarn' if you use yarn
+
+    - name: Install dependencies
+      run: npm ci # Use 'npm ci' for cleaner installs in CI, or 'yarn install --frozen-lockfile'
+
+    - name: Build project
+      run: npm run build
+
+    - name: Run tests
+      run: npm test -- --coverage # Runs Jest and generates coverage report
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v4
+      # env:
+      #   CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }} # Token is not required for public repositories
+      with:
+        files: ./coverage/clover.xml,./coverage/lcov.info # Adjust based on generated files, clover is common for Codecov
+        fail_ci_if_error: true # Optional: fails CI if Codecov upload fails
+        verbose: true # Optional: for debugging
+      # If you don't use Codecov or a similar service, you can upload the report as an artifact:
+      # - name: Upload coverage report artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: coverage-report-${{ matrix.node-version }}
+      #     path: ./coverage
+      #     retention-days: 7
+
+    # Optional: Lint check
+    # - name: Lint code
+    #   run: npm run lint
+
+    # Optional: Type check
+    # - name: Type check
+    #   run: npm run typecheck

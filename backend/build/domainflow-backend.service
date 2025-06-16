@@ -1,0 +1,27 @@
+[Unit]
+Description=DomainFlow Backend API
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=domainflow
+Group=domainflow
+WorkingDirectory=/opt/domainflow
+EnvironmentFile=/etc/domainflow/production.env
+ExecStart=/usr/local/bin/domainflow-api
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=domainflow-backend
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/domainflow /var/lib/domainflow
+
+[Install]
+WantedBy=multi-user.target

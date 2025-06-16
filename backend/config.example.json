@@ -1,0 +1,35 @@
+{
+  "server": {
+    "port": "8080",
+    "apiKey": "641f018600f939b24bb496ea87e6bb2edf1922457a058d5a3aa27a00c7073147"
+  },
+  "logging": {
+    "level": "INFO"
+  },
+  "dnsValidator": {
+    "enabled": false,
+    "resolvers": [],
+    "useSystemResolvers": false,
+    "queryTimeoutSeconds": 5,
+    "maxDomainsPerRequest": 100,
+    "resolverStrategy": "disabled",
+    "resolversWeighted": {},
+    "resolversPreferredOrder": [],
+    "concurrentQueriesPerDomain": 0,
+    "queryDelayMinMs": 0,
+    "queryDelayMaxMs": 20,
+    "maxConcurrentGoroutines": 0,
+    "rateLimitDps": 0.0,
+    "rateLimitBurst": 0
+  },
+  "httpValidator": {
+    "enabled": false,
+    "userAgents": [],
+    "defaultHeaders": {},
+    "requestTimeoutSeconds": 0,
+    "maxRedirects": 0,
+    "maxDomainsPerRequest": 0,
+    "allowInsecureTLS": false,
+    "maxConcurrentGoroutines": 0
+  }
+}

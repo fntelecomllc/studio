@@ -1,0 +1,198 @@
+# Phase 7.1: Alert Rules for DomainFlow
+
+groups:
+  - name: domainflow_critical
+    interval: 30s
+    rules:
+      # High Error Rate
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[5m])) by (job)
+            /
+            sum(rate(http_requests_total[5m])) by (job)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "High error rate detected for {{ $labels.job }}"
+          description: "Error rate is {{ $value | humanizePercentage }} for {{ $labels.job }}"
+          
+      # Database Connection Pool Exhaustion
+      - alert: DatabaseConnectionPoolExhaustion
+        expr: |
+          (pg_stat_database_numbackends / pg_settings_max_connections) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "Database connection pool near exhaustion"
+          description: "Connection pool is {{ $value | humanizePercentage }} full"
+          
+      # High Response Time
+      - alert: HighResponseTime
+        expr: |
+          histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, job)) > 2
+        for: 10m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "High p95 response time for {{ $labels.job }}"
+          description: "95th percentile response time is {{ $value }}s"
+
+  - name: domainflow_availability
+    interval: 30s
+    rules:
+      # Service Down
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: sre
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 2 minutes"
+          
+      # Low Availability
+      - alert: LowAvailability
+        expr: |
+          (
+            sum(up) by (job)
+            /
+            count(up) by (job)
+          ) < 0.5
+        for: 5m
+        labels:
+          severity: critical
+          team: sre
+        annotations:
+          summary: "Less than 50% of {{ $labels.job }} instances are up"
+          description: "Only {{ $value | humanizePercentage }} of {{ $labels.job }} instances are available"
+
+  - name: domainflow_resources
+    interval: 60s
+    rules:
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            process_resident_memory_bytes
+            /
+            node_memory_MemTotal_bytes
+          ) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+          
+      # High CPU Usage
+      - alert: HighCPUUsage
+        expr: |
+          100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value }}%"
+          
+      # Disk Space Low
+      - alert: DiskSpaceLow
+        expr: |
+          (
+            node_filesystem_avail_bytes{mountpoint="/"}
+            /
+            node_filesystem_size_bytes{mountpoint="/"}
+          ) < 0.1
+        for: 5m
+        labels:
+          severity: critical
+          team: sre
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Only {{ $value | humanizePercentage }} disk space remaining"
+
+  - name: domainflow_business
+    interval: 60s
+    rules:
+      # Campaign Processing Stalled
+      - alert: CampaignProcessingStalled
+        expr: |
+          rate(domainflow_campaigns_processed_total[10m]) == 0
+          and
+          domainflow_campaigns_queued > 0
+        for: 15m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Campaign processing has stalled"
+          description: "No campaigns processed in 15 minutes with {{ $value }} campaigns queued"
+          
+      # WebSocket Connection Drop
+      - alert: WebSocketConnectionDrop
+        expr: |
+          (
+            domainflow_websocket_connections_active
+            /
+            domainflow_websocket_connections_active offset 5m
+          ) < 0.5
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Significant WebSocket connection drop"
+          description: "WebSocket connections dropped by {{ $value | humanizePercentage }}"
+          
+      # High Campaign Failure Rate
+      - alert: HighCampaignFailureRate
+        expr: |
+          (
+            sum(rate(domainflow_campaigns_failed_total[30m]))
+            /
+            sum(rate(domainflow_campaigns_created_total[30m]))
+          ) > 0.1
+        for: 30m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "High campaign failure rate"
+          description: "{{ $value | humanizePercentage }} of campaigns are failing"
+
+  - name: domainflow_security
+    interval: 30s
+    rules:
+      # Authentication Failures Spike
+      - alert: AuthenticationFailureSpike
+        expr: |
+          rate(domainflow_auth_failures_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "High rate of authentication failures"
+          description: "{{ $value }} authentication failures per second"
+          
+      # Suspicious API Activity
+      - alert: SuspiciousAPIActivity
+        expr: |
+          sum(rate(http_requests_total{status="403"}[5m])) by (client_ip) > 50
+        for: 5m
+        labels:
+          severity: critical
+          team: security
+        annotations:
+          summary: "Suspicious API activity from {{ $labels.client_ip }}"
+          description: "{{ $value }} forbidden requests per second from {{ $labels.client_ip }}"
