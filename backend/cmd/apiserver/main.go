@@ -2,10 +2,7 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -35,51 +32,7 @@ import (
 const (
 	dbTypePostgres    = "postgres"
 	defaultNumWorkers = 5
-	pepperKeyFile     = ".pepper_key"
 )
-
-// generateSecurePepperKey generates a cryptographically secure pepper key
-func generateSecurePepperKey() (string, error) {
-	bytes := make([]byte, 32) // 256-bit key
-	if _, err := rand.Read(bytes); err != nil {
-		return "", fmt.Errorf("failed to generate secure random bytes: %v", err)
-	}
-	return hex.EncodeToString(bytes), nil
-}
-
-// getOrCreatePepperKey retrieves existing pepper key or generates a new one
-func getOrCreatePepperKey() (string, error) {
-	// First check environment variable
-	if pepperKey := os.Getenv("AUTH_PEPPER_KEY"); pepperKey != "" {
-		return pepperKey, nil
-	}
-
-	// Check if pepper key file exists
-	pepperKeyPath := filepath.Join("..", pepperKeyFile)
-	if data, err := ioutil.ReadFile(pepperKeyPath); err == nil {
-		pepperKey := string(data)
-		if len(pepperKey) > 0 {
-			log.Printf("Using stored pepper key from %s", pepperKeyPath)
-			return pepperKey, nil
-		}
-	}
-
-	// Generate new pepper key
-	pepperKey, err := generateSecurePepperKey()
-	if err != nil {
-		return "", fmt.Errorf("failed to generate pepper key: %v", err)
-	}
-
-	// Store pepper key for future use
-	if err := ioutil.WriteFile(pepperKeyPath, []byte(pepperKey), 0600); err != nil {
-		log.Printf("Warning: Could not save pepper key to %s: %v", pepperKeyPath, err)
-		log.Printf("Pepper key will be regenerated on next restart unless AUTH_PEPPER_KEY is set")
-	} else {
-		log.Printf("Generated and stored new pepper key in %s", pepperKeyPath)
-	}
-
-	return pepperKey, nil
-}
 
 func main() {
 	log.Println("Starting DomainFlow API Server...")
@@ -187,34 +140,13 @@ func main() {
 	kwordScannerSvc := keywordscanner.NewService(keywordStore)
 	log.Println("KeywordScanner service initialized.")
 
-	// Initialize authentication service with automatic pepper key generation
-	var pepperKey string
-	if appConfig.Server.AuthConfig != nil && appConfig.Server.AuthConfig.PepperKey != "" {
-		pepperKey = appConfig.Server.AuthConfig.PepperKey
-		log.Println("Using pepper key from application config")
-	} else {
-		var err error
-		pepperKey, err = getOrCreatePepperKey()
-		if err != nil {
-			log.Fatalf("FATAL: Failed to initialize pepper key: %v", err)
-		}
-		log.Println("Pepper key initialized successfully")
-	}
-
-	// Initialize session service first
+	// Initialize session service for session-based authentication
 	sessionConfig := config.GetDefaultSessionSettings()
-	sessionService, err := services.NewSessionService(db, sessionConfig.ToServiceConfig())
+	sessionService, err := services.NewSessionService(db, sessionConfig.ToServiceConfig(), auditLogStore)
 	if err != nil {
 		log.Fatalf("FATAL: Failed to initialize session service: %v", err)
 	}
 	log.Println("Session service initialized.")
-
-	// Initialize authentication service with session service
-	authService, err := services.NewAuthService(db, pepperKey, sessionService)
-	if err != nil {
-		log.Fatalf("FATAL: Failed to initialize authentication service: %v", err)
-	}
-	log.Println("Authentication service initialized.")
 
 	// All stores including campaignJobStore are now properly initialized above
 	domainGenSvc := services.NewDomainGenerationService(db, campaignStore, campaignJobStore, auditLogStore)
@@ -275,17 +207,17 @@ func main() {
 	campaignOrchestratorAPIHandler := api.NewCampaignOrchestratorAPIHandler(campaignOrchestratorSvc)
 	log.Println("CampaignOrchestratorAPIHandler initialized.")
 
-	webSocketAPIHandler := api.NewWebSocketHandler(wsBroadcaster, authService)
+	webSocketAPIHandler := api.NewWebSocketHandler(wsBroadcaster, sessionService)
 	log.Println("WebSocketAPIHandler initialized.")
 
 	// Initialize authentication and security handlers
-	authHandler := api.NewAuthHandler(authService, sessionService, sessionConfig)
+	authHandler := api.NewAuthHandler(sessionService, sessionConfig, db)
 	log.Println("AuthHandler initialized.")
 
 	// Initialize middleware
-	authMiddleware := middleware.NewAuthMiddleware(authService, sessionService, sessionConfig)
+	authMiddleware := middleware.NewAuthMiddleware(sessionService, sessionConfig)
 	securityMiddleware := middleware.NewSecurityMiddleware()
-	rateLimitMiddleware := middleware.NewRateLimitMiddleware(authService)
+	rateLimitMiddleware := middleware.NewRateLimitMiddleware()
 	log.Println("Security middleware initialized.")
 
 	// Initialize health check handler
@@ -336,8 +268,9 @@ func main() {
 	{
 		authRoutes.POST("/login", rateLimitMiddleware.LoginRateLimit(), authHandler.Login)
 		authRoutes.POST("/logout", authHandler.Logout)
-		authRoutes.POST("/forgot-password", rateLimitMiddleware.PasswordResetRateLimit(), authHandler.ForgotPassword)
-		authRoutes.POST("/reset-password", authHandler.ResetPassword)
+		// TODO: Implement forgot password and reset password in session-based system
+		// authRoutes.POST("/forgot-password", rateLimitMiddleware.PasswordResetRateLimit(), authHandler.ForgotPassword)
+		// authRoutes.POST("/reset-password", authHandler.ResetPassword)
 		authRoutes.POST("/refresh", authHandler.RefreshSession)
 	}
 	log.Println("Registered authentication routes under /api/v2/auth")
@@ -353,16 +286,16 @@ func main() {
 	apiV2.Use(authMiddleware.SessionAuth())
 	apiV2.Use(securityMiddleware.SessionProtection()) // Session-based protection for session-based requests
 	{
-		// Session-based user management routes (admin only)
-		userRoutes := apiV2.Group("/users")
-		userRoutes.Use(authMiddleware.RequireRole("admin"))
-		{
-			userRoutes.GET("", authHandler.ListUsers)
-			userRoutes.POST("", authHandler.CreateUser)
-			userRoutes.GET("/:userId", authHandler.GetUser)
-			userRoutes.PUT("/:userId", authHandler.UpdateUser)
-			userRoutes.DELETE("/:userId", authHandler.DeleteUser)
-		}
+		// TODO: Implement user management routes in session-based system
+		// userRoutes := apiV2.Group("/users")
+		// userRoutes.Use(authMiddleware.RequireRole("admin"))
+		// {
+		//     userRoutes.GET("", authHandler.ListUsers)
+		//     userRoutes.POST("", authHandler.CreateUser)
+		//     userRoutes.GET("/:userId", authHandler.GetUser)
+		//     userRoutes.PUT("/:userId", authHandler.UpdateUser)
+		//     userRoutes.DELETE("/:userId", authHandler.DeleteUser)
+		// }
 
 		// Current user routes (authenticated users)
 		apiV2.GET("/me", authHandler.Me)

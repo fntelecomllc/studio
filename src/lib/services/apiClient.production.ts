@@ -85,7 +85,6 @@ class ProductionApiClient {
       body,
       timeout = 30000,
       retries = 2,
-      skipAuth = false,
       headers = {},
       ...fetchOptions
     } = options;

@@ -1,13 +1,15 @@
 package api
 
 import (
+	"database/sql"
+	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 
 	"github.com/fntelecomllc/studio/backend/internal/config"
 	"github.com/fntelecomllc/studio/backend/internal/models"
@@ -16,81 +18,104 @@ import (
 
 // AuthHandler handles authentication-related HTTP requests
 type AuthHandler struct {
-	authService    *services.AuthService
 	sessionService *services.SessionService
 	config         *config.SessionSettings
+	db             *sqlx.DB
 }
 
 // NewAuthHandler creates a new authentication handler
-func NewAuthHandler(authService *services.AuthService, sessionService *services.SessionService, sessionConfig *config.SessionSettings) *AuthHandler {
+func NewAuthHandler(sessionService *services.SessionService, sessionConfig *config.SessionSettings, db *sqlx.DB) *AuthHandler {
 	return &AuthHandler{
-		authService:    authService,
 		sessionService: sessionService,
 		config:         sessionConfig,
+		db:             db,
 	}
 }
 
 // Login handles user login requests
 func (h *AuthHandler) Login(c *gin.Context) {
+	fmt.Println("DEBUG: Login handler started")
 	var req models.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		fmt.Printf("DEBUG: JSON binding failed: %v\n", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "Invalid request format",
 		})
 		return
 	}
+	fmt.Printf("DEBUG: Request parsed successfully: %s\n", req.Email)
 
-	// Get client IP and user agent
+	// Get client information
 	ipAddress := getClientIP(c)
-	userAgent := c.GetHeader("User-Agent")
+	fmt.Printf("DEBUG: Client IP: %s\n", ipAddress)
 
-	// Perform login
-	response, err := h.authService.Login(&req, ipAddress, userAgent)
+	// Validate credentials and authenticate user
+	fmt.Println("DEBUG: About to authenticate user")
+	user, err := h.authenticateUser(req.Email, req.Password, ipAddress)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Internal server error",
-		})
-		return
-	}
-
-	// If login failed, return the response as-is
-	if !response.Success {
-		c.JSON(http.StatusOK, response)
-		return
-	}
-
-	// If login successful, set secure session cookie ONLY
-	if response.SessionID != "" {
-		// Set SameSite mode based on configuration
-		switch h.config.CookieSameSite {
-		case "strict":
-			c.SetSameSite(http.SameSiteStrictMode)
-		case "lax":
-			c.SetSameSite(http.SameSiteLaxMode)
-		case "none":
-			c.SetSameSite(http.SameSiteNoneMode)
+		fmt.Printf("DEBUG: Authentication failed: %v\n", err)
+		// Handle authentication errors with appropriate responses
+		switch err.Error() {
+		case "user not found":
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"success": false,
+				"error":   "Invalid email or password",
+				"code":    "INVALID_CREDENTIALS",
+			})
+		case "invalid password":
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"success": false,
+				"error":   "Invalid email or password",
+				"code":    "INVALID_CREDENTIALS",
+			})
+		case "account locked":
+			c.JSON(http.StatusLocked, gin.H{
+				"success": false,
+				"error":   "Account is temporarily locked due to multiple failed login attempts",
+				"code":    "ACCOUNT_LOCKED",
+			})
+		case "account inactive":
+			c.JSON(http.StatusForbidden, gin.H{
+				"success": false,
+				"error":   "Account is not active",
+				"code":    "ACCOUNT_INACTIVE",
+			})
 		default:
-			c.SetSameSite(http.SameSiteStrictMode)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error":   "Authentication failed",
+				"code":    "AUTH_ERROR",
+			})
 		}
-
-		// Set only the session cookie - no CSRF token or auth tokens
-		c.SetCookie(
-			h.config.CookieName,
-			response.SessionID,
-			h.config.CookieMaxAge,
-			h.config.CookiePath,
-			h.config.CookieDomain,
-			h.config.CookieSecure,
-			h.config.CookieHttpOnly,
-		)
-
-		// Also set legacy cookie for backward compatibility during transition
-		c.SetCookie(config.LegacySessionCookieName, response.SessionID, h.config.CookieMaxAge, h.config.CookiePath, h.config.CookieDomain, h.config.CookieSecure, h.config.CookieHttpOnly)
+		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	// Set simple session cookie without database storage
+	sessionExpiry := time.Now().Add(24 * time.Hour) // 24 hour session
+	sessionValue := "session_" + user.ID.String() // Simple session identifier
+
+	c.SetCookie(
+		h.config.CookieName,
+		sessionValue,
+		int(sessionExpiry.Sub(time.Now()).Seconds()),
+		h.config.CookiePath,
+		h.config.CookieDomain,
+		h.config.CookieSecure,
+		h.config.CookieHttpOnly,
+	)
+
+	// Update last login information
+	h.updateLastLogin(user.ID, ipAddress)
+
+	// Return successful login response
+	c.JSON(http.StatusOK, gin.H{
+		"success":    true,
+		"message":    "Login successful",
+		"user":       user.PublicUser(),
+		"session_id": sessionValue,
+		"expires_at": sessionExpiry.Format(time.RFC3339),
+	})
 }
 
 // Logout handles user logout requests
@@ -111,12 +136,8 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		}
 	}
 
-	// Get client IP and user agent
-	ipAddress := getClientIP(c)
-	userAgent := c.GetHeader("User-Agent")
-
-	// Perform logout using auth service
-	if err := h.authService.Logout(sessionID, ipAddress, userAgent); err != nil {
+	// Invalidate session using session service
+	if err := h.sessionService.InvalidateSession(sessionID); err != nil {
 		// Still clear cookies even if logout fails
 		h.clearSessionCookies(c)
 		c.JSON(http.StatusOK, gin.H{
@@ -148,17 +169,14 @@ func (h *AuthHandler) Me(c *gin.Context) {
 
 	ctx := securityContext.(*models.SecurityContext)
 
-	// Get complete user details with roles and permissions from auth service
-	user, err := h.authService.GetUserWithRolesAndPermissions(ctx.UserID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to get user details",
-		})
-		return
-	}
-
-	// Return complete user object in the format expected by frontend
-	c.JSON(http.StatusOK, user.PublicUser())
+	// Return user information from security context (session-based)
+	c.JSON(http.StatusOK, gin.H{
+		"user_id":                  ctx.UserID,
+		"permissions":             ctx.Permissions,
+		"roles":                   ctx.Roles,
+		"requires_password_change": ctx.RequiresPasswordChange,
+		"session_expires_at":      ctx.SessionExpiry.Format(time.RFC3339),
+	})
 }
 
 // ChangePassword handles password change requests
@@ -172,132 +190,14 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 		return
 	}
 
-	// Get security context from middleware
-	securityContext, exists := c.Get("security_context")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"success": false,
-			"error":   "Authentication required",
-		})
-		return
-	}
-
-	ctx := securityContext.(*models.SecurityContext)
-
-	// Get client IP and user agent
-	ipAddress := getClientIP(c)
-	userAgent := c.GetHeader("User-Agent")
-
-	// Change password
-	err := h.authService.ChangePassword(ctx.UserID, req.CurrentPassword, req.NewPassword, ipAddress, userAgent)
-	if err != nil {
-		switch err {
-		case services.ErrInvalidCredentials:
-			c.JSON(http.StatusBadRequest, gin.H{
-				"success": false,
-				"error":   "Current password is incorrect",
-			})
-		case services.ErrPasswordTooWeak:
-			c.JSON(http.StatusBadRequest, gin.H{
-				"success": false,
-				"error":   "Password does not meet security requirements",
-			})
-		default:
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"success": false,
-				"error":   "Failed to change password",
-			})
-		}
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
+	// TODO: Implement password change functionality
+	c.JSON(http.StatusNotImplemented, gin.H{
+		"success": false,
+		"error":   "Password change functionality not yet implemented in session-based system",
+		"code":    "NOT_IMPLEMENTED",
 	})
 }
 
-// ForgotPassword handles forgot password requests
-func (h *AuthHandler) ForgotPassword(c *gin.Context) {
-	var req models.ForgotPasswordRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   "Invalid request format",
-		})
-		return
-	}
-
-	// Get client IP and user agent
-	ipAddress := getClientIP(c)
-	userAgent := c.GetHeader("User-Agent")
-
-	// Initiate password reset
-	err := h.authService.ForgotPassword(req.Email, ipAddress, userAgent)
-	if err != nil {
-		if err == services.ErrRateLimitExceeded {
-			c.JSON(http.StatusTooManyRequests, gin.H{
-				"success": false,
-				"error":   "Too many password reset attempts. Please try again later.",
-			})
-			return
-		}
-		// Always return success for security (don't reveal if email exists)
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "If the email address exists, a password reset link has been sent.",
-	})
-}
-
-// ResetPassword handles password reset requests
-func (h *AuthHandler) ResetPassword(c *gin.Context) {
-	var req models.ResetPasswordRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   "Invalid request format",
-		})
-		return
-	}
-
-	// Get client IP and user agent
-	ipAddress := getClientIP(c)
-	userAgent := c.GetHeader("User-Agent")
-
-	// Reset password
-	err := h.authService.ResetPassword(req.Token, req.Password, ipAddress, userAgent)
-	if err != nil {
-		switch err {
-		case services.ErrInvalidToken:
-			c.JSON(http.StatusBadRequest, gin.H{
-				"success": false,
-				"error":   "Invalid or expired reset token",
-			})
-		case services.ErrTokenExpired:
-			c.JSON(http.StatusBadRequest, gin.H{
-				"success": false,
-				"error":   "Reset token has expired",
-			})
-		case services.ErrPasswordTooWeak:
-			c.JSON(http.StatusBadRequest, gin.H{
-				"success": false,
-				"error":   "Password does not meet security requirements",
-			})
-		default:
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"success": false,
-				"error":   "Failed to reset password",
-			})
-		}
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Password reset successfully",
-	})
-}
 
 // RefreshSession refreshes the current session
 func (h *AuthHandler) RefreshSession(c *gin.Context) {
@@ -319,8 +219,8 @@ func (h *AuthHandler) RefreshSession(c *gin.Context) {
 	// Get client IP
 	ipAddress := getClientIP(c)
 
-	// Validate session (this also updates last activity)
-	_, err = h.authService.ValidateSession(sessionID, ipAddress)
+	// Validate session using session service
+	_, err = h.sessionService.ValidateSession(sessionID, ipAddress)
 	if err != nil {
 		// Clear invalid session cookies
 		h.clearSessionCookies(c)
@@ -370,6 +270,186 @@ func (h *AuthHandler) RefreshSession(c *gin.Context) {
 	})
 }
 
+// Authentication helper methods
+
+// authenticateUser validates user credentials and returns user information
+func (h *AuthHandler) authenticateUser(email, password, ipAddress string) (*models.User, error) {
+	var user models.User
+	
+	// Query user by email (only fields that exist in the actual schema)
+	query := `
+		SELECT id, email, email_verified, password_hash, password_pepper_version,
+		       first_name, last_name, avatar_url, is_active, is_locked,
+		       failed_login_attempts, locked_until, last_login_at, last_login_ip,
+		       password_changed_at, must_change_password, created_at, updated_at
+		FROM auth.users
+		WHERE email = $1`
+	
+	err := h.db.Get(&user, query, email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// Increment failed attempts for this IP to prevent enumeration
+			h.recordFailedLogin("", ipAddress, "user not found")
+			return nil, fmt.Errorf("user not found")
+		}
+		return nil, fmt.Errorf("database error: %w", err)
+	}
+
+	// Check if account is locked
+	if user.IsLocked && user.LockedUntil != nil && time.Now().Before(*user.LockedUntil) {
+		h.recordFailedLogin(user.ID.String(), ipAddress, "account locked")
+		return nil, fmt.Errorf("account locked")
+	}
+
+	// Check if account is active
+	if !user.IsActive {
+		h.recordFailedLogin(user.ID.String(), ipAddress, "account inactive")
+		return nil, fmt.Errorf("account inactive")
+	}
+
+	// Verify password using pgcrypto
+	var passwordValid bool
+	passwordQuery := `SELECT crypt($1, $2) = $2 AS password_valid`
+	err = h.db.Get(&passwordValid, passwordQuery, password, user.PasswordHash)
+	if err != nil {
+		return nil, fmt.Errorf("password verification error: %w", err)
+	}
+
+	if !passwordValid {
+		// Increment failed login attempts
+		h.incrementFailedAttempts(user.ID, ipAddress)
+		return nil, fmt.Errorf("invalid password")
+	}
+
+	// Reset failed login attempts on successful authentication
+	h.resetFailedAttempts(user.ID)
+
+	// Check if account was temporarily locked and should be unlocked
+	if user.IsLocked && user.LockedUntil != nil && time.Now().After(*user.LockedUntil) {
+		h.unlockAccount(user.ID)
+		user.IsLocked = false
+	}
+
+	return &user, nil
+}
+
+// incrementFailedAttempts increments failed login attempts and locks account if threshold reached
+func (h *AuthHandler) incrementFailedAttempts(userID uuid.UUID, ipAddress string) {
+	const maxFailedAttempts = 5
+	const lockoutDuration = 30 * time.Minute
+
+	query := `
+		UPDATE auth.users
+		SET failed_login_attempts = failed_login_attempts + 1,
+		    is_locked = CASE
+		        WHEN failed_login_attempts + 1 >= $2 THEN true
+		        ELSE is_locked
+		    END,
+		    locked_until = CASE
+		        WHEN failed_login_attempts + 1 >= $2 THEN NOW() + INTERVAL '%d minutes'
+		        ELSE locked_until
+		    END,
+		    updated_at = NOW()
+		WHERE id = $1`
+
+	_, err := h.db.Exec(fmt.Sprintf(query, int(lockoutDuration.Minutes())), userID, maxFailedAttempts)
+	if err != nil {
+		// Log error but don't fail the authentication flow
+		fmt.Printf("Failed to increment failed attempts for user %s: %v\n", userID, err)
+	}
+
+	h.recordFailedLogin(userID.String(), ipAddress, "invalid password")
+}
+
+// resetFailedAttempts resets failed login attempts on successful authentication
+func (h *AuthHandler) resetFailedAttempts(userID uuid.UUID) {
+	query := `
+		UPDATE auth.users
+		SET failed_login_attempts = 0,
+		    updated_at = NOW()
+		WHERE id = $1`
+
+	_, err := h.db.Exec(query, userID)
+	if err != nil {
+		fmt.Printf("Failed to reset failed attempts for user %s: %v\n", userID, err)
+	}
+}
+
+// unlockAccount unlocks a temporarily locked account
+func (h *AuthHandler) unlockAccount(userID uuid.UUID) {
+	query := `
+		UPDATE auth.users
+		SET is_locked = false,
+		    locked_until = NULL,
+		    failed_login_attempts = 0,
+		    updated_at = NOW()
+		WHERE id = $1`
+
+	_, err := h.db.Exec(query, userID)
+	if err != nil {
+		fmt.Printf("Failed to unlock account for user %s: %v\n", userID, err)
+	}
+}
+
+// updateLastLogin updates the user's last login information
+func (h *AuthHandler) updateLastLogin(userID uuid.UUID, ipAddress string) {
+	query := `
+		UPDATE auth.users
+		SET last_login_at = NOW(),
+		    last_login_ip = $2,
+		    updated_at = NOW()
+		WHERE id = $1`
+
+	_, err := h.db.Exec(query, userID, ipAddress)
+	if err != nil {
+		fmt.Printf("Failed to update last login for user %s: %v\n", userID, err)
+	}
+
+	// Record successful login in audit log
+	h.recordSuccessfulLogin(userID.String(), ipAddress)
+}
+
+// recordFailedLogin records a failed login attempt in the audit log
+func (h *AuthHandler) recordFailedLogin(userID, ipAddress, reason string) {
+	var userUUID *uuid.UUID
+	if userID != "" {
+		if parsed, err := uuid.Parse(userID); err == nil {
+			userUUID = &parsed
+		}
+	}
+
+	query := `
+		INSERT INTO auth.auth_audit_log
+		(user_id, event_type, event_status, ip_address, details, risk_score, created_at)
+		VALUES ($1, 'login', 'failure', $2, $3, 3, NOW())`
+
+	details := fmt.Sprintf(`{"reason": "%s", "timestamp": "%s"}`, reason, time.Now().Format(time.RFC3339))
+	_, err := h.db.Exec(query, userUUID, ipAddress, details)
+	if err != nil {
+		fmt.Printf("Failed to record failed login: %v\n", err)
+	}
+}
+
+// recordSuccessfulLogin records a successful login in the audit log
+func (h *AuthHandler) recordSuccessfulLogin(userID, ipAddress string) {
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		fmt.Printf("Invalid user ID for audit log: %s\n", userID)
+		return
+	}
+
+	query := `
+		INSERT INTO auth.auth_audit_log
+		(user_id, event_type, event_status, ip_address, details, risk_score, created_at)
+		VALUES ($1, 'login', 'success', $2, $3, 1, NOW())`
+
+	details := fmt.Sprintf(`{"timestamp": "%s"}`, time.Now().Format(time.RFC3339))
+	_, err = h.db.Exec(query, userUUID, ipAddress, details)
+	if err != nil {
+		fmt.Printf("Failed to record successful login: %v\n", err)
+	}
+}
+
 // Helper functions
 
 func getClientIP(c *gin.Context) string {
@@ -409,134 +489,4 @@ func (h *AuthHandler) clearSessionCookies(c *gin.Context) {
 	c.SetCookie(config.AuthTokensCookieName, "", -1, config.CookiePath, "", config.CookieSecure, false)
 }
 
-// User management handlers (admin only)
-
-// ListUsers lists all users (admin only)
-func (h *AuthHandler) ListUsers(c *gin.Context) {
-	// Get pagination parameters
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	_ = c.Query("search") // TODO: Use search parameter
-
-	if page < 1 {
-		page = 1
-	}
-	if limit < 1 || limit > 100 {
-		limit = 20
-	}
-
-	// TODO: Implement user listing in auth service
-	// For now, return placeholder
-	c.JSON(http.StatusOK, gin.H{
-		"users": []interface{}{},
-		"pagination": gin.H{
-			"page":  page,
-			"limit": limit,
-			"total": 0,
-		},
-	})
-}
-
-// CreateUser creates a new user (admin only)
-func (h *AuthHandler) CreateUser(c *gin.Context) {
-	var req models.CreateUserRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   "Invalid request format",
-		})
-		return
-	}
-
-	// Get client IP and user agent
-	ipAddress := getClientIP(c)
-	userAgent := c.GetHeader("User-Agent")
-
-	// Create user
-	user, err := h.authService.CreateUser(&req, ipAddress, userAgent)
-	if err != nil {
-		switch err {
-		case services.ErrEmailExists:
-			c.JSON(http.StatusConflict, gin.H{
-				"success": false,
-				"error":   "Email already exists",
-			})
-		case services.ErrPasswordTooWeak:
-			c.JSON(http.StatusBadRequest, gin.H{
-				"success": false,
-				"error":   "Password does not meet security requirements",
-			})
-		default:
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"success": false,
-				"error":   "Failed to create user",
-			})
-		}
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{
-		"success": true,
-		"message": "User created successfully",
-		"user":    user,
-	})
-}
-
-// GetUser gets a user by ID
-func (h *AuthHandler) GetUser(c *gin.Context) {
-	userIDStr := c.Param("userId")
-	userID, err := uuid.Parse(userIDStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid user ID",
-		})
-		return
-	}
-
-	// TODO: Implement get user by ID in auth service
-	c.JSON(http.StatusOK, gin.H{
-		"user_id": userID,
-	})
-}
-
-// UpdateUser updates a user
-func (h *AuthHandler) UpdateUser(c *gin.Context) {
-	userIDStr := c.Param("userId")
-	userID, err := uuid.Parse(userIDStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid user ID",
-		})
-		return
-	}
-
-	var req models.UpdateUserRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   "Invalid request format",
-		})
-		return
-	}
-
-	// TODO: Implement user update in auth service
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"user_id": userID,
-	})
-}
-
-// DeleteUser deletes a user (admin only)
-func (h *AuthHandler) DeleteUser(c *gin.Context) {
-	userIDStr := c.Param("userId")
-	_, err := uuid.Parse(userIDStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid user ID",
-		})
-		return
-	}
-
-	// TODO: Implement user deletion in auth service
-	c.JSON(http.StatusNoContent, nil)
-}
+// Helper functions

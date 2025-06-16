@@ -6,7 +6,7 @@
   },
   "database": {
     "host": "${DATABASE_HOST}",
-    "port": ${DATABASE_PORT},
+    "port": "${DATABASE_PORT}",
     "name": "${DATABASE_NAME}",
     "user": "${DATABASE_USER}",
     "password": "${DATABASE_PASSWORD}",
@@ -21,7 +21,7 @@
     "encryptionKey": "${ENCRYPTION_KEY}",
     "apiKeySalt": "${API_KEY_SALT}",
     "sessionTimeout": "${SESSION_TIMEOUT:-24h}",
-    "cookieSecure": ${COOKIE_SECURE:-true},
+    "cookieSecure": "${COOKIE_SECURE:-true}",
     "cookieHttpOnly": true,
     "cookieSameSite": "strict"
   },
@@ -79,9 +79,9 @@
     "enablePerformanceLogging": true
   },
   "worker": {
-    "numWorkers": ${WORKER_COUNT:-5},
+    "numWorkers": "${WORKER_COUNT:-5}",
     "pollIntervalSeconds": 5,
-    "batchSize": ${WORKER_BATCH_SIZE:-100},
+    "batchSize": "${WORKER_BATCH_SIZE:-100}",
     "maxRetries": 3,
     "retryDelaySeconds": 30
   }

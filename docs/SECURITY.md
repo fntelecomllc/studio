@@ -46,7 +46,6 @@ DomainFlow implements a sophisticated dual authentication system supporting both
 **Features:**
 - Secure HTTP-only cookies with SameSite protection
 - Automatic session refresh and timeout management
-- Cross-Site Request Forgery (CSRF) protection
 - Session hijacking prevention measures
 
 **Configuration:**
@@ -1122,7 +1121,6 @@ ps aux > running_processes.txt
 development:
   security:
     enforce_https: false
-    csrf_protection: false
     rate_limiting: disabled
     audit_logging: minimal
     mfa_required: false
@@ -1142,7 +1140,6 @@ development:
 staging:
   security:
     enforce_https: true
-    csrf_protection: true
     rate_limiting: enabled
     audit_logging: full
     mfa_required: true
@@ -1162,7 +1159,6 @@ staging:
 production:
   security:
     enforce_https: true
-    csrf_protection: true
     rate_limiting: strict
     audit_logging: comprehensive
     mfa_required: true

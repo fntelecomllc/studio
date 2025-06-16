@@ -145,7 +145,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredPermi
 - **Session-based Authentication**: No JWT tokens stored client-side
 - **Automatic Session Refresh**: Seamless session management
 - **Secure Token Storage**: HTTP-only cookies for session tokens
-- **CSRF Protection**: CSRF tokens for state-changing operations
 
 #### Input Validation and Sanitization
 - **Zod Schema Validation**: Type-safe input validation
@@ -226,7 +225,6 @@ type UserRepository interface {
 
 #### Security Middleware
 - **Rate Limiting**: IP-based and user-based rate limiting
-- **CSRF Protection**: Token-based CSRF protection
 - **Security Headers**: Comprehensive security header implementation
 - **Input Validation**: Server-side validation and sanitization
 
@@ -259,7 +257,6 @@ CREATE TABLE auth.sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     session_token VARCHAR(255) UNIQUE NOT NULL,
-    csrf_token VARCHAR(255) NOT NULL,
     expires_at TIMESTAMP NOT NULL,
     last_activity TIMESTAMP DEFAULT NOW(),
     ip_address INET,
@@ -340,7 +337,7 @@ sequenceDiagram
     B->>D: Create Session
     D-->>B: Session Token
     B->>D: Log Auth Event
-    B-->>F: Session Cookie + CSRF Token
+    B-->>F: Session Cookie
     F-->>C: Login Success
 ```
 
@@ -418,7 +415,6 @@ graph TB
 - **Strong Password Policy**: 12+ characters with complexity requirements
 - **Account Lockout**: Protection against brute force attacks
 - **Session Security**: Secure session token generation and management
-- **CSRF Protection**: Token-based CSRF protection
 
 #### 3. Authorization Security
 - **Role-Based Access Control**: Granular permission system

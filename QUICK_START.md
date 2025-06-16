@@ -66,9 +66,9 @@ nano config.json
   "server": {
     "port": 8080
   },
-  "security": {
-    "session_secret": "change-this-32-character-secret-key",
-    "csrf_key": "change-this-32-character-csrf-key"
+  "auth": {
+    "sessionSecret": "change-this-32-character-secret-key",
+    "encryptionKey": "change-this-32-character-encryption-key"
   }
 }
 ```

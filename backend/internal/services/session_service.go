@@ -1,10 +1,12 @@
 package services
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -14,12 +16,16 @@ import (
 
 	"github.com/fntelecomllc/studio/backend/internal/config"
 	"github.com/fntelecomllc/studio/backend/internal/logging"
+	"github.com/fntelecomllc/studio/backend/internal/models"
+	"github.com/fntelecomllc/studio/backend/internal/store"
 )
 
 // Session service errors
 var (
 	ErrSessionSecurityViolation = fmt.Errorf("session security violation")
 	ErrSessionLimitExceeded    = fmt.Errorf("session limit exceeded")
+	ErrSessionNotFound         = fmt.Errorf("session not found")
+	ErrSessionExpired          = fmt.Errorf("session expired")
 )
 
 // DefaultSessionConfig returns default session configuration
@@ -78,18 +84,16 @@ type SessionService struct {
 	db              *sqlx.DB
 	inMemoryStore   *InMemorySessionStore
 	config          *config.SessionConfig
-	auditService    *AuditService
+	auditLogStore   store.AuditLogStore
 	cleanupTicker   *time.Ticker
 	mutex           sync.RWMutex
 }
 
 // NewSessionService creates a new session service
-func NewSessionService(db *sqlx.DB, config *config.SessionConfig) (*SessionService, error) {
+func NewSessionService(db *sqlx.DB, config *config.SessionConfig, auditLogStore store.AuditLogStore) (*SessionService, error) {
 	if config == nil {
 		config = DefaultSessionConfig()
 	}
-
-	auditService := NewAuditService(db)
 
 	// Initialize in-memory store
 	inMemoryStore := &InMemorySessionStore{
@@ -102,7 +106,7 @@ func NewSessionService(db *sqlx.DB, config *config.SessionConfig) (*SessionServi
 		db:            db,
 		inMemoryStore: inMemoryStore,
 		config:        config,
-		auditService:  auditService,
+		auditLogStore: auditLogStore,
 	}
 
 	// Start cleanup goroutine
@@ -196,9 +200,8 @@ func (s *SessionService) CreateSession(userID uuid.UUID, ipAddress, userAgent st
 		},
 	)
 
-	s.auditService.LogAuthEvent(&userID, &sessionID, "session_created", "success", ipAddress, userAgent, map[string]interface{}{
-		"session_id": sessionID,
-	}, 0)
+	// Log audit event for session creation
+	s.logAuditEvent(nil, sessionID, userID, "session_created", fmt.Sprintf("Session created for user %s", userID))
 
 	return session, nil
 }
@@ -241,17 +244,13 @@ func (s *SessionService) ValidateSession(sessionID, clientIP string) (*SessionDa
 	// Check idle timeout
 	if now.Sub(session.LastActivity) > s.config.IdleTimeout {
 		s.invalidateSession(sessionID)
-		s.auditService.LogAuthEvent(&session.UserID, &sessionID, "session_expired", "success", clientIP, "", map[string]interface{}{
-			"reason": "idle_timeout",
-		}, 0)
+		s.logAuditEvent(nil, sessionID, session.UserID, "session_expired", "Session expired due to idle timeout")
 		return nil, ErrSessionExpired
 	}
 
 	// Enhanced security checks
 	if err := s.validateSessionSecurity(session, clientIP, ""); err != nil {
-		s.auditService.LogAuthEvent(&session.UserID, &sessionID, "session_security_violation", "failure", clientIP, "", map[string]interface{}{
-			"violation": err.Error(),
-		}, 7)
+		s.logAuditEvent(nil, sessionID, session.UserID, "session_security_violation", fmt.Sprintf("Security violation: %s", err.Error()))
 		s.invalidateSession(sessionID)
 		return nil, err
 	}
@@ -319,7 +318,7 @@ func (s *SessionService) InvalidateAllUserSessions(userID uuid.UUID) error {
 	_, err := s.db.Exec(query, userID)
 	
 	if err == nil {
-		s.auditService.LogAuthEvent(&userID, nil, "all_sessions_invalidated", "success", "", "", nil, 0)
+		s.logAuditEvent(nil, "", userID, "all_sessions_invalidated", fmt.Sprintf("All sessions invalidated for user %s", userID))
 	}
 	
 	return err
@@ -652,6 +651,33 @@ func (s *SessionService) performCleanup() {
 				"cleanup_count":    s.inMemoryStore.metrics.CleanupCount,
 			},
 		)
+	}
+}
+
+// logAuditEvent logs an audit event for session operations
+func (s *SessionService) logAuditEvent(ctx context.Context, sessionID string, userID uuid.UUID, action, description string) {
+	if s.auditLogStore == nil {
+		return
+	}
+
+	detailsJSON := json.RawMessage(fmt.Sprintf(`{"session_id": "%s", "description": "%s"}`, sessionID, description))
+	auditLog := &models.AuditLog{
+		ID:         uuid.New(),
+		Timestamp:  time.Now().UTC(),
+		UserID:     sql.NullString{String: userID.String(), Valid: true},
+		Action:     action,
+		EntityType: sql.NullString{String: "session", Valid: true},
+		EntityID:   uuid.NullUUID{UUID: userID, Valid: true}, // Use userID as entity for session events
+		Details:    &detailsJSON,
+	}
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	if err := s.auditLogStore.CreateAuditLog(ctx, s.db, auditLog); err != nil {
+		// Log error but don't fail the operation
+		fmt.Printf("Failed to create audit log for session %s: %v\n", sessionID, err)
 	}
 }
 

@@ -119,16 +119,16 @@ var upgrader = websocket.Upgrader{
 // WebSocketHandler handles WebSocket connections.
 // It uses the Broadcaster interface from your internalwebsocket package.
 type WebSocketHandler struct {
-	hub         internalwebsocket.Broadcaster
-	authService *services.AuthService
+	hub            internalwebsocket.Broadcaster
+	sessionService *services.SessionService
 }
 
 // NewWebSocketHandler creates a new WebSocketHandler.
 // It expects a Broadcaster from your internalwebsocket package.
-func NewWebSocketHandler(hub internalwebsocket.Broadcaster, authService *services.AuthService) *WebSocketHandler {
+func NewWebSocketHandler(hub internalwebsocket.Broadcaster, sessionService *services.SessionService) *WebSocketHandler {
 	return &WebSocketHandler{
-		hub:         hub,
-		authService: authService,
+		hub:            hub,
+		sessionService: sessionService,
 	}
 }
 
@@ -169,8 +169,8 @@ func (h *WebSocketHandler) HandleConnections(c *gin.Context) {
 	clientIP := c.ClientIP()
 	userAgent := c.GetHeader("User-Agent")
 	
-	// Use session service for validation with fingerprinting
-	sessionInfo, err := h.authService.ValidateSessionWithContext(sessionID, clientIP, userAgent)
+	// Use session service for validation
+	sessionData, err := h.sessionService.ValidateSession(sessionID, clientIP)
 	if err != nil {
 		log.Printf("WebSocket connection rejected: invalid session - %v", err)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired session"})
@@ -178,15 +178,15 @@ func (h *WebSocketHandler) HandleConnections(c *gin.Context) {
 	}
 
 	// Additional security checks for WebSocket connections
-	if sessionInfo.UserID == "" {
+	if sessionData.UserID.String() == "" {
 		log.Printf("WebSocket connection rejected: no user ID in session")
 		c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
 		return
 	}
 
 	// Validate session fingerprint for enhanced security
-	if !h.validateSessionFingerprint(sessionInfo, clientIP, userAgent) {
-		log.Printf("WebSocket connection rejected: session fingerprint mismatch for user %s", sessionInfo.UserID)
+	if !h.validateSessionFingerprint(sessionData, clientIP, userAgent) {
+		log.Printf("WebSocket connection rejected: session fingerprint mismatch for user %s", sessionData.UserID)
 		c.JSON(http.StatusForbidden, gin.H{"error": "Session security validation failed"})
 		return
 	}
@@ -200,17 +200,17 @@ func (h *WebSocketHandler) HandleConnections(c *gin.Context) {
 
 	// Create a new client with session-based security context
 	wsSecurityContext := &internalwebsocket.SecurityContext{
-		UserID:      sessionInfo.UserID,
+		UserID:      sessionData.UserID.String(),
 		SessionID:   sessionID,
 		ClientIP:    clientIP,
-		Permissions: sessionInfo.Permissions,
+		Permissions: sessionData.Permissions,
 	}
 
 	// Create and start the client (note: client is used by being passed to the constructor)
 	internalwebsocket.NewClientWithSecurity(h.hub, conn, wsSecurityContext)
 
 	// Log successful connection
-	log.Printf("WebSocket client connected for user: %s (IP: %s) with session-based authentication", sessionInfo.UserID, clientIP)
+	log.Printf("WebSocket client connected for user: %s (IP: %s) with session-based authentication", sessionData.UserID, clientIP)
 }
 
 // isValidOrigin validates the origin for cross-site request protection
@@ -294,17 +294,17 @@ func (h *WebSocketHandler) isValidOrigin(origin string) bool {
 }
 
 // validateSessionFingerprint validates the session fingerprint for enhanced security
-func (h *WebSocketHandler) validateSessionFingerprint(sessionInfo *services.SessionInfo, clientIP, userAgent string) bool {
+func (h *WebSocketHandler) validateSessionFingerprint(sessionData *services.SessionData, clientIP, userAgent string) bool {
 	// Basic fingerprint validation - check if key session details match
-	if sessionInfo.IPAddress != clientIP {
-		log.Printf("Session fingerprint mismatch: IP changed from %s to %s", sessionInfo.IPAddress, clientIP)
+	if sessionData.IPAddress != clientIP {
+		log.Printf("Session fingerprint mismatch: IP changed from %s to %s", sessionData.IPAddress, clientIP)
 		return false
 	}
 
 	// Allow some flexibility in user agent (browsers can update minor versions)
-	if sessionInfo.UserAgent != "" && userAgent != "" {
+	if sessionData.UserAgent != "" && userAgent != "" {
 		// Extract major browser info for comparison
-		sessionBrowser := h.extractBrowserInfo(sessionInfo.UserAgent)
+		sessionBrowser := h.extractBrowserInfo(sessionData.UserAgent)
 		currentBrowser := h.extractBrowserInfo(userAgent)
 		
 		if sessionBrowser != currentBrowser {

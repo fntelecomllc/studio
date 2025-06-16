@@ -615,7 +615,6 @@ const campaigns = await client.getCampaigns();
 class DomainFlowWebClient {
   constructor(baseUrl = 'https://api.domainflow.com/v1') {
     this.baseUrl = baseUrl;
-    this.csrfToken = null;
   }
   
   async login(email, password) {
@@ -628,7 +627,6 @@ class DomainFlowWebClient {
     
     if (response.ok) {
       const data = await response.json();
-      this.csrfToken = response.headers.get('X-CSRF-Token');
       return data;
     }
     
@@ -640,10 +638,6 @@ class DomainFlowWebClient {
       'Content-Type': 'application/json',
       ...options.headers
     };
-    
-    if (this.csrfToken && ['POST', 'PUT', 'DELETE'].includes(options.method)) {
-      headers['X-CSRF-Token'] = this.csrfToken;
-    }
     
     return fetch(`${this.baseUrl}${endpoint}`, {
       ...options,

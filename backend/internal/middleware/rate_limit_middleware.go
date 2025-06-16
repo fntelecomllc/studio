@@ -8,19 +8,16 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/fntelecomllc/studio/backend/internal/logging"
-	"github.com/fntelecomllc/studio/backend/internal/services"
 )
 
 // RateLimitMiddleware provides rate limiting functionality
 type RateLimitMiddleware struct {
-	authService *services.AuthService
+	// Note: AuthService removed as it's not implemented yet
 }
 
 // NewRateLimitMiddleware creates a new rate limiting middleware
-func NewRateLimitMiddleware(authService *services.AuthService) *RateLimitMiddleware {
-	return &RateLimitMiddleware{
-		authService: authService,
-	}
+func NewRateLimitMiddleware() *RateLimitMiddleware {
+	return &RateLimitMiddleware{}
 }
 
 // RateLimitConfig defines rate limiting configuration

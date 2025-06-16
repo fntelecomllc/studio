@@ -814,7 +814,7 @@ For production deployment, ensure you have:
    {
      "security": {
        "session_secret": "secure-32-character-secret-key",
-       "csrf_key": "secure-32-character-csrf-key",
+       "encryption_key": "secure-32-character-encryption-key",
        "bcrypt_cost": 14
      }
    }

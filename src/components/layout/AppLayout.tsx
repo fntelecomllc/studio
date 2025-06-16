@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState, memo, useMemo, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
-import { AuthProvider } from '@/contexts/AuthContext';
 import { AuthStatus } from '@/contexts/AuthContext';
 import { WebSocketStatusProvider } from '@/contexts/WebSocketStatusContext';
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from '@/components/ui/sidebar';
@@ -134,16 +133,6 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
 
-  // SECURITY: Isolated routes that should bypass the main app layout
-  const isolatedRoutes = ['/dbgui'];
-  const isIsolatedRoute = isolatedRoutes.some(route => pathname?.startsWith(route));
-
-  // If this is an isolated route (like dbgui), render children directly without any app layout
-  if (isIsolatedRoute) {
-    console.log('[AppLayout] 🔒 SECURITY: Isolated route detected, bypassing main app layout:', pathname);
-    return <>{children}</>;
-  }
-
   // Optimized mounting effect with proper cleanup
   useEffect(() => {
     setMounted(true);
@@ -204,6 +193,16 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
       }
     };
   }, []); // Empty dependency array - cleanup only on unmount
+
+  // SECURITY: Isolated routes that should bypass the main app layout
+  const isolatedRoutes = ['/dbgui'];
+  const isIsolatedRoute = isolatedRoutes.some(route => pathname?.startsWith(route));
+
+  // If this is an isolated route (like dbgui), render children directly without any app layout
+  if (isIsolatedRoute) {
+    console.log('[AppLayout] 🔒 SECURITY: Isolated route detected, bypassing main app layout:', pathname);
+    return <>{children}</>;
+  }
 
   return (
     <WebSocketStatusProvider>

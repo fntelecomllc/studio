@@ -54,7 +54,6 @@ DB_USER="domainflow"
 # Generate authentication secrets
 JWT_SECRET=$(generate_secret 64)
 SESSION_SECRET=$(generate_secret 64)
-CSRF_SECRET=$(generate_secret 32)
 ENCRYPTION_KEY=$(generate_secret 32)
 API_KEY_SALT=$(generate_secret 32)
 
@@ -82,7 +81,6 @@ REDIS_URL=redis://redis:6379/0
 # Authentication & Security
 JWT_SECRET=${JWT_SECRET}
 SESSION_SECRET=${SESSION_SECRET}
-CSRF_SECRET=${CSRF_SECRET}
 ENCRYPTION_KEY=${ENCRYPTION_KEY}
 API_KEY_SALT=${API_KEY_SALT}
 SESSION_TIMEOUT=24h
@@ -93,7 +91,7 @@ SESSION_COOKIE_SAMESITE=strict
 # CORS Configuration
 CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8080
 CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,OPTIONS
-CORS_ALLOWED_HEADERS=Content-Type,Authorization,X-CSRF-Token
+CORS_ALLOWED_HEADERS=Content-Type,Authorization,X-Requested-With
 CORS_ALLOW_CREDENTIALS=true
 
 # Application Settings
@@ -138,7 +136,6 @@ cat > backend/config.template.json << 'EOF'
   "auth": {
     "jwtSecret": "${JWT_SECRET}",
     "sessionSecret": "${SESSION_SECRET}",
-    "csrfSecret": "${CSRF_SECRET}",
     "encryptionKey": "${ENCRYPTION_KEY}",
     "apiKeySalt": "${API_KEY_SALT}",
     "sessionTimeout": "${SESSION_TIMEOUT:-24h}",

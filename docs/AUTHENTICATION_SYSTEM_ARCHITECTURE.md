@@ -47,7 +47,6 @@ graph TB
     
     subgraph "Security Layer"
         W[Rate Limiting]
-        X[CSRF Protection]
         Y[XSS Prevention]
         Z[CAPTCHA Integration]
         AA[Audit Logging]
@@ -186,7 +185,6 @@ CREATE TABLE auth.sessions (
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     ip_address INET,
     user_agent TEXT,
-    csrf_token VARCHAR(64) NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     expires_at TIMESTAMP NOT NULL,
     last_activity_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -374,20 +372,7 @@ graph TD
 - **Level 4**: Account lockout (15 minutes after 5 failed attempts)
 - **Level 5**: CAPTCHA requirement (after 3 failed attempts)
 
-### 3.2 CSRF Protection
-
-```go
-type CSRFConfig struct {
-    TokenLength    int           `json:"tokenLength"`    // 32 bytes
-    TokenLifetime  time.Duration `json:"tokenLifetime"`  // 24 hours
-    CookieName     string        `json:"cookieName"`     // "csrf_token"
-    HeaderName     string        `json:"headerName"`     // "X-CSRF-Token"
-    SecureOnly     bool          `json:"secureOnly"`     // true in production
-    SameSite       http.SameSite `json:"sameSite"`       // SameSiteStrictMode
-}
-```
-
-### 3.3 XSS Prevention
+### 3.2 XSS Prevention
 
 **Content Security Policy (CSP)**
 ```
@@ -707,7 +692,6 @@ interface AuthContextType extends AuthState {
 
 interface SecurityContext {
   sessionId: string;
-  csrfToken: string;
   lastActivity: Date;
   sessionExpiry: Date;
   requiresPasswordChange: boolean;

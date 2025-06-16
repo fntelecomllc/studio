@@ -1,7 +1,6 @@
 // src/lib/services/authService.ts
 // Enhanced authentication service with session management and security features
 import { getApiBaseUrl } from '@/lib/config';
-import { apiClient } from '@/lib/services/apiClient.production';
 import {
   logAuthOperation,
   logApiCall,
@@ -1139,15 +1138,10 @@ class AuthService {
       
       // CRITICAL: Also store in cookies for middleware access
       if (typeof document !== 'undefined') {
-        const expiryDate = new Date(tokens.expiresAt);
-        const isProduction = window.location.protocol === 'https:';
-        const cookieOptions = `expires=${expiryDate.toUTCString()}; path=/; ${isProduction ? 'secure; ' : ''}samesite=lax`;
-        
-        
         // Note: auth_tokens cookie might be too large, so we avoid storing the full object
         // The backend's domainflow_session cookie should handle the session
         
-        console.log('[AuthService] Tokens stored in localStorage and cookies');
+        console.log('[AuthService] Tokens stored in localStorage');
       }
     } catch (error) {
       console.warn('Failed to store auth tokens:', error);

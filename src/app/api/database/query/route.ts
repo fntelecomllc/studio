@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 interface QueryResult {
   columns: string[];
-  rows: any[][];
+  rows: (string | number | boolean | null)[][];
   rowCount: number;
   executionTime: number;
 }

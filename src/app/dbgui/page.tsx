@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,7 +15,7 @@ import { Database, Server } from 'lucide-react';
 
 interface QueryResult {
   columns: string[];
-  rows: any[][];
+  rows: (string | number | boolean | null)[][];
   rowCount: number;
   executionTime: number;
 }
@@ -75,7 +75,7 @@ export default function DatabaseGUI() {
         setError('Login failed. Please check your credentials.');
         setConnectionStatus('error');
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Connection error. Please try again.');
       setConnectionStatus('error');
     } finally {
@@ -128,7 +128,7 @@ export default function DatabaseGUI() {
       } else {
         setError(result.error || 'Query execution failed');
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Network error executing query');
     } finally {
       setLoading(false);
@@ -382,7 +382,7 @@ export default function DatabaseGUI() {
                             auth schema
                           </TableCell>
                         </TableRow>
-                        {['users', 'sessions', 'roles', 'permissions', 'user_roles'].map((table, index) => (
+                        {['users', 'sessions', 'roles', 'permissions', 'user_roles'].map((table, _index) => (
                           <TableRow key={`auth-${table}`} className="hover:bg-gray-50">
                             <TableCell>
                               <input type="checkbox" className="rounded" />
@@ -417,7 +417,7 @@ export default function DatabaseGUI() {
                             public schema
                           </TableCell>
                         </TableRow>
-                        {['campaigns', 'generated_domains', 'personas', 'keyword_sets', 'proxies'].map((table, index) => (
+                        {['campaigns', 'generated_domains', 'personas', 'keyword_sets', 'proxies'].map((table, _index) => (
                           <TableRow key={`public-${table}`} className="hover:bg-gray-50">
                             <TableCell>
                               <input type="checkbox" className="rounded" />

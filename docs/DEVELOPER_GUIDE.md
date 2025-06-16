@@ -78,7 +78,6 @@ NEXT_PUBLIC_WS_URL=ws://localhost:8080
 NEXT_PUBLIC_ENABLE_DEBUG=true
 
 # Security (relaxed for development)
-ENABLE_CSRF=false
 CORS_ORIGINS=http://localhost:3000,http://localhost:8080
 ENABLE_SECURE_HEADERS=false
 ```
@@ -342,7 +341,6 @@ type Session struct {
     ID           string    `json:"id" gorm:"primaryKey"`
     UserID       string    `json:"userId"`
     User         User      `json:"user"`
-    CSRFToken    string    `json:"csrfToken"`
     IPAddress    string    `json:"ipAddress"`
     UserAgent    string    `json:"userAgent"`
     ExpiresAt    time.Time `json:"expiresAt"`
@@ -486,15 +484,9 @@ func (sm *SessionManager) CreateSession(ctx context.Context, userID, ipAddress, 
         return nil, err
     }
     
-    csrfToken, err := generateSecureToken(32)
-    if err != nil {
-        return nil, err
-    }
-    
     session := &Session{
         ID:           sessionID,
         UserID:       userID,
-        CSRFToken:    csrfToken,
         IPAddress:    ipAddress,
         UserAgent:    userAgent,
         ExpiresAt:    time.Now().Add(24 * time.Hour),
@@ -944,7 +936,6 @@ type AuthConfig struct {
 }
 
 type SecurityConfig struct {
-    EnableCSRF        bool
     CORSOrigins       []string
     EnableSecureHeaders bool
     RateLimitEnabled  bool
@@ -983,7 +974,6 @@ func Load() (*Config, error) {
             BcryptCost:     getEnvAsInt("BCRYPT_COST", 12),
         },
         Security: SecurityConfig{
-            EnableCSRF:        getEnvAsBool("ENABLE_CSRF", false),
             CORSOrigins:       getEnvAsSlice("CORS_ORIGINS", []string{"http://localhost:3000"}),
             EnableSecureHeaders: getEnvAsBool("ENABLE_SECURE_HEADERS", false),
             RateLimitEnabled:  getEnvAsBool("RATE_LIMIT_ENABLED", true),

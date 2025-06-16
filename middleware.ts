@@ -53,7 +53,6 @@ export function middleware(request: NextRequest) {
     response.cookies.delete('domainflow_session');
     response.cookies.delete('session_id'); // Legacy cleanup
     response.cookies.delete('auth_tokens'); // Legacy cleanup
-    response.cookies.delete('csrfToken'); // Legacy cleanup
     
     return response;
   }
@@ -63,7 +62,7 @@ export function middleware(request: NextRequest) {
   // Add security headers to the response
   const response = NextResponse.next();
   
-  // Add CSRF protection headers (alternative to CSRF tokens)
+  // Add security headers for protection
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-XSS-Protection', '1; mode=block');

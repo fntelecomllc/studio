@@ -17,15 +17,13 @@ import (
 
 // AuthMiddleware provides authentication middleware
 type AuthMiddleware struct {
-	authService    *services.AuthService
 	sessionService *services.SessionService
 	config         *config.SessionSettings
 }
 
 // NewAuthMiddleware creates a new authentication middleware
-func NewAuthMiddleware(authService *services.AuthService, sessionService *services.SessionService, sessionConfig *config.SessionSettings) *AuthMiddleware {
+func NewAuthMiddleware(sessionService *services.SessionService, sessionConfig *config.SessionSettings) *AuthMiddleware {
 	return &AuthMiddleware{
-		authService:    authService,
 		sessionService: sessionService,
 		config:         sessionConfig,
 	}
@@ -205,10 +203,24 @@ func (m *AuthMiddleware) SessionAuth() gin.HandlerFunc {
 			},
 		)
 
-		// Validate session using the new session service
+		// Validate session using the session service
 		validationStart := time.Now()
-		securityContext, err := m.authService.ValidateSession(sessionID, ipAddress)
+		sessionData, err := m.sessionService.ValidateSession(sessionID, ipAddress)
 		validationDuration := time.Since(validationStart)
+		
+		// Create security context from session data
+		var securityContext *models.SecurityContext
+		if sessionData != nil {
+			securityContext = &models.SecurityContext{
+				UserID:                 sessionData.UserID,
+				SessionID:              sessionData.ID,
+				Permissions:            sessionData.Permissions,
+				Roles:                  sessionData.Roles,
+				SessionExpiry:          sessionData.ExpiresAt,
+				RequiresPasswordChange: sessionData.RequiresPasswordChange,
+				RiskScore:              0, // Default risk score
+			}
+		}
 
 		if err != nil {
 			duration := time.Since(startTime)
@@ -243,9 +255,9 @@ func (m *AuthMiddleware) SessionAuth() gin.HandlerFunc {
 				errorMsg = "Session expired"
 				riskScore = 2
 				threatLevel = "low"
-			case services.ErrAccountInactive:
+			case services.ErrSessionSecurityViolation:
 				statusCode = http.StatusForbidden
-				errorMsg = "Account is inactive"
+				errorMsg = "Security violation detected"
 				riskScore = 6
 				threatLevel = "medium"
 			default:
@@ -402,7 +414,7 @@ func (m *AuthMiddleware) DualAuth(apiKey string) gin.HandlerFunc {
 		ipAddress := getClientIP(c)
 
 		// Validate session
-		securityContext, err := m.authService.ValidateSession(sessionID, ipAddress)
+		sessionData, err := m.sessionService.ValidateSession(sessionID, ipAddress)
 		if err != nil {
 			// Clear invalid session cookies
 			m.clearSessionCookies(c)
@@ -412,6 +424,17 @@ func (m *AuthMiddleware) DualAuth(apiKey string) gin.HandlerFunc {
 				"code":  m.getErrorCode(err),
 			})
 			return
+		}
+
+		// Create security context from session data
+		securityContext := &models.SecurityContext{
+			UserID:                 sessionData.UserID,
+			SessionID:              sessionData.ID,
+			Permissions:            sessionData.Permissions,
+			Roles:                  sessionData.Roles,
+			SessionExpiry:          sessionData.ExpiresAt,
+			RequiresPasswordChange: sessionData.RequiresPasswordChange,
+			RiskScore:              0, // Default risk score
 		}
 
 		// Store security context for use in handlers
@@ -600,8 +623,8 @@ func (m *AuthMiddleware) getErrorCode(err error) string {
 		return "SESSION_EXPIRED"
 	case services.ErrSessionNotFound:
 		return "SESSION_NOT_FOUND"
-	case services.ErrAccountInactive:
-		return "ACCOUNT_INACTIVE"
+	case services.ErrSessionSecurityViolation:
+		return "SECURITY_VIOLATION"
 	case services.ErrSessionSecurityViolation:
 		return "SECURITY_VIOLATION"
 	default:
