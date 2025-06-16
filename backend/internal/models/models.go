@@ -201,7 +201,7 @@ type KeywordSet struct {
 	IsEnabled   bool           `db:"is_enabled" json:"isEnabled"`
 	CreatedAt   time.Time      `db:"created_at" json:"createdAt"`
 	UpdatedAt   time.Time      `db:"updated_at" json:"updatedAt"`
-	Rules       []KeywordRule  `db:"keywords" json:"rules,omitempty"` // Populated from keyword_sets.keywords JSONB
+	Rules       *[]KeywordRule `db:"rules" json:"rules,omitempty"`    // Populated from keyword_sets.rules JSONB
 }
 
 // KeywordRule represents a specific rule within a KeywordSet
@@ -346,7 +346,7 @@ type HTTPKeywordResult struct {
 	ContentHash             *string          `db:"content_hash" json:"contentHash,omitempty" firestore:"contentHash,omitempty"`
 	ValidatedByPersonaID    uuid.NullUUID    `db:"validated_by_persona_id" json:"validatedByPersonaId,omitempty" firestore:"validatedByPersonaId,omitempty"`
 	UsedProxyID             uuid.NullUUID    `db:"used_proxy_id" json:"usedProxyId,omitempty" firestore:"usedProxyId,omitempty"`
-	Attempts                int              `db:"attempts" json:"attempts" firestore:"attempts" validate:"gte=0"`
+	Attempts                *int             `db:"attempts" json:"attempts,omitempty" firestore:"attempts,omitempty" validate:"omitempty,gte=0"`
 	LastCheckedAt           *time.Time       `db:"last_checked_at" json:"lastCheckedAt,omitempty" firestore:"lastCheckedAt,omitempty"`
 	CreatedAt               time.Time        `db:"created_at" json:"createdAt" firestore:"createdAt"`
 }

@@ -172,7 +172,7 @@ func TestHTTPKeywordCampaignServiceImpl_CreateCampaign(t *testing.T) {
 		userID := "http-user-" + uuid.NewString()
 		hkReq := services.CreateHTTPKeywordCampaignRequest{
 			Name:             campaignName,
-			UserID:           userID,
+			UserID:           uuid.MustParse(userID),
 			SourceCampaignID: dnsCampaign.ID,
 			PersonaIDs:       []uuid.UUID{httpPersona.ID},
 			KeywordSetIDs:    []uuid.UUID{keywordSet.ID},

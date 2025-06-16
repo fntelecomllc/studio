@@ -173,7 +173,7 @@ func TestCampaignWorkerServiceImpl_ProcessJob_DomainGeneration(t *testing.T) {
 		campaignName := "SuccessDGWorkerJob " + time.Now().Format(time.RFC3339Nano)
 		genReq := services.CreateDomainGenerationCampaignRequest{
 			Name:                 campaignName,
-			UserID:               userID,
+			UserID:               uuid.MustParse(userID),
 			PatternType:          "prefix",
 			VariableLength:       2, // Keep it small for faster generation
 			CharacterSet:         "ab",
@@ -299,7 +299,7 @@ func TestCampaignWorkerServiceImpl_ProcessJob_DomainGeneration(t *testing.T) {
 		campaignName := "FailingDGWorkerJob " + time.Now().Format(time.RFC3339Nano)
 		genReq := services.CreateDomainGenerationCampaignRequest{
 			Name:                 campaignName,
-			UserID:               userID,
+			UserID:               uuid.MustParse(userID),
 			PatternType:          "prefix",
 			VariableLength:       1,
 			ConstantString:       "fail",
@@ -384,7 +384,7 @@ func TestCampaignWorkerServiceImpl_ProcessJob_DomainGeneration(t *testing.T) {
 		campaignName := "RetryThenSuccessDGWorkerJob " + time.Now().Format(time.RFC3339Nano)
 		genReq := services.CreateDomainGenerationCampaignRequest{
 			Name:                 campaignName,
-			UserID:               userID,
+			UserID:               uuid.MustParse(userID),
 			PatternType:          "prefix",
 			VariableLength:       1,
 			ConstantString:       "retry",
@@ -469,7 +469,7 @@ func TestCampaignWorkerServiceImpl_ProcessJob_DomainGeneration(t *testing.T) {
 		campaignName := "JobCancelInterruptionDGWorkerJob " + time.Now().Format(time.RFC3339Nano)
 		genReq := services.CreateDomainGenerationCampaignRequest{
 			Name:                 campaignName,
-			UserID:               userID,
+			UserID:               uuid.MustParse(userID),
 			PatternType:          "prefix",
 			VariableLength:       1,
 			ConstantString:       "cancel",
@@ -550,7 +550,7 @@ func TestCampaignWorkerServiceImpl_ProcessJob_DomainGeneration(t *testing.T) {
 		campaignName := "JobStatusStuckNonTerminalDGWorkerJob " + time.Now().Format(time.RFC3339Nano)
 		genReq := services.CreateDomainGenerationCampaignRequest{
 			Name:                 campaignName,
-			UserID:               userID,
+			UserID:               uuid.MustParse(userID),
 			PatternType:          "prefix",
 			VariableLength:       1,
 			ConstantString:       "dbfail",

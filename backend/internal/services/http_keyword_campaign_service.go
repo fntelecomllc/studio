@@ -741,7 +741,7 @@ func (s *httpKeywordCampaignServiceImpl) ProcessHTTPKeywordCampaignBatch(ctx con
 				HTTPKeywordCampaignID: campaignID,
 				DNSResultID:           uuid.NullUUID{UUID: currentDNSRecord.ID, Valid: true},
 				DomainName:            currentDNSRecord.DomainName,
-				Attempts:              attemptCount,
+				Attempts:              models.IntPtr(attemptCount),
 				ValidatedByPersonaID:  successPersonaID,
 				UsedProxyID:           usedProxyID,
 				LastCheckedAt:         &nowTime,

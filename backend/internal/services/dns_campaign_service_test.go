@@ -69,7 +69,7 @@ func TestDNSCampaignServiceImpl_CreateCampaign(t *testing.T) {
 
 	baseReq := services.CreateDNSValidationCampaignRequest{
 		Name:                       baseCampaignName,
-		UserID:                     baseUserID,
+		UserID:                     uuid.MustParse(baseUserID),
 		SourceGenerationCampaignID: sourceGenCampaign.ID,
 		PersonaIDs:                 []uuid.UUID{dnsPersona1.ID},
 		RotationIntervalSeconds:    10,

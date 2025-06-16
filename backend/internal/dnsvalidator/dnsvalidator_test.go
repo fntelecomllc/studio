@@ -61,7 +61,7 @@ func TestDNSValidator_ValidateSingleDomain_DoH_Success(t *testing.T) {
 	})
 	defer mockServer.Close()
 
-	cfg := newTestDNSValidatorConfig([]string{mockServer.URL}, "random_rotation")
+	cfg := newTestDNSValidatorConfig([]string{"1.1.1.1"}, "random_rotation")
 	validator := New(cfg)
 	require.NotNil(t, validator)
 
@@ -70,7 +70,7 @@ func TestDNSValidator_ValidateSingleDomain_DoH_Success(t *testing.T) {
 	assert.Equal(t, "Resolved", result.Status)
 	assert.Contains(t, result.IPs, "1.2.3.4")
 	assert.Contains(t, result.IPs, "2606:2800:220:1:248:1893:25c8:1946")
-	assert.Equal(t, mockServer.URL, result.Resolver)
+	assert.Equal(t, strings.TrimPrefix(mockServer.URL, "http://"), result.Resolver)
 	assert.Empty(t, result.Error)
 }
 
@@ -88,19 +88,19 @@ func TestDNSValidator_ValidateSingleDomain_DoH_NotFound(t *testing.T) {
 	})
 	defer mockServer.Close()
 
-	cfg := newTestDNSValidatorConfig([]string{mockServer.URL}, "random_rotation")
+	cfg := newTestDNSValidatorConfig([]string{"1.1.1.1"}, "random_rotation")
 	validator := New(cfg)
 
 	result := validator.ValidateSingleDomain("nxdomain.example.com", context.Background())
 
 	assert.Equal(t, "Not Found", result.Status, "Status should be Not Found for NXDOMAIN")
 	assert.Empty(t, result.IPs)
-	assert.Equal(t, mockServer.URL, result.Resolver)
+	assert.Equal(t, strings.TrimPrefix(mockServer.URL, "http://"), result.Resolver)
 	assert.Contains(t, result.Error, "no such host")
 }
 
 func TestDNSValidator_ValidateSingleDomain_InvalidFormat(t *testing.T) {
-	cfg := newTestDNSValidatorConfig([]string{"https://1.1.1.1/dns-query"}, "random_rotation") // Real resolver not actually used
+	cfg := newTestDNSValidatorConfig([]string{"1.1.1.1"}, "random_rotation") // Real resolver not actually used
 	validator := New(cfg)
 
 	tests := []struct {
@@ -129,14 +129,14 @@ func TestDNSValidator_ValidateSingleDomain_DoH_ServerError(t *testing.T) {
 	})
 	defer mockServer.Close()
 
-	cfg := newTestDNSValidatorConfig([]string{mockServer.URL}, "random_rotation")
+	cfg := newTestDNSValidatorConfig([]string{"1.1.1.1"}, "random_rotation")
 	validator := New(cfg)
 
 	result := validator.ValidateSingleDomain("example.com", context.Background())
 
 	assert.Equal(t, "Error", result.Status)
 	assert.Empty(t, result.IPs)
-	assert.Equal(t, mockServer.URL, result.Resolver)
+	assert.Equal(t, strings.TrimPrefix(mockServer.URL, "http://"), result.Resolver)
 	assert.Contains(t, result.Error, "returned status 500")
 	assert.Contains(t, result.Error, "internal server issue")
 }
@@ -150,7 +150,7 @@ func TestDNSValidator_ValidateSingleDomain_DoH_Timeout(t *testing.T) {
 
 	// Use a short query timeout for this test
 	cfg := config.DNSValidatorConfig{
-		Resolvers:                  []string{mockServer.URL},
+		Resolvers:                  []string{"1.1.1.1"},
 		QueryTimeout:               1 * time.Second, // Short timeout
 		ResolverStrategy:           "random_rotation",
 		ConcurrentQueriesPerDomain: 1,
@@ -164,13 +164,13 @@ func TestDNSValidator_ValidateSingleDomain_DoH_Timeout(t *testing.T) {
 
 	assert.Equal(t, "Timeout", result.Status)
 	assert.Empty(t, result.IPs)
-	assert.Equal(t, mockServer.URL, result.Resolver)
+	assert.Equal(t, strings.TrimPrefix(mockServer.URL, "http://"), result.Resolver)
 	assert.True(t, strings.Contains(result.Error, "timeout") || strings.Contains(result.Error, "context deadline exceeded"), "Error message should indicate timeout")
 }
 
 func TestDNSValidator_ValidateSingleDomain_ContextCancelled_DuringDelay(t *testing.T) {
 	cfg := config.DNSValidatorConfig{
-		Resolvers:                  []string{"https://1.1.1.1/dns-query"}, // Real resolver not hit
+		Resolvers:                  []string{"1.1.1.1"}, // Real resolver not hit
 		QueryTimeout:               5 * time.Second,
 		QueryDelayMin:              100 * time.Millisecond,
 		QueryDelayMax:              200 * time.Millisecond,
@@ -253,7 +253,7 @@ func TestDNSValidator_ValidateDomains_Batching(t *testing.T) {
 	defer mockServer.Close()
 
 	cfg := config.DNSValidatorConfig{
-		Resolvers:                  []string{mockServer.URL},
+		Resolvers:                  []string{"1.1.1.1"},
 		QueryTimeout:               1 * time.Second,
 		ResolverStrategy:           "random_rotation",
 		ConcurrentQueriesPerDomain: 1,

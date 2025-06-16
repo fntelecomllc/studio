@@ -95,6 +95,22 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatalf("TestMain: Failed to explicitly create proxies table: %v", err)
 	}
+	personasTableSQL := `
+	CREATE TABLE IF NOT EXISTS personas (
+		id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+		name TEXT NOT NULL,
+		persona_type TEXT NOT NULL,
+		description TEXT,
+		config_details JSONB,
+		is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		UNIQUE(name, persona_type)
+	);`
+	_, err = testDB.Exec(personasTableSQL)
+	if err != nil {
+		log.Fatalf("TestMain: Failed to explicitly create personas table: %v", err)
+	}
 	// Also ensure the index is created if it was part of the explicit creation logic
 	_, err = testDB.Exec("CREATE INDEX IF NOT EXISTS idx_proxies_is_enabled ON proxies(is_enabled);")
 	if err != nil {

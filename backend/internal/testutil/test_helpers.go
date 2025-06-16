@@ -56,7 +56,7 @@ func CreateTestKeywordSet(t *testing.T, ctx context.Context, keywordStore store.
 		Name:        "Test Keyword Set " + uuid.NewString(),
 		Description: sql.NullString{String: "Test Keyword Set for HTTP Tests", Valid: true},
 		IsEnabled:   true,
-		Rules: []models.KeywordRule{
+		Rules: &[]models.KeywordRule{
 			{ID: uuid.New(), RuleType: models.KeywordRuleTypeString, Pattern: "test1"},
 			{ID: uuid.New(), RuleType: models.KeywordRuleTypeString, Pattern: "test2"},
 			{ID: uuid.New(), RuleType: models.KeywordRuleTypeString, Pattern: "test3"},

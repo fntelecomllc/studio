@@ -37,7 +37,7 @@ func TestDomainGenerationServiceImpl_CreateDomainGenerationCampaign(t *testing.T
 
 	baseReq := services.CreateDomainGenerationCampaignRequest{
 		Name:                 baseCampaignName,
-		UserID:               baseUserID,
+		UserID:               uuid.MustParse(baseUserID),
 		PatternType:          "prefix", // Corrected from "Iterative"
 		VariableLength:       3,
 		CharacterSet:         "abc",
