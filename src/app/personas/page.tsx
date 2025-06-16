@@ -130,9 +130,9 @@ function PersonasPageContent() {
     setActionLoading(prev => ({ ...prev, [personaId]: 'test' }));
     try {
       const response: PersonaActionResponse = await testPersona(personaId, personaType);
-      if (response.status === 'success' && response.data?.persona) {
-        toast({ title: "Persona Test Complete", description: `Test for ${response.data.persona.name} resulted in status: ${response.data.persona.status}.` });
-        fetchPersonasData(personaType, false); 
+      if (response.status === 'success' && response.data) {
+        toast({ title: "Persona Test Complete", description: `Test for ${response.data.name} completed.` });
+        fetchPersonasData(personaType, false);
       } else {
         toast({ title: "Persona Test Failed", description: response.message || "Could not complete persona test.", variant: "destructive"});
         fetchPersonasData(personaType, false); // Re-fetch even on failure to update potential status changes
@@ -201,18 +201,19 @@ function PersonasPageContent() {
                 const validatedData = validationResult.data as z.infer<typeof HttpPersonaImportSchema>;
                 createPayload = {
                     name: validatedData.name,
+                    personaType: 'http' as const,
                     description: validatedData.description,
-                    tags: validatedData.tags,
-                    config: {
+                    configDetails: {
                         userAgent: validatedData.userAgent || "",
                         headers: validatedData.headers,
                         headerOrder: validatedData.headerOrder,
                         tlsClientHello: validatedData.tlsClientHello ?? undefined,
-                        http2Settings: validatedData.http2Settings ?? undefined,
+                        http2Settings: validatedData.http2Settings ? {
+                            enabled: validatedData.http2Settings.enabled || true,
+                            ...validatedData.http2Settings
+                        } : undefined,
                         cookieHandling: validatedData.cookieHandling ?? undefined,
-                        allowInsecureTls: validatedData.allowInsecureTls,
-                        requestTimeoutSec: validatedData.requestTimeoutSec,
-                        maxRedirects: validatedData.maxRedirects,
+                        requestTimeoutSeconds: validatedData.requestTimeoutSec,
                         notes: validatedData.notes,
                     }
                 };
@@ -220,9 +221,23 @@ function PersonasPageContent() {
                 const validatedData = validationResult.data as z.infer<typeof DnsPersonaImportSchema>;
                  createPayload = {
                     name: validatedData.name,
+                    personaType: 'dns' as const,
                     description: validatedData.description,
-                    tags: validatedData.tags,
-                    config: validatedData.config,
+                    configDetails: {
+                        resolvers: validatedData.config.resolvers,
+                        useSystemResolvers: validatedData.config.useSystemResolvers ?? false,
+                        queryTimeoutSeconds: validatedData.config.queryTimeoutSeconds,
+                        maxDomainsPerRequest: validatedData.config.maxDomainsPerRequest ?? 100,
+                        resolverStrategy: validatedData.config.resolverStrategy,
+                        resolversWeighted: validatedData.config.resolversWeighted || undefined,
+                        resolversPreferredOrder: validatedData.config.resolversPreferredOrder || undefined,
+                        concurrentQueriesPerDomain: validatedData.config.concurrentQueriesPerDomain,
+                        queryDelayMinMs: validatedData.config.queryDelayMinMs ?? 100,
+                        queryDelayMaxMs: validatedData.config.queryDelayMaxMs ?? 1000,
+                        maxConcurrentGoroutines: validatedData.config.maxConcurrentGoroutines,
+                        rateLimitDps: validatedData.config.rateLimitDps ?? 100.0,
+                        rateLimitBurst: validatedData.config.rateLimitBurst ?? 10,
+                    },
                 };
             }
             const response = await createPersona(createPayload);
@@ -256,8 +271,7 @@ function PersonasPageContent() {
     const lowerSearchTerm = searchTerm.toLowerCase();
     return personas.filter(p =>
       p.name.toLowerCase().includes(lowerSearchTerm) ||
-      (p.description && p.description.toLowerCase().includes(lowerSearchTerm)) ||
-      (p.tags && p.tags.some(tag => tag.toLowerCase().includes(lowerSearchTerm)))
+      (p.description && p.description.toLowerCase().includes(lowerSearchTerm))
     );
   };
 

@@ -10,8 +10,8 @@ export const CampaignFormConstants = {
 const baseCampaignSchema = z.object({
   name: z.string().min(3, { message: "Campaign name must be at least 3 characters." }),
   description: z.string().optional(),
-  selectedType: z.enum(CAMPAIGN_SELECTED_TYPES as [CampaignSelectedType, ...CampaignSelectedType[]], { 
-    required_error: "You need to select a campaign type." 
+  selectedType: z.enum(Object.values(CAMPAIGN_SELECTED_TYPES) as unknown as [CampaignSelectedType, ...CampaignSelectedType[]], {
+    required_error: "You need to select a campaign type."
   }),
   assignedHttpPersonaId: z.string().optional(),
   assignedDnsPersonaId: z.string().optional(),
@@ -31,7 +31,7 @@ const domainSourceSchema = z.object({
 
 // Domain generation schema
 const domainGenerationSchema = z.object({
-  generationPattern: z.enum(DOMAIN_GENERATION_PATTERNS as [DomainGenerationPattern, ...DomainGenerationPattern[]]).optional(),
+  generationPattern: z.enum(Object.values(DOMAIN_GENERATION_PATTERNS) as unknown as [DomainGenerationPattern, ...DomainGenerationPattern[]]).optional(),
   constantPart: z.string().optional(),
   allowedCharSet: z.string().optional(),
   tldsInput: z.string().optional(),

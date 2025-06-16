@@ -24,19 +24,11 @@ import type {
   CreateUserRequest,
   UpdateUserRequest,
   UserListResponse,
-  Permission
+  Permission,
+  AuthResponse
 } from '@/lib/types';
 
 // Additional auth types that aren't in the main types file
-export interface AuthResponse<T = unknown> {
-  success: boolean;
-  data?: T;
-  error?: {
-    code: string;
-    message: string;
-  };
-}
-
 export interface PasswordRequirements {
   minLength: number;
   requireUppercase: boolean;

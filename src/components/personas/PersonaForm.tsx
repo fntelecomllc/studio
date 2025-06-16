@@ -25,7 +25,9 @@ import {
   CreateHttpPersonaPayload,
   CreateDnsPersonaPayload,
   UpdateHttpPersonaPayload,
-  UpdateDnsPersonaPayload
+  UpdateDnsPersonaPayload,
+  HTTPConfigDetails,
+  DNSConfigDetails
 } from "@/lib/types";
 
 // DNS Resolver Strategy options
@@ -113,16 +115,16 @@ function HttpPersonaForm({ persona, isEditing = false }: { persona?: Persona; is
           name: persona.name,
           description: persona.description || "",
           tagsInput: (persona as HttpPersona).tags?.join(', ') || "",
-          userAgent: (persona as HttpPersona).config.userAgent || "",
-          headersJson: stringifyJsonForForm((persona as HttpPersona).config.headers),
-          headerOrderInput: (persona as HttpPersona).config.headerOrder?.join(', ') || "",
-          tlsClientHelloJson: stringifyJsonForForm((persona as HttpPersona).config.tlsClientHello),
-          http2SettingsJson: stringifyJsonForForm((persona as HttpPersona).config.http2Settings),
-          cookieHandlingJson: stringifyJsonForForm((persona as HttpPersona).config.cookieHandling),
-          allowInsecureTls: (persona as HttpPersona).config.allowInsecureTls || false,
-          requestTimeoutSec: (persona as HttpPersona).config.requestTimeoutSec || 30,
-          maxRedirects: (persona as HttpPersona).config.maxRedirects || 5,
-          notes: (persona as HttpPersona).config.notes || "",
+          userAgent: ((persona as HttpPersona).configDetails as HTTPConfigDetails).userAgent || "",
+          headersJson: stringifyJsonForForm(((persona as HttpPersona).configDetails as HTTPConfigDetails).headers),
+          headerOrderInput: ((persona as HttpPersona).configDetails as HTTPConfigDetails).headerOrder?.join(', ') || "",
+          tlsClientHelloJson: stringifyJsonForForm(((persona as HttpPersona).configDetails as HTTPConfigDetails).tlsClientHello as unknown as Record<string, unknown>),
+          http2SettingsJson: stringifyJsonForForm(((persona as HttpPersona).configDetails as HTTPConfigDetails).http2Settings as unknown as Record<string, unknown>),
+          cookieHandlingJson: stringifyJsonForForm(((persona as HttpPersona).configDetails as HTTPConfigDetails).cookieHandling as unknown as Record<string, unknown>),
+          allowInsecureTls: ((persona as HttpPersona).configDetails as HTTPConfigDetails).allowInsecureTls || false,
+          requestTimeoutSec: ((persona as HttpPersona).configDetails as HTTPConfigDetails).requestTimeoutSec || ((persona as HttpPersona).configDetails as HTTPConfigDetails).requestTimeoutSeconds || 30,
+          maxRedirects: ((persona as HttpPersona).configDetails as HTTPConfigDetails).maxRedirects || 5,
+          notes: ((persona as HttpPersona).configDetails as HTTPConfigDetails).notes || "",
         }
       : {
           name: "",
@@ -157,7 +159,7 @@ function HttpPersonaForm({ persona, isEditing = false }: { persona?: Persona; is
     try {
       const payload: CreateHttpPersonaPayload | UpdateHttpPersonaPayload = {
           ...commonPayloadData,
-          config: {
+          configDetails: {
             userAgent: data.userAgent,
             headers: parseJsonOrUndefined<Record<string,string>>(data.headersJson || ""),
             headerOrder: parseStringToArray(data.headerOrderInput || ""),
@@ -258,19 +260,19 @@ function DnsPersonaForm({ persona, isEditing = false }: { persona?: Persona; isE
           name: persona.name,
           description: persona.description || "",
           tagsInput: (persona as DnsPersona).tags?.join(', ') || "",
-          config_resolversInput: (persona as DnsPersona).config.resolvers?.join(', ') || "",
-          config_useSystemResolvers: (persona as DnsPersona).config.useSystemResolvers || false,
-          config_queryTimeoutSeconds: (persona as DnsPersona).config.queryTimeoutSeconds || 5,
-          config_maxDomainsPerRequest: (persona as DnsPersona).config.maxDomainsPerRequest,
-          config_resolverStrategy: (persona as DnsPersona).config.resolverStrategy || "random_rotation",
-          config_resolversWeightedJson: stringifyJsonObjectForForm((persona as DnsPersona).config.resolversWeighted || {}),
-          config_resolversPreferredOrderInput: (persona as DnsPersona).config.resolversPreferredOrder?.join(', ') || "",
-          config_concurrentQueriesPerDomain: (persona as DnsPersona).config.concurrentQueriesPerDomain || 2,
-          config_queryDelayMinMs: (persona as DnsPersona).config.queryDelayMinMs,
-          config_queryDelayMaxMs: (persona as DnsPersona).config.queryDelayMaxMs,
-          config_maxConcurrentGoroutines: (persona as DnsPersona).config.maxConcurrentGoroutines || 10,
-          config_rateLimitDps: (persona as DnsPersona).config.rateLimitDps,
-          config_rateLimitBurst: (persona as DnsPersona).config.rateLimitBurst,
+          config_resolversInput: ((persona as DnsPersona).configDetails as DNSConfigDetails).resolvers?.join(', ') || "",
+          config_useSystemResolvers: ((persona as DnsPersona).configDetails as DNSConfigDetails).useSystemResolvers || false,
+          config_queryTimeoutSeconds: ((persona as DnsPersona).configDetails as DNSConfigDetails).queryTimeoutSeconds || 5,
+          config_maxDomainsPerRequest: ((persona as DnsPersona).configDetails as DNSConfigDetails).maxDomainsPerRequest,
+          config_resolverStrategy: (((persona as DnsPersona).configDetails as DNSConfigDetails).resolverStrategy as DnsResolverStrategy) || "random_rotation",
+          config_resolversWeightedJson: stringifyJsonObjectForForm(((persona as DnsPersona).configDetails as DNSConfigDetails).resolversWeighted || {}),
+          config_resolversPreferredOrderInput: ((persona as DnsPersona).configDetails as DNSConfigDetails).resolversPreferredOrder?.join(', ') || "",
+          config_concurrentQueriesPerDomain: ((persona as DnsPersona).configDetails as DNSConfigDetails).concurrentQueriesPerDomain || 2,
+          config_queryDelayMinMs: ((persona as DnsPersona).configDetails as DNSConfigDetails).queryDelayMinMs,
+          config_queryDelayMaxMs: ((persona as DnsPersona).configDetails as DNSConfigDetails).queryDelayMaxMs,
+          config_maxConcurrentGoroutines: ((persona as DnsPersona).configDetails as DNSConfigDetails).maxConcurrentGoroutines || 10,
+          config_rateLimitDps: ((persona as DnsPersona).configDetails as DNSConfigDetails).rateLimitDps,
+          config_rateLimitBurst: ((persona as DnsPersona).configDetails as DNSConfigDetails).rateLimitBurst,
         }
       : {
           name: "",
@@ -305,21 +307,21 @@ function DnsPersonaForm({ persona, isEditing = false }: { persona?: Persona; isE
           resolvers: parseStringToArray(data.config_resolversInput || ""),
           useSystemResolvers: data.config_useSystemResolvers,
           queryTimeoutSeconds: data.config_queryTimeoutSeconds,
-          maxDomainsPerRequest: data.config_maxDomainsPerRequest,
+          maxDomainsPerRequest: data.config_maxDomainsPerRequest || 100,
           resolverStrategy: data.config_resolverStrategy,
           resolversWeighted: parseJsonOrUndefined<Record<string, number>>(data.config_resolversWeightedJson || ""),
           resolversPreferredOrder: parseStringToArray(data.config_resolversPreferredOrderInput || ""),
           concurrentQueriesPerDomain: data.config_concurrentQueriesPerDomain,
-          queryDelayMinMs: data.config_queryDelayMinMs,
-          queryDelayMaxMs: data.config_queryDelayMaxMs,
+          queryDelayMinMs: data.config_queryDelayMinMs || 100,
+          queryDelayMaxMs: data.config_queryDelayMaxMs || 1000,
           maxConcurrentGoroutines: data.config_maxConcurrentGoroutines,
-          rateLimitDps: data.config_rateLimitDps,
-          rateLimitBurst: data.config_rateLimitBurst,
+          rateLimitDps: data.config_rateLimitDps || 100,
+          rateLimitBurst: data.config_rateLimitBurst || 10,
       };
 
       const payload: CreateDnsPersonaPayload | UpdateDnsPersonaPayload = {
           ...commonPayloadData,
-          config: dnsConfig,
+          configDetails: dnsConfig,
       };
 
       let response;

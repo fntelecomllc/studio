@@ -76,9 +76,9 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
   const form = useForm<CampaignFormValues>({
     resolver: zodResolver(campaignFormSchema),
     defaultValues: {
-      name: isEditing && campaignToEdit ? campaignToEdit.campaignName : "",
+      name: isEditing && campaignToEdit ? campaignToEdit.name : "",
       description: isEditing && campaignToEdit ? (campaignToEdit.description || "") : "",
-      selectedType: isEditing && campaignToEdit ? campaignToEdit.selectedType : (preselectedType && CAMPAIGN_SELECTED_TYPES.includes(preselectedType) ? preselectedType : undefined),
+      selectedType: isEditing && campaignToEdit ? campaignToEdit.selectedType : (preselectedType && Object.values(CAMPAIGN_SELECTED_TYPES).includes(preselectedType) ? preselectedType : undefined),
       domainSourceSelectionMode: isEditing && campaignToEdit ? 
         (campaignToEdit.domainSourceConfig?.type === 'current_campaign_output' ? 'campaign_output' : (campaignToEdit.domainSourceConfig?.type || getDefaultSourceMode(campaignToEdit.selectedType))) : 
         getDefaultSourceMode(preselectedType),
@@ -133,16 +133,8 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
     try {
       // Build campaign payload based on campaign type
       const campaignPayload: CreateCampaignPayload = {
-        campaignName: data.name,
         name: data.name,
-        description: data.description,
-        selectedType: data.selectedType,
-        assignedHttpPersonaId: data.assignedHttpPersonaId === CampaignFormConstants.NONE_VALUE_PLACEHOLDER ? undefined : data.assignedHttpPersonaId,
-        assignedDnsPersonaId: data.assignedDnsPersonaId === CampaignFormConstants.NONE_VALUE_PLACEHOLDER ? undefined : data.assignedDnsPersonaId,
-        proxyAssignment: {
-          mode: data.proxyAssignmentMode || 'none',
-          proxyId: (data.proxyAssignmentMode === 'single' && data.assignedProxyId !== CampaignFormConstants.NONE_VALUE_PLACEHOLDER) ? data.assignedProxyId : undefined,
-        },
+        campaignType: data.selectedType,
       };
 
       // Add domain generation config for domain_generation campaigns
@@ -205,36 +197,46 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
           return;
         }
 
-        campaignPayload.domainGenerationConfig = {
-          generationPattern: data.generationPattern,
-          constantPart: data.constantPart.trim(),
-          allowedCharSet: data.allowedCharSet || 'abcdefghijklmnopqrstuvwxyz0123456789',
-          tlds: tlds,
-          prefixVariableLength: prefixLength,
-          suffixVariableLength: suffixLength,
-          maxDomainsToGenerate: maxDomains,
+        campaignPayload.domainGenerationParams = {
+          patternType: data.generationPattern,
+          constantString: data.constantPart.trim(),
+          characterSet: data.allowedCharSet || 'abcdefghijklmnopqrstuvwxyz0123456789',
+          tld: tlds[0] || '.com', // Use first TLD as primary
+          variableLength: prefixLength,
+          numDomainsToGenerate: maxDomains,
+          totalPossibleCombinations: maxDomains,
+          currentOffset: 0,
         };
       }
 
       // Add domain source config for validation campaigns
       if (data.selectedType === 'dns_validation' || data.selectedType === 'http_keyword_validation') {
-        campaignPayload.domainSourceConfig = {
-          type: data.domainSourceSelectionMode || 'campaign_output',
-          sourceCampaignId: data.sourceCampaignId !== CampaignFormConstants.NONE_VALUE_PLACEHOLDER ? data.sourceCampaignId : undefined,
-          sourcePhase: data.sourcePhase,
-          uploadedDomains: data.uploadedDomainsContentCache || [],
+        campaignPayload.dnsValidationParams = {
+          sourceGenerationCampaignId: data.sourceCampaignId !== CampaignFormConstants.NONE_VALUE_PLACEHOLDER ? data.sourceCampaignId : undefined,
+          personaIds: data.assignedDnsPersonaId && data.assignedDnsPersonaId !== CampaignFormConstants.NONE_VALUE_PLACEHOLDER ? [data.assignedDnsPersonaId] : [],
+          rotationIntervalSeconds: 300,
+          processingSpeedPerMinute: 60,
+          batchSize: 10,
+          retryAttempts: 3,
+          metadata: {}
         };
       }
 
       // Add lead generation config for HTTP keyword validation
       if (data.selectedType === 'http_keyword_validation') {
-        campaignPayload.leadGenerationSpecificConfig = {
-          targetKeywords: data.targetKeywordsInput ? data.targetKeywordsInput.split(',').map(k => k.trim()).filter(k => k.length > 0) : [],
-          scrapingRateLimit: data.scrapingRateLimitRequests ? {
-            requests: data.scrapingRateLimitRequests,
-            per: data.scrapingRateLimitPer || 'second'
-          } : undefined,
-          requiresJavaScriptRendering: data.requiresJavaScriptRendering || false,
+        campaignPayload.httpKeywordValidationParams = {
+          sourceCampaignId: data.sourceCampaignId && data.sourceCampaignId !== CampaignFormConstants.NONE_VALUE_PLACEHOLDER ? data.sourceCampaignId : '',
+          keywordSetIds: [],
+          adHocKeywords: data.targetKeywordsInput ? data.targetKeywordsInput.split(',').map(k => k.trim()).filter(k => k.length > 0) : [],
+          personaIds: data.assignedHttpPersonaId && data.assignedHttpPersonaId !== CampaignFormConstants.NONE_VALUE_PLACEHOLDER ? [data.assignedHttpPersonaId] : [],
+          proxyIds: data.assignedProxyId && data.assignedProxyId !== CampaignFormConstants.NONE_VALUE_PLACEHOLDER ? [data.assignedProxyId] : undefined,
+          rotationIntervalSeconds: 300,
+          processingSpeedPerMinute: 60,
+          batchSize: 10,
+          retryAttempts: 3,
+          targetHttpPorts: [80, 443],
+          sourceType: 'campaign_output',
+          metadata: {}
         };
       }
 
@@ -253,7 +255,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
         if (response.status === 'success' && response.data) {
           toast({
             title: "Campaign Created Successfully",
-            description: `Campaign "${response.data.campaignName || response.data.name}" has been created.`,
+            description: `Campaign "${response.data.name}" has been created.`,
             variant: "default"
           });
           
@@ -312,14 +314,14 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
   // Memoized page header props
   const pageHeaderProps = useMemo(() => ({
     title: isEditing
-      ? `Edit Campaign: ${campaignToEdit?.campaignName || ''}`
+      ? `Edit Campaign: ${campaignToEdit?.name || ''}`
       : selectedCampaignType
       ? `Create New ${selectedCampaignType} Campaign`
       : "Create New Campaign",
     description: isEditing
       ? "Modify the details and configuration for this campaign."
       : "Configure and launch your domain intelligence or lead generation initiative.",
-  }), [isEditing, campaignToEdit?.campaignName, selectedCampaignType]);
+  }), [isEditing, campaignToEdit?.name, selectedCampaignType]);
 
   // Show data loading error if critical data failed to load
   if (dataLoadError) {
@@ -354,7 +356,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
         <CardHeader>
           <CardTitle>{isEditing ? "Edit Campaign Details" : "Campaign Configuration"}</CardTitle>
           <CardDescription>
-            {isEditing ? `Modifying: ${campaignToEdit?.campaignName}` : "Define settings for your new campaign."}
+            {isEditing ? `Modifying: ${campaignToEdit?.name}` : "Define settings for your new campaign."}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -394,7 +396,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {CAMPAIGN_SELECTED_TYPES.map(type => (
+                      {Object.values(CAMPAIGN_SELECTED_TYPES).map((type: string) => (
                         <SelectItem key={type} value={type}>{type}</SelectItem>
                       ))}
                     </SelectContent>

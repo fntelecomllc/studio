@@ -45,11 +45,11 @@ class ProxyService {
   }
 
   async createProxy(payload: CreateProxyPayload): Promise<ProxyCreationResponse> {
-    return apiClient.post<Proxy>('/api/v2/proxies', payload);
+    return apiClient.post<Proxy>('/api/v2/proxies', payload as unknown as Record<string, unknown>);
   }
 
   async updateProxy(proxyId: string, payload: UpdateProxyPayload): Promise<ProxyUpdateResponse> {
-    return apiClient.put<Proxy>(`/api/v2/proxies/${proxyId}`, payload);
+    return apiClient.put<Proxy>(`/api/v2/proxies/${proxyId}`, payload as unknown as Record<string, unknown>);
   }
 
   async deleteProxy(proxyId: string): Promise<ProxyDeleteResponse> {

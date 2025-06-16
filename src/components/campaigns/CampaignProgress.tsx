@@ -107,14 +107,15 @@ const CampaignProgress = memo(({ campaign }: CampaignProgressProps) => {
   
   // Memoize display phases calculation to prevent recalculation on every render
   const displayPhases = useMemo(() => {
+    const orderedPhases = (CAMPAIGN_PHASES_ORDERED[selectedType] || []) as CampaignPhase[];
     return campaign.currentPhase === "Idle" ?
-      ["Idle" as CampaignPhase, ...CAMPAIGN_PHASES_ORDERED[selectedType]] :
-      CAMPAIGN_PHASES_ORDERED[selectedType];
+      ["Idle" as CampaignPhase, ...orderedPhases] :
+      orderedPhases;
   }, [campaign.currentPhase, selectedType]);
   
   // Memoize operational phases for the selected type
   const operationalPhasesForType = useMemo(() => {
-    return CAMPAIGN_PHASES_ORDERED[selectedType];
+    return (CAMPAIGN_PHASES_ORDERED[selectedType] || []) as CampaignPhase[];
   }, [selectedType]);
 
   // Memoize current operational phase calculations
@@ -153,7 +154,7 @@ const CampaignProgress = memo(({ campaign }: CampaignProgressProps) => {
   const progressWidth = useMemo(() => {
     if (campaign.currentPhase === "Idle") return 0;
     if (campaign.currentPhase === "Completed") return 100;
-    return Math.max(0, (currentOperationalPhaseIndex / (operationalPhasesForType.length - 1)) * 100);
+    return Math.max(0, operationalPhasesForType.length > 1 ? (currentOperationalPhaseIndex / (operationalPhasesForType.length - 1)) * 100 : 0);
   }, [campaign.currentPhase, currentOperationalPhaseIndex, operationalPhasesForType.length]);
   
   return (

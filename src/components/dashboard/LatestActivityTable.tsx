@@ -39,7 +39,7 @@ const getGlobalDomainStatusForPhase = (
 ): DomainActivityStatus => {
   const selectedType = campaign.selectedType || campaign.campaignType;
   const phasesForType = CAMPAIGN_PHASES_ORDERED[selectedType];
-  if (!phasesForType.includes(phase)) return 'N/A'; // Phase not applicable to this campaign type
+  if (!phasesForType || !phasesForType.includes(phase)) return 'N/A'; // Phase not applicable to this campaign type
 
   const phaseIndexInType = phasesForType.indexOf(phase);
   const currentCampaignPhaseIndexInType = campaign.currentPhase ? phasesForType.indexOf(campaign.currentPhase) : -1;
@@ -92,7 +92,7 @@ const getGlobalLeadStatusAndScore = (
 ): { status: DomainActivityStatus; score?: number } => {
     const selectedType = campaign.selectedType || campaign.campaignType;
     const phasesForType = CAMPAIGN_PHASES_ORDERED[selectedType];
-    if (!phasesForType.includes('LeadGeneration')) return { status: 'N/A' };
+    if (!phasesForType || !phasesForType.includes('LeadGeneration')) return { status: 'N/A' };
 
     const leadGenPhaseIndex = phasesForType.indexOf('LeadGeneration');
     const currentPhaseOrderInType = campaign.currentPhase ? phasesForType.indexOf(campaign.currentPhase) : -1;
@@ -106,7 +106,7 @@ const getGlobalLeadStatusAndScore = (
         return { status: hasLeads ? 'Scanned' : 'No Leads', score };
     }
     // If campaign is fully completed, and lead generation was part of its flow
-    if (campaign.currentPhase === 'Completed' && phasesForType.includes('LeadGeneration')) {
+    if (campaign.currentPhase === 'Completed' && phasesForType && phasesForType.includes('LeadGeneration')) {
         // Check if leads exist for this domain from when the LeadGen phase was active
         return { status: hasLeads ? 'Scanned' : 'No Leads', score };
     }
@@ -121,7 +121,7 @@ const getGlobalLeadStatusAndScore = (
         return { status: 'Pending', score };
     }
     // If current phase is HTTPValidation Succeeded, and LeadGen is next applicable phase
-    if (phasesForType[currentPhaseOrderInType] === 'HTTPValidation' && campaign.phaseStatus === 'Succeeded' && phasesForType[leadGenPhaseIndex] === 'LeadGeneration' && leadGenPhaseIndex > currentPhaseOrderInType) {
+    if (phasesForType && phasesForType[currentPhaseOrderInType] === 'HTTPValidation' && campaign.phaseStatus === 'Succeeded' && phasesForType[leadGenPhaseIndex] === 'LeadGeneration' && leadGenPhaseIndex > currentPhaseOrderInType) {
         return { status: 'Pending', score };
     }
 
@@ -187,14 +187,19 @@ export default function LatestActivityTable() {
             const leadInfo = getGlobalLeadStatusAndScore(domainName, campaign);
             processedActivities.push({
               id: `${campaign.id}-${domainName}`, // Unique ID for the activity row
+              domain: domainName,
               domainName,
+              campaignId: campaign.id,
+              campaignName: campaign.name,
+              phase: campaign.currentPhase || 'Idle',
+              status: getGlobalDomainStatusForPhase(domainName, 'DNSValidation', campaign),
+              timestamp: campaign.createdAt,
+              activity: 'Domain processing',
               generatedDate: campaign.createdAt, // Or a more specific date if available per domain
               dnsStatus: getGlobalDomainStatusForPhase(domainName, 'DNSValidation', campaign),
               httpStatus: getGlobalDomainStatusForPhase(domainName, 'HTTPValidation', campaign),
               leadScanStatus: leadInfo.status,
               leadScore: leadInfo.score, // Store the score here
-              campaignName: campaign.name,
-              campaignId: campaign.id,
               sourceUrl: `http://${domainName}`, // Assuming HTTP for direct link
             });
           });

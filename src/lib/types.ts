@@ -108,8 +108,11 @@ export interface HTTPConfigDetails {
   http2Settings?: HTTP2Settings;
   cookieHandling?: HTTPCookieHandling;
   requestTimeoutSeconds?: number;
+  requestTimeoutSec?: number; // Legacy alias
   followRedirects?: boolean;
   allowedStatusCodes?: number[];
+  allowInsecureTls?: boolean;
+  maxRedirects?: number;
   rateLimitDps?: number;
   rateLimitBurst?: number;
   notes?: string;
@@ -121,8 +124,12 @@ export interface Persona {
   name: string;
   personaType: PersonaType;
   description?: string;
+  tags?: string[];
   configDetails: DNSConfigDetails | HTTPConfigDetails; // Raw JSON config
   isEnabled: boolean;
+  status: PersonaStatus;
+  lastTested?: string;
+  lastError?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -137,10 +144,16 @@ export interface Proxy {
   username?: string;
   host?: string;
   port?: number;
+  notes?: string;
+  status: ProxyStatus;
   isEnabled: boolean;
   isHealthy: boolean;
   lastStatus?: string;
   lastCheckedAt?: string;
+  lastTested?: string;
+  lastError?: string;
+  successCount?: number;
+  failureCount?: number;
   latencyMs?: number;
   city?: string;
   countryCode?: string;
@@ -537,6 +550,13 @@ export interface LoginResponse {
   expiresAt?: string;
 }
 
+// Refresh Session Response - matches backend RefreshSessionResponse exactly
+export interface RefreshSessionResponse {
+  sessionId: string;
+  csrfToken: string;
+  expiresAt: string;
+}
+
 // Change Password Request - matches backend ChangePasswordRequest exactly
 export interface ChangePasswordRequest {
   currentPassword: string;
@@ -578,6 +598,83 @@ export interface AuthResult {
   error?: string;
   user?: User;
 }
+
+// Password Validation Result
+export interface PasswordValidationResult {
+  isValid: boolean;
+  errors: string[];
+  requirements: PasswordRequirements;
+  strength: 'weak' | 'fair' | 'good' | 'strong';
+  score: number;
+}
+
+// Password Requirements
+export interface PasswordRequirements {
+  minLength: number;
+  requireUppercase: boolean;
+  requireLowercase: boolean;
+  requireNumbers: boolean;
+  requireSpecialChars: boolean;
+  forbiddenPasswords: string[];
+}
+
+// Security Event
+export interface SecurityEvent {
+  id: string;
+  timestamp: string;
+  eventType: string;
+  severity?: 'low' | 'medium' | 'high' | 'critical';
+  userId?: string;
+  sessionId?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  description?: string;
+  riskScore?: number;
+  details?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+}
+
+// Audit Log Entry
+export interface AuditLogEntry {
+  id: string;
+  timestamp: string;
+  userId?: string;
+  action: string;
+  resource?: string;
+  resourceId?: string;
+  changes?: Record<string, unknown>;
+  details?: Record<string, unknown>;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+// Latest Domain Activity
+export interface LatestDomainActivity {
+  id: string;
+  domain: string;
+  domainName: string;
+  campaignId: string;
+  campaignName: string;
+  phase: CampaignPhase;
+  status: DomainActivityStatus;
+  timestamp: string;
+  activity: string;
+  generatedDate: string;
+  dnsStatus: DomainActivityStatus;
+  httpStatus: DomainActivityStatus;
+  leadScanStatus: DomainActivityStatus;
+  leadScore?: number;
+  sourceUrl: string;
+}
+
+// DNS Persona Config (legacy alias)
+export type DnsPersonaConfig = DNSConfigDetails;
+
+// HTTP Persona Config (legacy alias)
+export type HttpPersonaConfig = HTTPConfigDetails;
+
+// DNS Resolver Strategy
+export type DnsResolverStrategy = 'random_rotation' | 'weighted_rotation' | 'sequential_failover';
 
 // ===== API RESPONSE TYPES =====
 
@@ -647,6 +744,15 @@ export interface CreateCampaignPayload {
   domainGenerationParams?: DomainGenerationCampaignParams;
   dnsValidationParams?: DNSValidationCampaignParams;
   httpKeywordValidationParams?: HTTPKeywordCampaignParams;
+  
+  // Legacy/compatibility properties for existing campaign service
+  campaignName?: string; // Alias for name
+  domainGenerationConfig?: DomainGenerationConfig;
+  domainSourceConfig?: DomainSource;
+  assignedDnsPersonaId?: string;
+  assignedHttpPersonaId?: string;
+  leadGenerationSpecificConfig?: LeadGenerationSpecificConfig;
+  proxyAssignment?: ProxyAssignment;
 }
 
 // Update Campaign Payload
@@ -663,6 +769,7 @@ export interface CreatePersonaPayload {
   name: string;
   personaType: PersonaType;
   description?: string;
+  tags?: string[];
   configDetails: DNSConfigDetails | HTTPConfigDetails;
   isEnabled?: boolean;
 }
@@ -671,13 +778,14 @@ export interface CreatePersonaPayload {
 export interface UpdatePersonaPayload {
   name?: string;
   description?: string;
+  tags?: string[];
   configDetails?: Partial<DNSConfigDetails | HTTPConfigDetails>;
   isEnabled?: boolean;
 }
 
 // Create Proxy Payload
 export interface CreateProxyPayload {
-  name: string;
+  name?: string;
   description?: string;
   address: string;
   protocol?: ProxyProtocol;
@@ -685,6 +793,8 @@ export interface CreateProxyPayload {
   password?: string;
   host?: string;
   port?: number;
+  notes?: string;
+  initialStatus?: string;
   isEnabled?: boolean;
 }
 
@@ -698,6 +808,7 @@ export interface UpdateProxyPayload {
   password?: string;
   host?: string;
   port?: number;
+  notes?: string;
   isEnabled?: boolean;
 }
 
@@ -709,6 +820,16 @@ export type CampaignDetailResponse = ApiResponse<Campaign>;
 export type CampaignCreationResponse = ApiResponse<Campaign>;
 export type CampaignUpdateResponse = ApiResponse<Campaign>;
 export type CampaignDeleteResponse = ApiResponse<null>;
+export type CampaignOperationResponse = ApiResponse<Campaign>;
+
+// Legacy persona types for backward compatibility
+export type HttpPersona = Persona & { personaType: 'http' };
+export type DnsPersona = Persona & { personaType: 'dns' };
+export type CreateHttpPersonaPayload = CreatePersonaPayload & { personaType: 'http' };
+export type CreateDnsPersonaPayload = CreatePersonaPayload & { personaType: 'dns' };
+export type UpdateHttpPersonaPayload = Partial<CreatePersonaPayload> & { status?: PersonaStatus };
+export type UpdateDnsPersonaPayload = Partial<CreatePersonaPayload> & { status?: PersonaStatus };
+export type PersonaActionResponse = ApiResponse<Persona>;
 
 // Persona Service Responses
 export type PersonasListResponse = ApiResponse<Persona[]>;
@@ -723,6 +844,7 @@ export type ProxyDetailResponse = ApiResponse<Proxy>;
 export type ProxyCreationResponse = ApiResponse<Proxy>;
 export type ProxyUpdateResponse = ApiResponse<Proxy>;
 export type ProxyDeleteResponse = ApiResponse<null>;
+export type ProxyActionResponse = ApiResponse<Proxy>;
 
 // Auth Service Responses
 export type UserListResponse = ApiResponse<User[]>;
@@ -730,6 +852,14 @@ export type UserDetailResponse = ApiResponse<User>;
 export type SessionListResponse = ApiResponse<Session[]>;
 export type SessionDetailResponse = ApiResponse<Session>;
 export type AuthenticationResponse = ApiResponse<LoginResponse>;
+export interface AuthResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+  };
+}
 
 // ===== MISSING COMPATIBILITY TYPES =====
 

@@ -410,3 +410,6 @@ export const phaseDisplayNames: Record<string, string> = {
   'Completed': 'Completed',
   'Failed': 'Failed',
 };
+
+// ===== LEGACY COMPATIBILITY EXPORTS =====
+export const CAMPAIGN_SELECTED_TYPES = CAMPAIGN_TYPES; // Legacy alias for backwards compatibility

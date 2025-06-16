@@ -206,16 +206,16 @@ export function SecurityAuditLog({
 
   // Filter security events
   const filteredSecurityEvents = securityEvents.filter(event => {
-    const matchesSearch = event.ipAddress.includes(searchTerm) ||
-                         event.userAgent.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = (event.ipAddress || '').includes(searchTerm) ||
+                         (event.userAgent || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (event.userId && event.userId.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesEventType = eventTypeFilter === 'all' || event.eventType === eventTypeFilter;
     
-    const matchesRiskLevel = riskLevelFilter === 'all' || 
-                            (riskLevelFilter === 'high' && event.riskScore >= 8) ||
-                            (riskLevelFilter === 'medium' && event.riskScore >= 5 && event.riskScore < 8) ||
-                            (riskLevelFilter === 'low' && event.riskScore < 5);
+    const matchesRiskLevel = riskLevelFilter === 'all' ||
+                            (riskLevelFilter === 'high' && (event.riskScore || 0) >= 8) ||
+                            (riskLevelFilter === 'medium' && (event.riskScore || 0) >= 5 && (event.riskScore || 0) < 8) ||
+                            (riskLevelFilter === 'low' && (event.riskScore || 0) < 5);
     
     const matchesDate = dateFilter === 'all' || 
                        (dateFilter === 'today' && new Date(event.timestamp).toDateString() === new Date().toDateString()) ||
@@ -230,7 +230,7 @@ export function SecurityAuditLog({
     const matchesSearch = entry.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (entry.resource && entry.resource.toLowerCase().includes(searchTerm.toLowerCase())) ||
                          (entry.userId && entry.userId.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                         entry.ipAddress.includes(searchTerm);
+                         (entry.ipAddress || '').includes(searchTerm);
     
     const matchesDate = dateFilter === 'all' || 
                        (dateFilter === 'today' && new Date(entry.timestamp).toDateString() === new Date().toDateString()) ||
@@ -438,7 +438,7 @@ export function SecurityAuditLog({
                 <TableBody>
                   {filteredSecurityEvents.map((event) => {
                     const eventBadge = getEventTypeBadge(event.eventType);
-                    const riskBadge = getRiskLevelBadge(event.riskScore);
+                    const riskBadge = getRiskLevelBadge(event.riskScore || 0);
                     const IconComponent = eventBadge.icon;
                     
                     return (
@@ -463,12 +463,12 @@ export function SecurityAuditLog({
                         </TableCell>
                         <TableCell>
                           <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                            {event.ipAddress}
+                            {event.ipAddress || 'N/A'}
                           </code>
                         </TableCell>
                         <TableCell>
                           <Badge variant={riskBadge.variant}>
-                            {riskBadge.label} ({event.riskScore})
+                            {riskBadge.label} ({event.riskScore || 0})
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -480,7 +480,7 @@ export function SecurityAuditLog({
                         <TableCell>
                           <div className="space-y-1">
                             <p className="text-xs text-muted-foreground">
-                              {formatUserAgent(event.userAgent)}
+                              {formatUserAgent(event.userAgent || 'Unknown')}
                             </p>
                             {event.details && Object.keys(event.details).length > 0 && (
                               <div className="text-xs">
@@ -560,7 +560,7 @@ export function SecurityAuditLog({
                       </TableCell>
                       <TableCell>
                         <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                          {entry.ipAddress}
+                          {entry.ipAddress || 'N/A'}
                         </code>
                       </TableCell>
                       <TableCell>

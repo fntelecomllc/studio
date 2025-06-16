@@ -101,67 +101,73 @@ export default function PersonaListItem({ persona, onDelete, onTest, onToggleSta
     });
   };
 
-  const renderHttpPersonaDetails = (p: HttpPersona) => (
-    <>
-      <div className="text-sm space-y-1 mb-3">
-        <div><strong>User-Agent:</strong> <p className="font-mono text-xs truncate block ml-1" title={p.config.userAgent}>{p.config.userAgent || "Not set"}</p></div>
-        
-        <div className="flex items-center mt-1"><strong>Allow Insecure TLS:</strong>
-          <Badge variant={p.config.allowInsecureTls ? "destructive" : "secondary"} className="ml-2 text-xs">{p.config.allowInsecureTls ? "Yes" : "No"}</Badge>
+  const renderHttpPersonaDetails = (p: HttpPersona) => {
+    const config = p.configDetails as import('@/lib/types').HTTPConfigDetails;
+    return (
+      <>
+        <div className="text-sm space-y-1 mb-3">
+          <div><strong>User-Agent:</strong> <p className="font-mono text-xs truncate block ml-1" title={config.userAgent}>{config.userAgent || "Not set"}</p></div>
+          
+          <div className="flex items-center mt-1"><strong>Allow Insecure TLS:</strong>
+            <Badge variant={config.allowInsecureTls ? "destructive" : "secondary"} className="ml-2 text-xs">{config.allowInsecureTls ? "Yes" : "No"}</Badge>
+          </div>
+          <p><strong>Timeout:</strong> {config.requestTimeoutSec || config.requestTimeoutSeconds}s</p>
+          <p><strong>Redirects:</strong> {config.maxRedirects}</p>
+          {config.cookieHandling?.mode && <p><strong>Cookie Handling:</strong> {config.cookieHandling.mode}</p>}
+          {config.notes && <p><strong>Notes:</strong> <span className="text-muted-foreground italic truncate" title={config.notes}>{config.notes}</span></p>}
         </div>
-        <p><strong>Timeout:</strong> {p.config.requestTimeoutSec}s</p>
-        <p><strong>Redirects:</strong> {p.config.maxRedirects}</p>
-        {p.config.cookieHandling?.mode && <p><strong>Cookie Handling:</strong> {p.config.cookieHandling.mode}</p>}
-        {p.config.notes && <p><strong>Notes:</strong> <span className="text-muted-foreground italic truncate" title={p.config.notes}>{p.config.notes}</span></p>}
-      </div>
-      <Separator className="my-3" />
-      <div className="space-y-2">
-        {p.config.headers && Object.keys(p.config.headers).length > 0 &&
-            <Button variant="outline" size="sm" onClick={() => copyToClipboard(p.config.headers, "HTTP Headers")} className="w-full justify-start text-left text-xs">
-              <Copy className="mr-2 h-3 w-3"/> Copy HTTP Headers ({Object.keys(p.config.headers).length} headers)
-            </Button>
-        }
-        {p.config.tlsClientHello && Object.keys(p.config.tlsClientHello).length > 0 &&
-            <Button variant="outline" size="sm" onClick={() => copyToClipboard(p.config.tlsClientHello, "TLS ClientHello Config")} className="w-full justify-start text-left text-xs">
-              <Copy className="mr-2 h-3 w-3"/> Copy TLS Config
-            </Button>
-        }
-        {p.config.http2Settings && Object.keys(p.config.http2Settings).length > 0 &&
-            <Button variant="outline" size="sm" onClick={() => copyToClipboard(p.config.http2Settings, "HTTP/2 Settings")} className="w-full justify-start text-left text-xs">
-              <Copy className="mr-2 h-3 w-3"/> Copy HTTP/2 Config
-            </Button>
-        }
-      </div>
-    </>
-  );
+        <Separator className="my-3" />
+        <div className="space-y-2">
+          {config.headers && Object.keys(config.headers).length > 0 &&
+              <Button variant="outline" size="sm" onClick={() => copyToClipboard(config.headers, "HTTP Headers")} className="w-full justify-start text-left text-xs">
+                <Copy className="mr-2 h-3 w-3"/> Copy HTTP Headers ({Object.keys(config.headers).length} headers)
+              </Button>
+          }
+          {config.tlsClientHello && Object.keys(config.tlsClientHello).length > 0 &&
+              <Button variant="outline" size="sm" onClick={() => copyToClipboard(config.tlsClientHello, "TLS ClientHello Config")} className="w-full justify-start text-left text-xs">
+                <Copy className="mr-2 h-3 w-3"/> Copy TLS Config
+              </Button>
+          }
+          {config.http2Settings && Object.keys(config.http2Settings).length > 0 &&
+              <Button variant="outline" size="sm" onClick={() => copyToClipboard(config.http2Settings, "HTTP/2 Settings")} className="w-full justify-start text-left text-xs">
+                <Copy className="mr-2 h-3 w-3"/> Copy HTTP/2 Config
+              </Button>
+          }
+        </div>
+      </>
+    );
+  };
 
-  const renderDnsPersonaDetails = (p: DnsPersona) => (
-     <>
-      <div className="text-sm space-y-1 mb-3">
-        <div><strong>Strategy:</strong> <Badge variant="secondary" className="ml-2 text-xs">{p.config.resolverStrategy.replace(/_/g, ' ')}</Badge></div>
-        <p><strong>Timeout:</strong> {p.config.queryTimeoutSeconds}s</p>
-        <p><strong>Concurrent Queries/Domain:</strong> {p.config.concurrentQueriesPerDomain}</p>
-        <p><strong>Max Goroutines:</strong> {p.config.maxConcurrentGoroutines}</p>
-        {(p.config.queryDelayMinMs !== undefined && p.config.queryDelayMaxMs !== undefined) && <p><strong>Query Delay:</strong> {p.config.queryDelayMinMs}-{p.config.queryDelayMaxMs}ms</p>}
-        {p.config.useSystemResolvers && <p><strong>Uses System Resolvers:</strong> Yes</p>}
-        {p.config.maxDomainsPerRequest && <p><strong>Max Domains/Request:</strong> {p.config.maxDomainsPerRequest}</p>}
-        {p.config.rateLimitDps && <p><strong>Rate Limit (DPS):</strong> {p.config.rateLimitDps}</p>}
-        {p.config.rateLimitBurst && <p><strong>Rate Limit Burst:</strong> {p.config.rateLimitBurst}</p>}
-        {p.config.resolvers && p.config.resolvers.length > 0 && (
-            <div className="mt-1">
-                <strong>Resolvers:</strong>
-                <p className="text-xs font-mono truncate ml-1" title={p.config.resolvers.join(', ')}>{p.config.resolvers.join(', ').substring(0,35)}{p.config.resolvers.join(', ').length > 35 ? '...' : ''}</p>
-            </div>
-        )}
-      </div>
-      <Separator className="my-3" />
-       <div className="space-y-2">
-         <Button variant="outline" size="sm" onClick={() => copyToClipboard(p.config, "Full DNS Config")} className="w-full justify-start text-left text-xs">
-              <Copy className="mr-2 h-3 w-3"/> Copy Full DNS Config
-            </Button>
-      </div>
-    </>
-  );
+  const renderDnsPersonaDetails = (p: DnsPersona) => {
+    const config = p.configDetails as import('@/lib/types').DNSConfigDetails;
+    return (
+      <>
+        <div className="text-sm space-y-1 mb-3">
+          <div><strong>Strategy:</strong> <Badge variant="secondary" className="ml-2 text-xs">{config.resolverStrategy.replace(/_/g, ' ')}</Badge></div>
+          <p><strong>Timeout:</strong> {config.queryTimeoutSeconds}s</p>
+          <p><strong>Concurrent Queries/Domain:</strong> {config.concurrentQueriesPerDomain}</p>
+          <p><strong>Max Goroutines:</strong> {config.maxConcurrentGoroutines}</p>
+          {(config.queryDelayMinMs !== undefined && config.queryDelayMaxMs !== undefined) && <p><strong>Query Delay:</strong> {config.queryDelayMinMs}-{config.queryDelayMaxMs}ms</p>}
+          {config.useSystemResolvers && <p><strong>Uses System Resolvers:</strong> Yes</p>}
+          {config.maxDomainsPerRequest && <p><strong>Max Domains/Request:</strong> {config.maxDomainsPerRequest}</p>}
+          {config.rateLimitDps && <p><strong>Rate Limit (DPS):</strong> {config.rateLimitDps}</p>}
+          {config.rateLimitBurst && <p><strong>Rate Limit Burst:</strong> {config.rateLimitBurst}</p>}
+          {config.resolvers && config.resolvers.length > 0 && (
+              <div className="mt-1">
+                  <strong>Resolvers:</strong>
+                  <p className="text-xs font-mono truncate ml-1" title={config.resolvers.join(', ')}>{config.resolvers.join(', ').substring(0,35)}{config.resolvers.join(', ').length > 35 ? '...' : ''}</p>
+              </div>
+          )}
+        </div>
+        <Separator className="my-3" />
+         <div className="space-y-2">
+           <Button variant="outline" size="sm" onClick={() => copyToClipboard(config, "Full DNS Config")} className="w-full justify-start text-left text-xs">
+                <Copy className="mr-2 h-3 w-3"/> Copy Full DNS Config
+              </Button>
+        </div>
+      </>
+    );
+  };
 
   const isActionDisabled = isTesting || isTogglingStatus;
 

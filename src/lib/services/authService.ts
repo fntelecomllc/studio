@@ -435,7 +435,7 @@ class AuthService {
         undefined,
         {
           email: credentials.email,
-          user_roles: data.user.role,
+          user_roles: data.user.roles?.[0]?.name || 'user',
           user_permissions: data.user.permissions?.length || 0,
           remember_me: credentials.rememberMe,
           session_expires_at: data.expiresAt,
@@ -717,7 +717,7 @@ class AuthService {
         },
         body: JSON.stringify({
           token,
-          newPassword
+          password: newPassword
         } as ResetPasswordRequest),
       });
 
@@ -797,6 +797,7 @@ class AuthService {
     return {
       isValid: errors.length === 0,
       errors,
+      requirements,
       strength,
       score
     };
@@ -1105,7 +1106,7 @@ class AuthService {
       
       console.log('[AuthService] Processing login response format with permissions:', permissions);
       
-      const fullName = `${typedUser.first_name || ''} ${typedUser.last_name || ''}`.trim();
+      const fullName = `${typedUser.firstName || ''} ${typedUser.lastName || ''}`.trim();
       const primaryRole = typedUser.roles && typedUser.roles.length > 0 && typedUser.roles[0] ? typedUser.roles[0].name : 'user';
       
       const authUser: AuthUser = {
@@ -1114,10 +1115,10 @@ class AuthService {
         name: fullName || typedUser.email,
         role: primaryRole,
         permissions: permissions,
-        avatarUrl: typedUser.avatar_url,
-        isActive: typedUser.is_active,
-        mustChangePassword: typedUser.must_change_password,
-        lastLoginAt: typedUser.last_login_at,
+        avatarUrl: typedUser.avatarUrl,
+        isActive: typedUser.isActive,
+        mustChangePassword: typedUser.mustChangePassword,
+        lastLoginAt: typedUser.lastLoginAt,
         failedLoginAttempts: 0, // Not exposed in login response
         lockedUntil: undefined // Not exposed in login response
       };

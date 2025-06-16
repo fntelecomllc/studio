@@ -1,6 +1,6 @@
 # DomainFlow Backend Services
 
-This directory contains the Go-based backend services for DomainFlow, built with the Gin framework. It features a robust, PostgreSQL-backed system for managing entities like Personas, Proxies, and Keyword Sets, and includes a new V2 stateful campaign engine for advanced domain generation, DNS validation, and HTTP/Keyword validation tasks. The system offers real-time communication via WebSockets and is designed for high-throughput, configurable domain intelligence operations.
+This directory contains the Go-based backend services for DomainFlow, built with the Gin framework. It features a robust, PostgreSQL-backed system with session-based authentication, managing entities like Personas, Proxies, and Keyword Sets, and includes a new V2 stateful campaign engine for advanced domain generation, DNS validation, and HTTP/Keyword validation tasks. The system offers real-time communication via WebSockets with session cookie authentication and is designed for high-throughput, configurable domain intelligence operations.
 
 ## Main Features
 
@@ -13,11 +13,14 @@ This directory contains the Go-based backend services for DomainFlow, built with
 *   **Database-Backed Entities:** Personas, Proxies, and Keyword Sets are now managed via APIs and stored persistently in PostgreSQL.
 *   **Real-time Communication (WebSockets):**
     *   A general-purpose WebSocket endpoint (`/api/v2/ws`) allows for persistent, bidirectional communication between clients and the server.
+    *   Authentication via session cookies (automatically handled by browser)
     *   Can be used for live updates on campaign progress, system notifications, and other real-time interactions.
 *   **Advanced Validation Engines:** Core DNS and HTTP validators with persona support.
 *   **Keyword Extraction:** Dedicated endpoints for fetching content and extracting keywords.
 *   **Configurable Operations:** Extensive configuration via `config.json` (in the `backend` directory) and environment variables.
-*   **PostgreSQL Database:** Robust and scalable database backend for all data storage needs.
+*   **PostgreSQL Database:** Robust and scalable database backend with consolidated schema v2.0 for all data storage needs.
+*   **Session-Based Authentication:** Secure HTTP-only cookies with session fingerprinting and hijacking prevention.
+*   **Security Features:** Comprehensive audit logging, concurrent session management, and CSRF protection via X-Requested-With header.
 
 ## Database to Go Struct Mapping
 
@@ -282,8 +285,8 @@ Fields for `KeywordRule`: `ID (uuid.UUID)`, `KeywordSetID (uuid.UUID)`, `Pattern
         *   **PostgreSQL:** `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_SSLMODE`.
         *   **Firestore:** `FIRESTORE_PROJECT_ID` (and `GOOGLE_APPLICATION_CREDENTIALS` must be set in the environment for authentication).
         *   `SERVER_PORT`: Overrides `server.port` in `config.json`.
-        *   `API_KEY`: Overrides `server.apiKey` in `config.json`. **Recommended for production.**
-           (e.g., `export API_KEY='your_very_secure_api_key_generated_here'`)
+        *   `SESSION_SECRET`: Session encryption key for secure cookies. **Required for production.**
+        *   `SESSION_MAX_AGE`: Session expiration time in seconds (default: 86400).
 
 ## Building the API Server
 
@@ -305,7 +308,7 @@ The server will start, typically on the port defined in `config.json` or by `SER
 
 ## API Endpoints
 
-All endpoints under the `/api/v2` prefix (including REST and WebSocket upgrade requests) require Bearer Token authentication: `Authorization: Bearer YOUR_API_KEY`.
+All endpoints under the `/api/v2` prefix (including REST and WebSocket upgrade requests) require valid session authentication via HTTP-only cookies, with X-Requested-With header for CSRF protection on state-changing operations.
 
 ### Health Check
 
@@ -315,7 +318,7 @@ All endpoints under the `/api/v2` prefix (including REST and WebSocket upgrade r
 
 ### General WebSocket API
 *   **`GET /api/v2/ws`** (WebSocket Upgrade)
-    *   Description: Establishes a persistent WebSocket connection for general real-time communication. Requires API key authentication during the upgrade.
+    *   Description: Establishes a persistent WebSocket connection for general real-time communication. Requires valid session cookie authentication during the upgrade.
     *   See the "Connecting Frontend to WebSocket API" section below for more details.
 
 ### Entity Management APIs (Database Backed)
@@ -400,23 +403,20 @@ This section provides guidance for frontend developers (React/Next.js) on connec
 *   Replace `<your_backend_host>:<port>` or `<your_backend_domain>` with the actual address of the running backend server (e.g., `localhost:8080` during development).
 
 **Authentication:**
-*   The WebSocket connection requires API key authentication during the initial HTTP upgrade request.
-*   The API key must be sent as a `Authorization: Bearer YOUR_API_KEY` header.
-*   When using the native browser `WebSocket` API, you cannot directly set arbitrary headers like `Authorization`. There are a few ways to handle this:
-    1.  **Via Query Parameter (If Server Supports It):** The backend's WebSocket authentication middleware would need to be modified to accept the API key via a query parameter (e.g., `/api/v2/ws?apiKey=YOUR_API_KEY`). *Currently, the Go backend's API key middleware primarily checks the `Authorization` header.* This would be a backend change if direct browser WebSocket usage is preferred without a library that can set headers.
-    2.  **Using a WebSocket Client Library:** Libraries like `socket.io-client` (if the backend were using Socket.IO, which it isn't currently) or more generic WebSocket clients for JavaScript that allow custom headers during the handshake (e.g., the `options` argument in some libraries) might be an option. For the standard `WebSocket` API, this is a limitation.
-    3.  **Backend Proxy/Endpoint for Token Exchange:** A common pattern is for the frontend to authenticate with a regular HTTP endpoint, receive a short-lived session token or WebSocket-specific token, and then pass *that* token to the WebSocket connection (e.g., via query param, which is easier for the native `WebSocket` API, or as the first message after connection).
-*   **Current Recommendation:** Given the existing Gin middleware checks the `Authorization` header, directly connecting from a browser-based `WebSocket` object with only the API key will be problematic. The simplest path *without backend changes* might be if your HTTP client/framework used for REST API calls can also handle WebSocket upgrades with custom headers (less common for plain browser JS). **Consider modifying the backend API key middleware for the `/ws` route to also check for the API key in a query parameter for easier browser client integration.**
+*   The WebSocket connection requires valid session cookie authentication during the initial HTTP upgrade request.
+*   Session cookies are automatically included by the browser for WebSocket connections to the same domain.
+*   No additional headers or tokens are required - the session-based authentication is handled seamlessly.
+*   This provides a much cleaner integration path compared to token-based authentication as browsers handle session cookies automatically.
 
-**Establishing a Connection (Conceptual Example with Native WebSocket API - assuming query param auth was added):**
+**Establishing a Connection (Native WebSocket API with Session Authentication):**
 
 ```javascript
-// Assuming API_KEY is available in your frontend environment
-const getWebSocket = (apiKey) => {
+// Session-based WebSocket connection - no API key needed
+const getWebSocket = () => {
   const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
   const wsHost = window.location.host; // Or your specific backend host
-  // IMPORTANT: The backend needs to support apiKey via query param for this to work directly
-  const socket = new WebSocket(`${wsProtocol}://${wsHost}/api/v2/ws?apiKey=${apiKey}`);
+  // Session cookies are automatically included by the browser
+  const socket = new WebSocket(`${wsProtocol}://${wsHost}/api/v2/ws`);
 
   socket.onopen = () => {
     console.log('WebSocket connection established');
@@ -454,13 +454,12 @@ const getWebSocket = (apiKey) => {
 };
 
 // Usage in a React component (e.g., in a useEffect hook)
-// const apiKey = "YOUR_API_KEY"; // Should be securely managed
 // useEffect(() => {
-//   const ws = getWebSocket(apiKey);
+//   const ws = getWebSocket();
 //   return () => {
 //     ws.close();
 //   };
-// }, [apiKey]);
+// }, []);
 ```
 
 **Using a Library (e.g., `react-use-websocket` for easier management in React):**
@@ -471,9 +470,8 @@ If you choose a library like `react-use-websocket`, you might have more options 
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 
 // const MyComponent = () => {
-//   const apiKey = "YOUR_API_KEY"; // Manage securely
-//   // Backend needs to support apiKey via query param for this direct approach
-//   const socketUrl = `ws://localhost:8080/api/v2/ws?apiKey=${apiKey}`;
+//   // Session-based authentication - no API key needed
+//   const socketUrl = `ws://localhost:8080/api/v2/ws`;
 
 //   const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl);
 
@@ -520,13 +518,13 @@ import useWebSocket, { ReadyState } from 'react-use-websocket';
 
 **Key Considerations for Frontend:**
 
-1.  **API Key Management:** Securely store and manage the API key on the frontend. For browser clients, this typically means fetching it from a secure backend endpoint after user authentication or embedding it carefully if the frontend itself is served behind authentication that protects the key.
+1.  **Session Management:** Session cookies are automatically handled by the browser. Ensure user is logged in before establishing WebSocket connections.
 2.  **Connection Lifecycle:** Implement robust handling for `onopen`, `onmessage`, `onclose`, and `onerror` events.
 3.  **Reconnection Logic:** WebSockets can disconnect due to network issues or server restarts. Implement an exponential backoff or similar strategy for reconnection attempts.
 4.  **Message Parsing and Handling:** Safely parse incoming JSON messages and route them to appropriate handlers in your application state (e.g., Redux, Zustand, React Context).
 5.  **State Management:** Update your application's state based on messages received from the WebSocket to reflect real-time changes in the UI.
 6.  **Development vs. Production URL:** Use `ws://` for local development and `wss://` (secure WebSockets) for production deployments over HTTPS.
-7.  **Backend API Key Middleware:** As noted, for the most straightforward browser `WebSocket` integration, the backend's `/api/v2/ws` authentication should ideally be updated to also check for the API key in a query parameter (e.g., `?token=YOUR_API_KEY` or `?apiKey=YOUR_API_KEY`). This avoids the header limitation of the browser's native WebSocket API.
+7.  **Authentication State:** Monitor authentication state and reconnect WebSocket when user logs in/out.
 
 This guide should provide a starting point for your frontend team. Further details on specific message types and server-side event broadcasting will need to be defined as the application features evolve.
 

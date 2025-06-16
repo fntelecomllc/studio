@@ -18,7 +18,9 @@ import type {
   PersonaCreationResponse,
   PersonaUpdateResponse,
   PersonaDeleteResponse,
-  PersonaActionResponse
+  PersonaActionResponse,
+  HttpPersonaConfig,
+  DnsPersonaConfig
 } from '@/lib/types';
 
 // API Request Body Types
@@ -89,17 +91,17 @@ export async function createHttpPersona(payload: CreateHttpPersonaPayload): Prom
     personaType: 'http',
     description: payload.description,
     config: {
-      userAgent: payload.config.userAgent,
-      headers: payload.config.headers,
-      headerOrder: payload.config.headerOrder,
-      tlsClientHello: payload.config.tlsClientHello,
-      http2Settings: payload.config.http2Settings,
-      cookieHandling: payload.config.cookieHandling,
-      allowInsecureTls: payload.config.allowInsecureTls,
-      requestTimeoutSec: payload.config.requestTimeoutSec,
-      maxRedirects: payload.config.maxRedirects,
-      rateLimitDps: payload.config.rateLimitDps,
-      rateLimitBurst: payload.config.rateLimitBurst
+      userAgent: (payload.configDetails as HttpPersonaConfig).userAgent,
+      headers: (payload.configDetails as HttpPersonaConfig).headers,
+      headerOrder: (payload.configDetails as HttpPersonaConfig).headerOrder,
+      tlsClientHello: (payload.configDetails as HttpPersonaConfig).tlsClientHello,
+      http2Settings: (payload.configDetails as HttpPersonaConfig).http2Settings,
+      cookieHandling: (payload.configDetails as HttpPersonaConfig).cookieHandling,
+      allowInsecureTls: (payload.configDetails as HttpPersonaConfig).allowInsecureTls,
+      requestTimeoutSec: (payload.configDetails as HttpPersonaConfig).requestTimeoutSec,
+      maxRedirects: (payload.configDetails as HttpPersonaConfig).maxRedirects,
+      rateLimitDps: (payload.configDetails as HttpPersonaConfig).rateLimitDps,
+      rateLimitBurst: (payload.configDetails as HttpPersonaConfig).rateLimitBurst
     },
     isEnabled: payload.isEnabled ?? true
   };
@@ -133,19 +135,19 @@ export async function updateHttpPersona(personaId: string, payload: UpdateHttpPe
     isEnabled: payload.status === 'Active'
   };
 
-  if (payload.config !== undefined) {
+  if (payload.configDetails !== undefined) {
     updateBody.config = {
-      userAgent: payload.config.userAgent,
-      headers: payload.config.headers,
-      headerOrder: payload.config.headerOrder,
-      tlsClientHello: payload.config.tlsClientHello,
-      http2Settings: payload.config.http2Settings,
-      cookieHandling: payload.config.cookieHandling,
-      allowInsecureTls: payload.config.allowInsecureTls,
-      requestTimeoutSec: payload.config.requestTimeoutSec,
-      maxRedirects: payload.config.maxRedirects,
-      rateLimitDps: payload.config.rateLimitDps,
-      rateLimitBurst: payload.config.rateLimitBurst
+      userAgent: (payload.configDetails as HttpPersonaConfig).userAgent,
+      headers: (payload.configDetails as HttpPersonaConfig).headers,
+      headerOrder: (payload.configDetails as HttpPersonaConfig).headerOrder,
+      tlsClientHello: (payload.configDetails as HttpPersonaConfig).tlsClientHello,
+      http2Settings: (payload.configDetails as HttpPersonaConfig).http2Settings,
+      cookieHandling: (payload.configDetails as HttpPersonaConfig).cookieHandling,
+      allowInsecureTls: (payload.configDetails as HttpPersonaConfig).allowInsecureTls,
+      requestTimeoutSec: (payload.configDetails as HttpPersonaConfig).requestTimeoutSec,
+      maxRedirects: (payload.configDetails as HttpPersonaConfig).maxRedirects,
+      rateLimitDps: (payload.configDetails as HttpPersonaConfig).rateLimitDps,
+      rateLimitBurst: (payload.configDetails as HttpPersonaConfig).rateLimitBurst
     };
   }
 
@@ -163,19 +165,19 @@ export async function createDnsPersona(payload: CreateDnsPersonaPayload): Promis
     personaType: 'dns',
     description: payload.description,
     configDetails: {
-      resolvers: payload.config.resolvers,
-      useSystemResolvers: payload.config.useSystemResolvers,
-      queryTimeoutSeconds: payload.config.queryTimeoutSeconds,
-      maxDomainsPerRequest: payload.config.maxDomainsPerRequest,
-      resolverStrategy: payload.config.resolverStrategy,
-      resolversWeighted: payload.config.resolversWeighted,
-      resolversPreferredOrder: payload.config.resolversPreferredOrder,
-      concurrentQueriesPerDomain: payload.config.concurrentQueriesPerDomain,
-      queryDelayMinMs: payload.config.queryDelayMinMs,
-      queryDelayMaxMs: payload.config.queryDelayMaxMs,
-      maxConcurrentGoroutines: payload.config.maxConcurrentGoroutines,
-      rateLimitDps: payload.config.rateLimitDps,
-      rateLimitBurst: payload.config.rateLimitBurst
+      resolvers: (payload.configDetails as DnsPersonaConfig).resolvers,
+      useSystemResolvers: (payload.configDetails as DnsPersonaConfig).useSystemResolvers,
+      queryTimeoutSeconds: (payload.configDetails as DnsPersonaConfig).queryTimeoutSeconds,
+      maxDomainsPerRequest: (payload.configDetails as DnsPersonaConfig).maxDomainsPerRequest,
+      resolverStrategy: (payload.configDetails as DnsPersonaConfig).resolverStrategy,
+      resolversWeighted: (payload.configDetails as DnsPersonaConfig).resolversWeighted,
+      resolversPreferredOrder: (payload.configDetails as DnsPersonaConfig).resolversPreferredOrder,
+      concurrentQueriesPerDomain: (payload.configDetails as DnsPersonaConfig).concurrentQueriesPerDomain,
+      queryDelayMinMs: (payload.configDetails as DnsPersonaConfig).queryDelayMinMs,
+      queryDelayMaxMs: (payload.configDetails as DnsPersonaConfig).queryDelayMaxMs,
+      maxConcurrentGoroutines: (payload.configDetails as DnsPersonaConfig).maxConcurrentGoroutines,
+      rateLimitDps: (payload.configDetails as DnsPersonaConfig).rateLimitDps,
+      rateLimitBurst: (payload.configDetails as DnsPersonaConfig).rateLimitBurst
     },
     isEnabled: true
   };
@@ -209,21 +211,21 @@ export async function updateDnsPersona(personaId: string, payload: UpdateDnsPers
     isEnabled: payload.status === 'Active'
   };
 
-  if (payload.config) {
+  if (payload.configDetails) {
     updateBody.configDetails = {
-      resolvers: payload.config.resolvers,
-      useSystemResolvers: payload.config.useSystemResolvers,
-      queryTimeoutSeconds: payload.config.queryTimeoutSeconds,
-      maxDomainsPerRequest: payload.config.maxDomainsPerRequest,
-      resolverStrategy: payload.config.resolverStrategy,
-      resolversWeighted: payload.config.resolversWeighted,
-      resolversPreferredOrder: payload.config.resolversPreferredOrder,
-      concurrentQueriesPerDomain: payload.config.concurrentQueriesPerDomain,
-      queryDelayMinMs: payload.config.queryDelayMinMs,
-      queryDelayMaxMs: payload.config.queryDelayMaxMs,
-      maxConcurrentGoroutines: payload.config.maxConcurrentGoroutines,
-      rateLimitDps: payload.config.rateLimitDps,
-      rateLimitBurst: payload.config.rateLimitBurst
+      resolvers: (payload.configDetails as DnsPersonaConfig).resolvers,
+      useSystemResolvers: (payload.configDetails as DnsPersonaConfig).useSystemResolvers,
+      queryTimeoutSeconds: (payload.configDetails as DnsPersonaConfig).queryTimeoutSeconds,
+      maxDomainsPerRequest: (payload.configDetails as DnsPersonaConfig).maxDomainsPerRequest,
+      resolverStrategy: (payload.configDetails as DnsPersonaConfig).resolverStrategy,
+      resolversWeighted: (payload.configDetails as DnsPersonaConfig).resolversWeighted,
+      resolversPreferredOrder: (payload.configDetails as DnsPersonaConfig).resolversPreferredOrder,
+      concurrentQueriesPerDomain: (payload.configDetails as DnsPersonaConfig).concurrentQueriesPerDomain,
+      queryDelayMinMs: (payload.configDetails as DnsPersonaConfig).queryDelayMinMs,
+      queryDelayMaxMs: (payload.configDetails as DnsPersonaConfig).queryDelayMaxMs,
+      maxConcurrentGoroutines: (payload.configDetails as DnsPersonaConfig).maxConcurrentGoroutines,
+      rateLimitDps: (payload.configDetails as DnsPersonaConfig).rateLimitDps,
+      rateLimitBurst: (payload.configDetails as DnsPersonaConfig).rateLimitBurst
     };
   }
 

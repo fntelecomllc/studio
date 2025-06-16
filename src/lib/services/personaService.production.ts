@@ -72,13 +72,13 @@ function transformBackendPersona(backendPersona: BackendPersonaResponse): Person
       return {
         ...basePersona,
         personaType: 'dns',
-        config: config as DnsPersonaConfig,
+        configDetails: config as DnsPersonaConfig,
       } as DnsPersona;
     } else {
       return {
         ...basePersona,
         personaType: 'http',
-        config: config as HttpPersonaConfig,
+        configDetails: config as HttpPersonaConfig,
       } as HttpPersona;
     }
   } catch (error) {
@@ -92,7 +92,7 @@ function transformBackendPersona(backendPersona: BackendPersonaResponse): Person
 export async function createHttpPersona(payload: CreateHttpPersonaPayload): Promise<HttpPersona> {
   try {
     // CRITICAL SECURITY FIX: Validate configuration before sending to backend
-    const validatedConfig = validateHttpPersonaConfig(payload.config);
+    const validatedConfig = validateHttpPersonaConfig(payload.configDetails);
     
     const requestBody: BackendPersonaRequest = {
       name: payload.name,
@@ -125,8 +125,8 @@ export async function updateHttpPersona(
     };
 
     // Validate config if provided
-    if (payload.config) {
-      requestBody.configDetails = validateHttpPersonaConfig(payload.config) as unknown as Record<string, unknown>;
+    if (payload.configDetails) {
+      requestBody.configDetails = validateHttpPersonaConfig(payload.configDetails) as unknown as Record<string, unknown>;
     }
 
     const response = await apiClient.put<BackendPersonaResponse>(`/api/v2/personas/http/${personaId}`, requestBody);
@@ -145,7 +145,7 @@ export async function updateHttpPersona(
 export async function createDnsPersona(payload: CreateDnsPersonaPayload): Promise<DnsPersona> {
   try {
     // CRITICAL SECURITY FIX: Validate configuration before sending to backend
-    const validatedConfig = validateDnsPersonaConfig(payload.config);
+    const validatedConfig = validateDnsPersonaConfig(payload.configDetails);
     
     const requestBody: BackendPersonaRequest = {
       name: payload.name,
@@ -178,8 +178,8 @@ export async function updateDnsPersona(
     };
 
     // Validate config if provided
-    if (payload.config) {
-      requestBody.configDetails = validateDnsPersonaConfig(payload.config) as unknown as Record<string, unknown>;
+    if (payload.configDetails) {
+      requestBody.configDetails = validateDnsPersonaConfig(payload.configDetails) as unknown as Record<string, unknown>;
     }
 
     const response = await apiClient.put<BackendPersonaResponse>(`/api/v2/personas/dns/${personaId}`, requestBody);

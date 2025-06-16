@@ -276,8 +276,9 @@ export default function CampaignDashboardPage() {
     const selectedType = campaign.selectedType || campaign.campaignType;
     const currentPhase = campaign.currentPhase;
     
-    const isDNSPhaseActiveOrPast = selectedType === 'dns_validation' && currentPhase && (currentPhase === 'DNSValidation' || CAMPAIGN_PHASES_ORDERED[selectedType].indexOf(currentPhase) > CAMPAIGN_PHASES_ORDERED[selectedType].indexOf('DNSValidation') || currentPhase === 'Completed');
-    const isHTTPPhaseActiveOrPast = selectedType === 'http_keyword_validation' && currentPhase && (currentPhase === 'HTTPValidation' || CAMPAIGN_PHASES_ORDERED[selectedType].indexOf(currentPhase) > CAMPAIGN_PHASES_ORDERED[selectedType].indexOf('HTTPValidation') || currentPhase === 'Completed');
+    const phasesForType = CAMPAIGN_PHASES_ORDERED[selectedType];
+    const isDNSPhaseActiveOrPast = selectedType === 'dns_validation' && currentPhase && phasesForType && (currentPhase === 'DNSValidation' || phasesForType.indexOf(currentPhase) > phasesForType.indexOf('DNSValidation') || currentPhase === 'Completed');
+    const isHTTPPhaseActiveOrPast = selectedType === 'http_keyword_validation' && currentPhase && phasesForType && (currentPhase === 'HTTPValidation' || phasesForType.indexOf(currentPhase) > phasesForType.indexOf('HTTPValidation') || currentPhase === 'Completed');
     const isDomainGenPhaseNotStreaming = campaign.selectedType === 'domain_generation' && campaign.phaseStatus !== 'InProgress';
 
 
@@ -322,13 +323,17 @@ export default function CampaignDashboardPage() {
                 const existingDomain = prev.find(gd => gd.domain === dName);
                 return {
                     id: existingDomain?.id || dName, // Use existing ID or domain name as fallback
+                    generationCampaignId: campaignId,
+                    domainName: dName,
+                    offsetIndex: existingDomain?.offsetIndex || 0,
+                    generatedAt: existingDomain?.generatedAt || new Date().toISOString(),
+                    createdAt: existingDomain?.createdAt || new Date().toISOString(),
                     domain: dName,
                     campaignId: campaignId,
                     index: existingDomain?.index || 0, // Preserve index if known, else 0
-                    generatedAt: existingDomain?.generatedAt || new Date().toISOString(), // Use existing time or current
                     status: existingDomain?.status || 'Generated' as const,
                     validationResults: existingDomain?.validationResults
-                };
+                } as GeneratedDomain;
             });
         });
     };
@@ -525,12 +530,11 @@ export default function CampaignDashboardPage() {
                 dnsStatus: isDnsItem ? getDomainStatusFromItem((item as CampaignValidationItem).validationStatus) : getGlobalDomainStatusForPhase(domainName, 'DNSValidation', campaign),
                 dnsError: isDnsItem ? (item as CampaignValidationItem).errorDetails : undefined,
                 dnsResultsByPersona: isDnsItem ? {'backend-persona': {
-                    domain: domainName,
-                    status: (item as CampaignValidationItem).validationStatus,
-                    ips: [], // DNSValidationCampaignItem may not have dnsRecords, using empty array
-                    error: (item as CampaignValidationItem).errorDetails,
-                    timestamp: (item as CampaignValidationItem).lastCheckedAt || new Date().toISOString(),
-                    durationMs: 0
+                    id: `dns-${domainName}`,
+                    dnsCampaignId: campaignId,
+                    domainName: domainName,
+                    validationStatus: (item as CampaignValidationItem).validationStatus,
+                    createdAt: (item as CampaignValidationItem).lastCheckedAt || new Date().toISOString(),
                 }} : undefined,
 
                 httpStatus: isHttpItem ? getDomainStatusFromItem((item as CampaignValidationItem).validationStatus) : getGlobalDomainStatusForPhase(domainName, 'HTTPValidation', campaign),
@@ -560,7 +564,7 @@ export default function CampaignDashboardPage() {
             };
         }).sort((a,b) => a.domainName.localeCompare(b.domainName));
     }
-  }, [campaign, generatedDomains, dnsCampaignItems, httpCampaignItems]);
+  }, [campaign, campaignId, generatedDomains, dnsCampaignItems, httpCampaignItems]);
 
   // Pagination logic for campaignDomainDetails
   const totalDomains = campaignDomainDetails.length;
@@ -636,7 +640,11 @@ export default function CampaignDashboardPage() {
         const selectedType = campaign.selectedType || campaign.campaignType;
         if (selectedType) {
           const firstPhase = getFirstPhase(selectedType);
-          if (firstPhase) return <PhaseGateButton label={`Start ${phaseDisplayNames[firstPhase]||firstPhase}`} onClick={() => handlePhaseActionTrigger(firstPhase)} Icon={phaseIcons[firstPhase] || Play} isLoading={actionLoading[`phase-${firstPhase}`]} disabled={!!actionLoading[`phase-${firstPhase}`]} />;
+          if (firstPhase) {
+            const phaseDisplayName = phaseDisplayNames[firstPhase as CampaignPhase] || firstPhase;
+            const phaseIcon = phaseIcons[firstPhase as CampaignPhase] || Play;
+            return <PhaseGateButton label={`Start ${phaseDisplayName}`} onClick={() => handlePhaseActionTrigger(firstPhase as CampaignPhase)} Icon={phaseIcon} isLoading={actionLoading[`phase-${firstPhase}`]} disabled={!!actionLoading[`phase-${firstPhase}`]} />;
+          }
         }
     }
     if (campaign.phaseStatus === "InProgress") {
@@ -655,10 +663,13 @@ export default function CampaignDashboardPage() {
         const selectedType = campaign.selectedType || campaign.campaignType;
         if (selectedType && campaign.currentPhase) {
           const nextPhaseToStart = getNextPhase(selectedType, campaign.currentPhase);
-          if (nextPhaseToStart) return <PhaseGateButton label={`Start Next Phase: ${phaseDisplayNames[nextPhaseToStart]||nextPhaseToStart}`} onClick={() => handlePhaseActionTrigger(nextPhaseToStart)} Icon={phaseIcons[nextPhaseToStart] || Play} isLoading={actionLoading[`phase-${nextPhaseToStart}`]} disabled={!!actionLoading[`phase-${nextPhaseToStart}`]} />;
-          else {
+          if (nextPhaseToStart) {
+            const phaseDisplayName = phaseDisplayNames[nextPhaseToStart as CampaignPhase] || nextPhaseToStart;
+            const phaseIcon = phaseIcons[nextPhaseToStart as CampaignPhase] || Play;
+            return <PhaseGateButton label={`Start Next Phase: ${phaseDisplayName}`} onClick={() => handlePhaseActionTrigger(nextPhaseToStart as CampaignPhase)} Icon={phaseIcon} isLoading={actionLoading[`phase-${nextPhaseToStart}`]} disabled={!!actionLoading[`phase-${nextPhaseToStart}`]} />;
+          } else {
               const phasesForType = CAMPAIGN_PHASES_ORDERED[selectedType];
-              if (phasesForType.length === 1 && phasesForType[0] === campaign.currentPhase) {
+              if (phasesForType && phasesForType.length === 1 && phasesForType[0] === campaign.currentPhase) {
                  return <p className="text-lg font-semibold text-green-500 flex items-center gap-2"><CheckCircle className="h-6 w-6"/>Campaign Type Process Completed!</p>;
             }
              // If no next phase but not "Completed", it might mean the backend will auto-transition or campaign is done.

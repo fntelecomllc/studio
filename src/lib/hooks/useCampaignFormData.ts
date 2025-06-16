@@ -138,9 +138,9 @@ export function useCampaignSelectionOptions(campaigns: Campaign[]) {
   return useMemo(() => 
     campaigns.map(campaign => ({
       id: campaign.id,
-      name: campaign.campaignName || campaign.name,
+      name: campaign.name,
       selectedType: campaign.selectedType
-    })), 
+    })),
     [campaigns]
   );
 }

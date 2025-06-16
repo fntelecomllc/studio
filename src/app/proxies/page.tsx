@@ -110,9 +110,9 @@ function ProxiesPageContent() {
     setActionLoading(prev => ({ ...prev, [`test-${proxyId}`]: true }));
     try {
       const response: ProxyActionResponse = await testProxy(proxyId);
-      if (response.status === 'success' && response.data?.proxy) {
-        toast({ title: "Proxy Test Completed", description: `Status: ${response.data.proxy.status}` });
-        setProxies(prev => prev.map(p => p.id === proxyId ? response.data!.proxy! : p));
+      if (response.status === 'success' && response.data) {
+        toast({ title: "Proxy Test Completed", description: `Status: ${response.data.lastStatus || 'Unknown'}` });
+        setProxies(prev => prev.map(p => p.id === proxyId ? response.data! : p));
       } else {
         toast({ title: "Proxy Test Failed", description: response.message, variant: "destructive" });
       }
@@ -126,7 +126,7 @@ function ProxiesPageContent() {
   
   const handleToggleProxyStatus = async (proxy: Proxy, newStatus: 'Active' | 'Disabled') => {
     setActionLoading(prev => ({ ...prev, [`toggle-${proxy.id}`]: true }));
-    const payload: UpdateProxyPayload = { status: newStatus };
+    const payload: UpdateProxyPayload = { isEnabled: newStatus === 'Active' };
     try {
       const response = await updateProxy(proxy.id, payload);
       if (response.status === 'success' && response.data) {
@@ -172,7 +172,7 @@ function ProxiesPageContent() {
     }
   };
   
-  const activeProxiesCount = proxies.filter(p => p.status === 'Active').length;
+  const activeProxiesCount = proxies.filter(p => p.isEnabled).length;
 
   return (
     <>

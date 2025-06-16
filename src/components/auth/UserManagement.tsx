@@ -111,9 +111,9 @@ export function UserManagement({
     try {
       const result = await getUsers(page, limit);
       if (result.success && result.data) {
-        setUsers(result.data.users);
-        setTotalUsers(result.data.total);
-        setCurrentPage(result.data.page);
+        setUsers(result.data.data || []); // result.data.data is User[] array
+        setTotalUsers(result.data.metadata?.page?.total || 0);
+        setCurrentPage(result.data.metadata?.page?.current || page);
       } else {
         setErrorMessage(result.error?.message || 'Failed to load users');
       }
@@ -211,7 +211,19 @@ export function UserManagement({
     setSuccessMessage(null);
 
     try {
-      const result = await createUser(createForm);
+      // Transform form data to match CreateUserRequest interface
+      const [firstName, ...lastNameParts] = createForm.name.split(' ');
+      const lastName = lastNameParts.join(' ') || 'User'; // fallback if no last name
+      
+      const createUserRequest = {
+        email: createForm.email,
+        firstName: firstName || 'User',
+        lastName,
+        password: createForm.password,
+        roleIds: [createForm.roleId]
+      };
+      
+      const result = await createUser(createUserRequest);
 
       if (result.success && result.data) {
         setSuccessMessage('User created successfully!');
@@ -277,7 +289,7 @@ export function UserManagement({
 
   // Handle delete user
   const handleDeleteUser = useCallback(async (user: User) => {
-    if (!confirm(`Are you sure you want to delete user &quot;${user.name}&quot;? This action cannot be undone.`)) {
+    if (!confirm(`Are you sure you want to delete user "${user.firstName} ${user.lastName}"? This action cannot be undone.`)) {
       return;
     }
 
@@ -310,9 +322,9 @@ export function UserManagement({
   const openEditDialog = useCallback((user: User) => {
     setSelectedUser(user);
     setUpdateForm({
-      name: user.name,
+      name: `${user.firstName} ${user.lastName}`,
       email: user.email,
-      roleId: user.role,
+      roleId: user.roles?.[0]?.id || '',
       isActive: user.isActive,
       mustChangePassword: user.mustChangePassword
     });
@@ -321,13 +333,13 @@ export function UserManagement({
 
   // Filter users based on search and filters
   const filteredUsers = users.filter(user => {
-    const displayName = user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
+    const displayName = `${user.firstName} ${user.lastName}`.trim() || user.email;
     const matchesSearch = displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'all' || (user.role || (user.roles && user.roles[0]?.name) || 'user') === roleFilter;
-    const matchesStatus = statusFilter === 'all' || 
-                         (statusFilter === 'active' && (user.isActive ?? user.is_active)) ||
-                         (statusFilter === 'inactive' && !(user.isActive ?? user.is_active));
+    const matchesRole = roleFilter === 'all' || (user.roles?.[0]?.name || 'user') === roleFilter;
+    const matchesStatus = statusFilter === 'all' ||
+                         (statusFilter === 'active' && user.isActive) ||
+                         (statusFilter === 'inactive' && !user.isActive);
     return matchesSearch && matchesRole && matchesStatus;
   });
 
@@ -609,7 +621,7 @@ export function UserManagement({
                   <TableRow key={user.id}>
                     <TableCell>
                       <div>
-                        <p className="font-medium">{user.name}</p>
+                        <p className="font-medium">{user.firstName} {user.lastName}</p>
                         <p className="text-sm text-muted-foreground">{user.email}</p>
                         {user.mustChangePassword && (
                           <Badge variant="outline" className="mt-1">
@@ -619,7 +631,7 @@ export function UserManagement({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{user.role}</Badge>
+                      <Badge variant="secondary">{user.roles?.[0]?.name || 'user'}</Badge>
                     </TableCell>
                     <TableCell>
                       <Badge variant={user.isActive ? "default" : "destructive"}>
@@ -629,7 +641,7 @@ export function UserManagement({
                     <TableCell>
                       {user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never'}
                     </TableCell>
-                    <TableCell>{formatDate(user.createdAt || user.created_at)}</TableCell>
+                    <TableCell>{formatDate(user.createdAt)}</TableCell>
                     {canManageUsers && (
                       <TableCell>
                         <div className="flex items-center space-x-2">

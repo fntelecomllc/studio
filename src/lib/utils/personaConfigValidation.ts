@@ -7,18 +7,18 @@ import type { DnsPersonaConfig, HttpPersonaConfig } from '@/lib/types';
 // Validation schemas that match backend DNSConfigDetails and HTTPConfigDetails
 export const dnsPersonaConfigSchema = z.object({
   resolvers: z.array(z.string().min(1)).min(1),
-  useSystemResolvers: z.boolean().optional(),
+  useSystemResolvers: z.boolean().default(false),
   queryTimeoutSeconds: z.number().min(0),
-  maxDomainsPerRequest: z.number().min(1).optional(),
+  maxDomainsPerRequest: z.number().min(1).default(100),
   resolverStrategy: z.enum(['random_rotation', 'weighted_rotation', 'sequential_failover']),
-  resolversWeighted: z.record(z.string(), z.number()).nullable().optional(),
-  resolversPreferredOrder: z.array(z.string()).nullable().optional(),
+  resolversWeighted: z.record(z.string(), z.number()).optional(),
+  resolversPreferredOrder: z.array(z.string()).optional(),
   concurrentQueriesPerDomain: z.number().min(1),
-  queryDelayMinMs: z.number().min(0).optional(),
-  queryDelayMaxMs: z.number().min(0).optional(),
+  queryDelayMinMs: z.number().min(0).default(0),
+  queryDelayMaxMs: z.number().min(0).default(1000),
   maxConcurrentGoroutines: z.number().min(1),
-  rateLimitDps: z.number().min(0).optional(),
-  rateLimitBurst: z.number().min(0).optional(),
+  rateLimitDps: z.number().min(0).default(10),
+  rateLimitBurst: z.number().min(0).default(50),
 });
 
 export const httpPersonaConfigSchema = z.object({
@@ -31,13 +31,13 @@ export const httpPersonaConfigSchema = z.object({
     cipherSuites: z.array(z.string()).optional(),
     curvePreferences: z.array(z.string()).optional(),
     ja3: z.string().optional(),
-  }).nullable().optional(),
+  }).optional(),
   http2Settings: z.object({
-    enabled: z.boolean().optional(),
-  }).nullable().optional(),
+    enabled: z.boolean().default(false),
+  }).optional(),
   cookieHandling: z.object({
     mode: z.enum(['session', 'none', 'ignore', 'file']).optional(),
-  }).nullable().optional(),
+  }).optional(),
   allowInsecureTls: z.boolean().optional(),
   requestTimeoutSec: z.number().min(0).optional(),
   requestTimeoutSeconds: z.number().min(0).optional(),

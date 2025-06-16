@@ -106,7 +106,7 @@ class CampaignService {
       console.log('[CampaignService] Creating campaign with payload:', payload);
       
       let response: CampaignCreationResponse;
-      switch (payload.selectedType) {
+      switch (payload.campaignType) {
         case 'domain_generation':
           response = await this.createDomainGenerationCampaign(this.mapToDomainGenRequest(payload));
           break;
@@ -117,7 +117,7 @@ class CampaignService {
           response = await this.createHTTPKeywordCampaign(this.mapToHTTPRequest(payload));
           break;
         default:
-          throw new Error(`Unsupported campaign type: ${payload.selectedType}`);
+          throw new Error(`Unsupported campaign type: ${payload.campaignType}`);
       }
       
       console.log('[CampaignService] Campaign created successfully:', response);
@@ -354,7 +354,7 @@ class CampaignService {
     }
 
     const request: CreateDNSValidationRequest = {
-      name: payload.campaignName,
+      name: payload.campaignName || payload.name,
       sourceGenerationCampaignId: payload.domainSourceConfig.sourceCampaignId, // FIXED: Backend expects sourceGenerationCampaignId
       personaIds: [payload.assignedDnsPersonaId], // Backend expects array of persona IDs
       userId: this.userId,
@@ -373,7 +373,7 @@ class CampaignService {
     }
 
     const request: CreateHTTPKeywordRequest = {
-      name: payload.campaignName,
+      name: payload.campaignName || payload.name,
       sourceCampaignId: payload.domainSourceConfig.sourceCampaignId, // Backend expects this exact field name
       personaIds: [payload.assignedHttpPersonaId], // Backend expects array of persona IDs
       adHocKeywords: payload.leadGenerationSpecificConfig?.targetKeywords || [],

@@ -8,20 +8,22 @@ DomainFlow provides a comprehensive RESTful API for domain analysis and campaign
 
 **API Version**: v1 (with v2 extensions for campaigns)
 
-**Authentication**: Session-based with CSRF protection for web interface, Bearer tokens for API access
+**Authentication**: Session-based with HTTP-only cookies and X-Requested-With header for CSRF protection
 
 ---
 
 ## Authentication
 
-### Session-Based Authentication (Web Interface)
+### Session-Based Authentication
 
-The web interface uses secure session cookies with CSRF protection:
+DomainFlow uses secure session-based authentication with HTTP-only cookies:
 
+**Login Process:**
 ```javascript
 // Login request
 POST /api/v2/auth/login
 Content-Type: application/json
+X-Requested-With: XMLHttpRequest
 
 {
   "username": "admin",
@@ -29,17 +31,26 @@ Content-Type: application/json
 }
 
 // Response includes secure session cookie
-Set-Cookie: session=...; HttpOnly; Secure; SameSite=Strict
+Set-Cookie: domainflow_session=...; HttpOnly; Secure; SameSite=Strict; Path=/
 ```
 
-### Bearer Token Authentication (API Access)
-
-For programmatic API access, use Bearer tokens:
+**API Requests:**
+All API requests require a valid session cookie and X-Requested-With header:
 
 ```bash
 curl -X GET "http://localhost:8080/api/v2/campaigns" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json"
+  -H "X-Requested-With: XMLHttpRequest" \
+  -H "Content-Type: application/json" \
+  --cookie-jar cookies.txt \
+  --cookie cookies.txt
+```
+
+**WebSocket Authentication:**
+WebSocket connections authenticate using session cookies:
+
+```javascript
+// WebSocket connection uses session cookies automatically
+const ws = new WebSocket('ws://localhost:8080/api/v2/ws');
 ```
 
 ---
@@ -68,7 +79,7 @@ curl -X GET "http://localhost:8080/api/v2/campaigns" \
 
 ### Logout
 **POST /api/v2/auth/logout**
-- Clears session and CSRF tokens
+- Clears session cookie and invalidates server-side session
 
 ### Current User
 **GET /api/v2/me**
@@ -254,7 +265,7 @@ curl -X GET "http://localhost:8080/api/v2/campaigns" \
 ### General WebSocket Connection
 **GET /api/v2/ws** (WebSocket upgrade)
 
-**Authentication**: Include `Authorization: Bearer YOUR_API_KEY` header
+**Authentication**: Session cookies (automatically included by browser)
 
 **Message Format**:
 ```json
@@ -410,19 +421,20 @@ X-RateLimit-Reset: 1671883200
 
 **Allowed Origins**: Configurable in backend config.json
 **Allowed Methods**: GET, POST, PUT, DELETE, OPTIONS
-**Allowed Headers**: Authorization, Content-Type, X-CSRF-Token
+**Allowed Headers**: Content-Type, X-Requested-With, Cookie
 **Credentials**: Supported for session-based authentication
 
 ---
 
 ## Security Considerations
 
-1. **Authentication**: All endpoints except `/ping` require authentication
-2. **CSRF Protection**: Required for all state-changing operations from web interface
-3. **Input Validation**: All inputs are validated and sanitized
-4. **SQL Injection**: Prevented through prepared statements
-5. **XSS Protection**: Content Security Policy headers enabled
-6. **Session Security**: Secure, HttpOnly cookies with appropriate expiration
+1. **Authentication**: All endpoints except `/ping` require valid session cookies
+2. **CSRF Protection**: X-Requested-With header required for all state-changing operations
+3. **Session Security**: HTTP-only cookies with session fingerprinting and hijacking prevention
+4. **Input Validation**: All inputs are validated and sanitized
+5. **SQL Injection**: Prevented through prepared statements
+6. **XSS Protection**: Content Security Policy headers enabled
+7. **Session Management**: Automatic cleanup, concurrent session limits, and timeout handling
 
 ---
 
