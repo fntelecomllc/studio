@@ -199,6 +199,7 @@ func (s *httpKeywordCampaignServiceImpl) CreateCampaign(ctx context.Context, req
 		BatchSize:                models.IntPtr(req.BatchSize),
 		RetryAttempts:            models.IntPtr(req.RetryAttempts),
 		TargetHTTPPorts:          models.IntSlicePtr(req.TargetHTTPPorts),
+		SourceType:               "DNSValidation", // HTTP campaigns source from DNS validation results
 	}
 
 	// Log the created params for debugging

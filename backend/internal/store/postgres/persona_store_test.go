@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 	"testing"
@@ -40,103 +39,36 @@ func TestMain(m *testing.M) {
 	}
 	testDB = db // Assign to global var for use in tests
 
-	// --- Force a clean slate by dropping tables in reverse order of dependency (or use CASCADE) ---
-	tablesToDrop := []string{
-		"http_keyword_results",
-		"dns_validation_results",
-		"generated_domains",
-		"http_keyword_campaign_params",
-		"dns_validation_params",
-		"domain_generation_params",
-		"campaign_jobs",
-		"audit_logs",
-		"proxies",
-		"personas",
-		"keyword_sets",
-		"campaigns", // Campaigns often referenced by others, so drop towards the end of this specific list
+	// Clean test data by truncating tables to ensure a clean state
+	// This prevents data from previous test runs from affecting current tests
+	_, err = testDB.Exec(`
+		TRUNCATE TABLE 
+			campaigns, 
+			personas, 
+			proxies, 
+			keyword_sets, 
+			campaign_jobs,
+			audit_logs,
+			generated_domains,
+			dns_validation_results,
+			http_keyword_results,
+			domain_generation_campaign_params,
+			dns_validation_params,
+			http_keyword_campaign_params,
+			auth.users,
+			auth.sessions,
+			auth.auth_audit_log
+		RESTART IDENTITY CASCADE;
+	`)
+	if err != nil {
+		log.Printf("Warning: Failed to clean test data: %v", err)
 	}
 
-	log.Println("TestMain: Dropping existing tables (if any) to ensure a clean schema...")
-	for _, tableName := range tablesToDrop {
-		// log.Printf("TestMain: Dropping table: %s\n", tableName) // Verbose logging
-		_, err := testDB.Exec(fmt.Sprintf("DROP TABLE IF EXISTS %s CASCADE;", tableName))
-		if err != nil {
-			log.Fatalf("TestMain: Failed to drop table %s: %v", tableName, err)
-		}
-	}
-	log.Println("TestMain: Finished dropping tables.")
-	// --- End of table dropping ---
-
-	// --- Explicitly create the proxies table correctly first ---
-	log.Println("TestMain: Explicitly creating 'proxies' table with all columns...")
-	proxiesTableSQL := `
-	CREATE TABLE IF NOT EXISTS proxies (
-		id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-		name TEXT NOT NULL UNIQUE,
-		description TEXT, 
-		address TEXT NOT NULL UNIQUE,
-		protocol TEXT,
-		username TEXT,
-		password_hash TEXT, 
-		host TEXT,
-		port INT,
-		is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
-		is_healthy BOOLEAN NOT NULL DEFAULT TRUE, -- Ensure this is present
-		last_status TEXT,
-		last_checked_at TIMESTAMPTZ,
-		latency_ms INT,
-		city TEXT,
-		country_code TEXT,
-		provider TEXT,
-		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-		updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-	);`
-	_, err = testDB.Exec(proxiesTableSQL)
-	if err != nil {
-		log.Fatalf("TestMain: Failed to explicitly create proxies table: %v", err)
-	}
-	personasTableSQL := `
-	CREATE TABLE IF NOT EXISTS personas (
-		id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-		name TEXT NOT NULL,
-		persona_type TEXT NOT NULL,
-		description TEXT,
-		config_details JSONB,
-		is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
-		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-		updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-		UNIQUE(name, persona_type)
-	);`
-	_, err = testDB.Exec(personasTableSQL)
-	if err != nil {
-		log.Fatalf("TestMain: Failed to explicitly create personas table: %v", err)
-	}
-	// Also ensure the index is created if it was part of the explicit creation logic
-	_, err = testDB.Exec("CREATE INDEX IF NOT EXISTS idx_proxies_is_enabled ON proxies(is_enabled);")
-	if err != nil {
-		log.Fatalf("TestMain: Failed to explicitly create index on proxies table: %v", err)
-	}
-	log.Println("TestMain: 'proxies' table explicitly created/verified.")
-
-	// --- Apply the rest of the schema from schema.sql ---
-	// Corrected path: Relative from backend/internal/store/postgres/ to backend/database/
-	schemaFilePath := "../../../database/schema.sql"
-	log.Printf("TestMain: Reading schema from: %s\n", schemaFilePath)
-	schemaBytes, err := os.ReadFile(schemaFilePath)
-	if err != nil {
-		log.Fatalf("TestMain: Failed to read schema file at '%s': %v. Check path and permissions.", schemaFilePath, err)
-	}
-
-	log.Println("TestMain: Applying full schema from schema.sql...")
-	_, err = testDB.Exec(string(schemaBytes))
-	if err != nil {
-		log.Printf("TestMain: Note/Warning during full schema execution: %v", err)
-	}
-	log.Println("TestMain: Full schema application process completed.")
+	// Schema setup is handled by test_helpers.go for all tests.
+	// This TestMain only connects to the database.
 
 	// Run the actual tests
 	code := m.Run()
-
 	testDB.Close()
 	os.Exit(code)
 }
@@ -149,11 +81,10 @@ func TestPersonaStore_CreatePersona(t *testing.T) {
 	t.Run("successful creation", func(t *testing.T) {
 		clearPersonasTable(t, testDB)
 		details := json.RawMessage(`{"userAgent": "test-agent"}`)
-		persona := &models.Persona{
-			ID:            uuid.New(),
-			Name:          "Test Create Persona",
-			PersonaType:   "HTTP",
-			Description:   sql.NullString{String: "A test persona", Valid: true},
+		persona := &models.Persona{		ID:            uuid.New(),
+		Name:          "Test Create Persona",
+		PersonaType:   models.PersonaTypeHTTP,
+		Description:   sql.NullString{String: "A test persona", Valid: true},
 			ConfigDetails: details,
 			IsEnabled:     true,
 			CreatedAt:     time.Now(),
@@ -214,7 +145,7 @@ func TestPersonaStore_GetPersonaByID(t *testing.T) {
 	persona := &models.Persona{
 		ID:            uuid.New(),
 		Name:          "Get By ID Persona",
-		PersonaType:   "HTTP",
+		PersonaType:   models.PersonaTypeHTTP,
 		ConfigDetails: details,
 		CreatedAt:     time.Now(),
 		UpdatedAt:     time.Now(),
@@ -243,7 +174,7 @@ func TestPersonaStore_GetPersonaByName(t *testing.T) {
 	persona := &models.Persona{
 		ID:            uuid.New(),
 		Name:          personaName,
-		PersonaType:   "HTTP", // Ensure this matches for unique (name, type)
+		PersonaType:   models.PersonaTypeHTTP, // Ensure this matches for unique (name, type)
 		ConfigDetails: details,
 		CreatedAt:     time.Now(),
 		UpdatedAt:     time.Now(),
@@ -271,7 +202,7 @@ func TestPersonaStore_UpdatePersona(t *testing.T) {
 	persona := &models.Persona{
 		ID:            uuid.New(),
 		Name:          "Update Persona Original",
-		PersonaType:   "HTTP",
+		PersonaType:   models.PersonaTypeHTTP,
 		ConfigDetails: details,
 		IsEnabled:     true,
 		CreatedAt:     time.Now().UTC().Truncate(time.Millisecond),
@@ -302,7 +233,7 @@ func TestPersonaStore_UpdatePersona(t *testing.T) {
 	nonExistentPersona := &models.Persona{
 		ID:            uuid.New(),
 		Name:          "Non Existent",
-		PersonaType:   "HTTP",
+		PersonaType:   models.PersonaTypeHTTP,
 		Description:   sql.NullString{},
 		ConfigDetails: json.RawMessage("{}"),
 		IsEnabled:     false,
@@ -431,7 +362,9 @@ func TestPersonaStore_ListPersonas(t *testing.T) {
 }
 
 func TestPersonaStore_Transactionality(t *testing.T) {
-	require.NotNil(t, testDB, "testDB is nil.")
+	if testDB == nil {
+		t.Skip("Skipping Postgres tests as TEST_POSTGRES_DSN is not set.")
+	}
 	personaStore := NewPersonaStorePostgres(testDB)
 	ctx := context.Background()
 

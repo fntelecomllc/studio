@@ -16,7 +16,7 @@ import (
 
 // clearProxiesTable is a helper to clean the proxies table before each test.
 func clearProxiesTable(t *testing.T) {
-	require.NotNil(t, testDB, "testDB is nil. Ensure TestMain ran or TEST_POSTGRES_DSN is set.")
+	require.NotNil(t, testDB, "testDB is nil. Ensure TestMain ran or TEST_POSTGRES_DSN is not set.")
 	_, err := testDB.ExecContext(context.Background(), "DELETE FROM proxies")
 	require.NoError(t, err, "Failed to clear proxies table")
 }
@@ -150,7 +150,7 @@ func TestProxyStore_UpdateProxy(t *testing.T) {
 	retrieved.Protocol = models.ProxyProtocolEnumPtr(models.ProxyProtocolSOCKS5)
 	// Username is now parsed from Address or set via InputUsername for creation/update logic if needed
 	// For direct update like this, ensure Address field is the source of truth for URL parts.
-	// If db.username is to be updated directly, it should be set here.
+	// If db.username is to be updated directly, it.
 	// retrieved.Username = sql.NullString{String: "user", Valid: true} // This would map to db:"username"
 	retrieved.UpdatedAt = time.Now().UTC().Truncate(time.Millisecond).Add(time.Second)
 

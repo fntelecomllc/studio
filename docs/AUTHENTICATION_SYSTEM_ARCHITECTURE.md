@@ -438,7 +438,7 @@ paths:
         200:
           description: Logout successful
 
-  /api/v2/me:
+  /api/v2/auth/me:
     get:
       summary: Get current user
       security:

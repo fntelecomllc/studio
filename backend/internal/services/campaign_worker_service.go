@@ -143,32 +143,6 @@ func (s *campaignWorkerServiceImpl) processJob(ctx context.Context, job *models.
 	}
 
 	// Check if job has already reached max retries
-	// Note: job.Attempts is already incremented by GetNextQueuedJob when the job is picked up
-	// The job.Attempts count starts at 1 for the first attempt
-	if job.Attempts >= maxRetries {
-		job.Status = models.JobStatusFailed
-		job.UpdatedAt = time.Now().UTC()
-		log.Printf("Worker [%s]: Job %s has reached max attempts (%d/%d). Marking as failed.",
-			workerName, job.ID, job.Attempts, maxRetries)
-
-		// Update campaign status to failed
-		if s.campaignOrchestratorSvc != nil {
-			errMsg := fmt.Sprintf("Job %s failed after max retries", job.ID)
-			if job.LastError.Valid {
-				errMsg = fmt.Sprintf("%s: %s", errMsg, job.LastError.String)
-			}
-			if err := s.campaignOrchestratorSvc.SetCampaignErrorStatus(ctx, job.CampaignID, errMsg); err != nil {
-				log.Printf("Worker [%s]: Failed to set campaign %s error status: %v", workerName, job.CampaignID, err)
-			}
-		}
-
-		// Update job status in database
-		if err := s.jobStore.UpdateJob(ctx, nil, job); err != nil {
-			log.Printf("Worker [%s]: CRITICAL - Failed to update job %s status to %s: %v.",
-				workerName, job.ID, job.Status, err)
-		}
-		return
-	}
 
 	jobTimeout := time.Duration(s.appConfig.Worker.JobProcessingTimeoutMinutes) * time.Minute
 	if jobTimeout <= 0 {
@@ -218,11 +192,29 @@ func (s *campaignWorkerServiceImpl) processJob(ctx context.Context, job *models.
 			job.Status = models.JobStatusFailed
 			log.Printf("Worker [%s]: Job %s failed after %d attempts. Last error: %s", workerName, job.ID, job.Attempts, processErr.Error())
 
-			// Update campaign status to failed
+			// Update campaign status - need to check current campaign status to ensure valid state transition
 			if s.campaignOrchestratorSvc != nil {
 				errMsg := fmt.Sprintf("Job %s failed after max retries: %v", job.ID, processErr)
-				if err := s.campaignOrchestratorSvc.SetCampaignErrorStatus(jobCtx, job.CampaignID, errMsg); err != nil {
-					log.Printf("Worker [%s]: Failed to set campaign %s error status: %v", workerName, job.CampaignID, err)
+				
+				// Get current campaign status to determine appropriate action
+				campaign, _, err := s.campaignOrchestratorSvc.GetCampaignDetails(jobCtx, job.CampaignID)
+				if err != nil {
+					log.Printf("Worker [%s]: Failed to get campaign %s details for status update: %v", workerName, job.CampaignID, err)
+				} else {
+					// If campaign is still in pending state, transition to cancelled instead of failed
+					// since pending->failed is not a valid state transition
+					if campaign.Status == models.CampaignStatusPending {
+						if err := s.campaignOrchestratorSvc.CancelCampaign(jobCtx, job.CampaignID); err != nil {
+							log.Printf("Worker [%s]: Failed to cancel campaign %s after job failure: %v", workerName, job.CampaignID, err)
+						} else {
+							log.Printf("Worker [%s]: Campaign %s cancelled due to job failure while in pending state", workerName, job.CampaignID)
+						}
+					} else {
+						// Campaign is in another state where transition to failed might be valid
+						if err := s.campaignOrchestratorSvc.SetCampaignErrorStatus(jobCtx, job.CampaignID, errMsg); err != nil {
+							log.Printf("Worker [%s]: Failed to set campaign %s error status: %v", workerName, job.CampaignID, err)
+						}
+					}
 				}
 			}
 		} else {
@@ -265,8 +257,23 @@ func (s *campaignWorkerServiceImpl) processJob(ctx context.Context, job *models.
 			// When batch is done, check if there are any other active jobs for this campaign
 			if s.campaignOrchestratorSvc != nil {
 				// First, update the current job in the database to mark it as completed
+				jobUpdateSuccessful := true
 				if err := s.jobStore.UpdateJob(jobCtx, nil, job); err != nil {
 					log.Printf("Worker [%s]: Failed to update job %s status to completed: %v", workerName, job.ID, err)
+					jobUpdateSuccessful = false
+				}
+
+				// If job update failed, we should handle this gracefully
+				if !jobUpdateSuccessful {
+					// Try to set job to retry status so it can be picked up again
+					job.Status = models.JobStatusRetry
+					job.NextExecutionAt = sql.NullTime{Time: time.Now().UTC().Add(30 * time.Second), Valid: true}
+					if err := s.jobStore.UpdateJob(jobCtx, nil, job); err != nil {
+						log.Printf("Worker [%s]: CRITICAL - Failed to set job %s to retry after job update failure: %v", workerName, job.ID, err)
+					} else {
+						log.Printf("Worker [%s]: Job %s set to retry due to job update failure", workerName, job.ID)
+					}
+					return // Don't proceed with campaign completion checks if job update failed
 				}
 
 				// Then check for other active jobs for this campaign
@@ -291,13 +298,22 @@ func (s *campaignWorkerServiceImpl) processJob(ctx context.Context, job *models.
 
 					// If no other active jobs, update campaign status to completed
 					if activeJobsCount == 0 {
-						log.Printf("Worker [%s]: No other active jobs found for campaign %s, marking campaign as completed", workerName, job.CampaignID)
+						log.Printf("Worker [%s]: No other active jobs found for campaign %s, checking if campaign needs to be marked as completed", workerName, job.CampaignID)
 
-						// Use the orchestrator to update the campaign status to completed
-						if err := s.campaignOrchestratorSvc.SetCampaignStatus(jobCtx, job.CampaignID, models.CampaignStatusCompleted); err != nil {
-							log.Printf("Worker [%s]: Failed to update campaign %s status to completed: %v", workerName, job.CampaignID, err)
+						// First, get the current campaign status to avoid invalid state transitions
+						campaign, _, err := s.campaignOrchestratorSvc.GetCampaignDetails(jobCtx, job.CampaignID)
+						if err != nil {
+							log.Printf("Worker [%s]: Failed to get campaign %s details: %v", workerName, job.CampaignID, err)
+						} else if campaign.Status != models.CampaignStatusCompleted {
+							// Only try to set to completed if not already completed
+							log.Printf("Worker [%s]: Campaign %s current status is %s, marking as completed", workerName, job.CampaignID, campaign.Status)
+							if err := s.campaignOrchestratorSvc.SetCampaignStatus(jobCtx, job.CampaignID, models.CampaignStatusCompleted); err != nil {
+								log.Printf("Worker [%s]: Failed to update campaign %s status to completed: %v", workerName, job.CampaignID, err)
+							} else {
+								log.Printf("Worker [%s]: Campaign %s status updated to completed", workerName, job.CampaignID)
+							}
 						} else {
-							log.Printf("Worker [%s]: Campaign %s status updated to completed", workerName, job.CampaignID)
+							log.Printf("Worker [%s]: Campaign %s is already completed, no status update needed", workerName, job.CampaignID)
 						}
 					} else {
 						log.Printf("Worker [%s]: Found %d other active jobs for campaign %s, not marking as completed yet", workerName, activeJobsCount, job.CampaignID)

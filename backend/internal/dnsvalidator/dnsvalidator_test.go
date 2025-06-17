@@ -61,7 +61,7 @@ func TestDNSValidator_ValidateSingleDomain_DoH_Success(t *testing.T) {
 	})
 	defer mockServer.Close()
 
-	cfg := newTestDNSValidatorConfig([]string{"1.1.1.1"}, "random_rotation")
+	cfg := newTestDNSValidatorConfig([]string{mockServer.URL}, "random_rotation")
 	validator := New(cfg)
 	require.NotNil(t, validator)
 
@@ -70,7 +70,7 @@ func TestDNSValidator_ValidateSingleDomain_DoH_Success(t *testing.T) {
 	assert.Equal(t, "Resolved", result.Status)
 	assert.Contains(t, result.IPs, "1.2.3.4")
 	assert.Contains(t, result.IPs, "2606:2800:220:1:248:1893:25c8:1946")
-	assert.Equal(t, strings.TrimPrefix(mockServer.URL, "http://"), result.Resolver)
+	assert.Equal(t, mockServer.URL, result.Resolver)
 	assert.Empty(t, result.Error)
 }
 
@@ -88,14 +88,14 @@ func TestDNSValidator_ValidateSingleDomain_DoH_NotFound(t *testing.T) {
 	})
 	defer mockServer.Close()
 
-	cfg := newTestDNSValidatorConfig([]string{"1.1.1.1"}, "random_rotation")
+	cfg := newTestDNSValidatorConfig([]string{mockServer.URL}, "random_rotation")
 	validator := New(cfg)
 
 	result := validator.ValidateSingleDomain("nxdomain.example.com", context.Background())
 
 	assert.Equal(t, "Not Found", result.Status, "Status should be Not Found for NXDOMAIN")
 	assert.Empty(t, result.IPs)
-	assert.Equal(t, strings.TrimPrefix(mockServer.URL, "http://"), result.Resolver)
+	assert.Equal(t, mockServer.URL, result.Resolver)
 	assert.Contains(t, result.Error, "no such host")
 }
 
@@ -116,8 +116,8 @@ func TestDNSValidator_ValidateSingleDomain_InvalidFormat(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.domain, func(t *testing.T) {
 			result := validator.ValidateSingleDomain(tt.domain, context.Background())
-			assert.Equal(t, "Error", result.Status)
-			assert.Contains(t, result.Error, tt.expectedErr)
+			assert.Equal(t, "Error", result.Status, "Expected status to be Error for invalid domain")
+			assert.Contains(t, result.Error, tt.expectedErr, "Expected error message to contain specific invalid format text")
 		})
 	}
 }
@@ -129,14 +129,14 @@ func TestDNSValidator_ValidateSingleDomain_DoH_ServerError(t *testing.T) {
 	})
 	defer mockServer.Close()
 
-	cfg := newTestDNSValidatorConfig([]string{"1.1.1.1"}, "random_rotation")
+	cfg := newTestDNSValidatorConfig([]string{mockServer.URL}, "random_rotation")
 	validator := New(cfg)
 
 	result := validator.ValidateSingleDomain("example.com", context.Background())
 
 	assert.Equal(t, "Error", result.Status)
 	assert.Empty(t, result.IPs)
-	assert.Equal(t, strings.TrimPrefix(mockServer.URL, "http://"), result.Resolver)
+	assert.Equal(t, mockServer.URL, result.Resolver)
 	assert.Contains(t, result.Error, "returned status 500")
 	assert.Contains(t, result.Error, "internal server issue")
 }
@@ -150,7 +150,7 @@ func TestDNSValidator_ValidateSingleDomain_DoH_Timeout(t *testing.T) {
 
 	// Use a short query timeout for this test
 	cfg := config.DNSValidatorConfig{
-		Resolvers:                  []string{"1.1.1.1"},
+		Resolvers:                  []string{mockServer.URL},
 		QueryTimeout:               1 * time.Second, // Short timeout
 		ResolverStrategy:           "random_rotation",
 		ConcurrentQueriesPerDomain: 1,
@@ -164,7 +164,7 @@ func TestDNSValidator_ValidateSingleDomain_DoH_Timeout(t *testing.T) {
 
 	assert.Equal(t, "Timeout", result.Status)
 	assert.Empty(t, result.IPs)
-	assert.Equal(t, strings.TrimPrefix(mockServer.URL, "http://"), result.Resolver)
+	assert.Equal(t, mockServer.URL, result.Resolver)
 	assert.True(t, strings.Contains(result.Error, "timeout") || strings.Contains(result.Error, "context deadline exceeded"), "Error message should indicate timeout")
 }
 
@@ -253,7 +253,7 @@ func TestDNSValidator_ValidateDomains_Batching(t *testing.T) {
 	defer mockServer.Close()
 
 	cfg := config.DNSValidatorConfig{
-		Resolvers:                  []string{"1.1.1.1"},
+		Resolvers:                  []string{mockServer.URL},
 		QueryTimeout:               1 * time.Second,
 		ResolverStrategy:           "random_rotation",
 		ConcurrentQueriesPerDomain: 1,

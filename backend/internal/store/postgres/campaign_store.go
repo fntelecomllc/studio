@@ -343,7 +343,7 @@ func (s *campaignStorePostgres) CountGeneratedDomainsByCampaign(ctx context.Cont
 // --- DNS Validation Campaign Params --- //
 
 func (s *campaignStorePostgres) CreateDNSValidationParams(ctx context.Context, exec store.Querier, params *models.DNSValidationCampaignParams) error {
-	query := `INSERT INTO dns_validation_campaign_params
+	query := `INSERT INTO dns_validation_params
 	               (campaign_id, source_generation_campaign_id, persona_ids, rotation_interval_seconds, processing_speed_per_minute, batch_size, retry_attempts, metadata)
 	             VALUES (:campaign_id, :source_generation_campaign_id, :persona_ids, :rotation_interval_seconds, :processing_speed_per_minute, :batch_size, :retry_attempts, :metadata)`
 
@@ -379,7 +379,7 @@ func (s *campaignStorePostgres) GetDNSValidationParams(ctx context.Context, exec
 
 	scanTarget := &dnsParamsScan{}
 	query := `SELECT campaign_id, source_generation_campaign_id, persona_ids, rotation_interval_seconds, processing_speed_per_minute, batch_size, retry_attempts, metadata
-		         FROM dns_validation_campaign_params WHERE campaign_id = $1`
+		         FROM dns_validation_params WHERE campaign_id = $1`
 	err := exec.GetContext(ctx, scanTarget, query, campaignID)
 	if err != nil {
 		if err == sql.ErrNoRows { // Specific check for ErrNoRows

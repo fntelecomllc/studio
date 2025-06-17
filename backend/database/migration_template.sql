@@ -117,7 +117,7 @@ SET LOCAL statement_timeout = '30min'; -- Adjust based on expected duration
 
 -- 1. Create new table (if needed)
 -- CREATE TABLE IF NOT EXISTS new_feature_table (
---     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+--     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 --     name TEXT NOT NULL,
 --     description TEXT,
 --     config_data JSONB,

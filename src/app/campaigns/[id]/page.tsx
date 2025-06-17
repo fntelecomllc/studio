@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { Campaign, CampaignPhase, CampaignPhaseStatus, StartCampaignPhasePayload, CampaignSelectedType, CampaignDomainDetail, DomainActivityStatus, CampaignValidationItem, GeneratedDomain } from '@/lib/types';
+import type { Campaign, CampaignStatus, StartCampaignPhasePayload, CampaignDomainDetail, DomainActivityStatus, CampaignValidationItem, GeneratedDomain, CampaignType } from '@/lib/types';
 import { CAMPAIGN_PHASES_ORDERED, getNextPhase, getFirstPhase } from '@/lib/constants';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, Briefcase, Dna, Network, Globe, Users2, Play, RefreshCw, CheckCircle, Download, PauseCircle, PlayCircle, StopCircle, HelpCircle, Search, ShieldQuestion, ExternalLink, XCircle, Clock, Loader2, ChevronLeft, ChevronRight, Percent } from 'lucide-react';
@@ -18,33 +18,25 @@ import type { LucideIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { getCampaignById, startCampaign as startCampaignPhase, pauseCampaign, resumeCampaign, cancelCampaign as stopCampaign, getGeneratedDomains as getGeneratedDomainsForCampaign, getDNSValidationResults as getDnsCampaignDomains, getHTTPKeywordResults as getHttpCampaignItems } from '@/lib/services/campaignService.production';
-import websocketService from '@/lib/services/websocketService.simple';
+import websocketService from '@/lib/services/websocketService.production';
 import PhaseGateButton from '@/components/campaigns/PhaseGateButton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
-const phaseIcons: Record<CampaignPhase, LucideIcon> = {
-  Idle: Play,
-  DomainGeneration: Dna,
-  DNSValidation: Network,
-  HTTPValidation: Globe,
-  LeadGeneration: Users2,
-  Completed: CheckCircle,
-  Failed: AlertCircle,
+const phaseIcons: Record<CampaignType, LucideIcon> = {
+  domain_generation: Dna,
+  dns_validation: Network,
+  http_keyword_validation: Globe,
 };
 
-const phaseDisplayNames: Record<CampaignPhase, string> = {
-  Idle: "Campaign Start",
-  DomainGeneration: "Domain Generation",
-  DNSValidation: "DNS Validation",
-  HTTPValidation: "HTTP Validation",
-  LeadGeneration: "Lead Generation",
-  Completed: "Campaign Complete",
-  Failed: "Phase Failed",
+const phaseDisplayNames: Record<CampaignType, string> = {
+  domain_generation: "Domain Generation",
+  dns_validation: "DNS Validation",
+  http_keyword_validation: "HTTP Validation",
 };
 
 // Updated helper to get status based on item data
-const getDomainStatusFromItem = (itemStatus: CampaignPhaseStatus | string | undefined): DomainActivityStatus => {
+const getDomainStatusFromItem = (itemStatus: CampaignStatus | string | undefined): DomainActivityStatus => {
   switch (itemStatus?.toLowerCase()) {
     case 'resolved': // For DNS
     case 'validated': // General term, or from HTTP if it uses this
@@ -111,7 +103,7 @@ export default function CampaignDashboardPage() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const campaignId = params.id as string;
-  const campaignTypeFromQuery = searchParams.get('type') as CampaignSelectedType | null;
+  const campaignTypeFromQuery = searchParams.get('type') as Campaign['campaignType'] | null;
 
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [generatedDomains, setGeneratedDomains] = useState<GeneratedDomain[]>([]);
@@ -129,45 +121,28 @@ export default function CampaignDashboardPage() {
 
   // Helper functions - moved to top for proper hoisting
   const getGlobalLeadStatusAndScore = (domainName: string, campaign: Campaign): { status: DomainActivityStatus; score?: number } => {
-        if (!campaign || !campaign.extractedContent || !campaign.leads) {
+        if (!campaign) {
             return { status: 'N/A' };
         }
 
-        const contentItem = campaign.extractedContent.find(c => c.sourceUrl?.includes(domainName));
-        if (!contentItem) {
-            return { status: 'No Leads' };
-        }
 
-        const lead = campaign.leads.find(l => l.sourceUrl?.includes(domainName) || l.name?.includes(domainName));
-        if (lead) {
-            return { status: 'Scanned', score: lead.similarityScore };
-        }
-
-        return { status: 'No Leads' };
+        return { status: 'N/A' };
   };
 
-  const getGlobalDomainStatusForPhase = (domainName: string, phase: 'DNSValidation' | 'HTTPValidation', campaign: Campaign): DomainActivityStatus => {
+  const getGlobalDomainStatusForPhase = (domainName: string, phase: 'dns_validation' | 'http_keyword_validation', campaign: Campaign): DomainActivityStatus => {
         if (!campaign) {
             return 'N/A';
         }
 
-        if (phase === 'DNSValidation' && campaign.dnsValidatedDomains && campaign.dnsValidatedDomains.includes(domainName)) {
+        if (phase === 'dns_validation' && dnsCampaignItems.find(item => item.domainName === domainName)?.validationStatus === 'valid') {
             return 'Validated';
         }
-        if (phase === 'HTTPValidation' && campaign.httpValidatedDomains && campaign.httpValidatedDomains.includes(domainName)) {
+        if (phase === 'http_keyword_validation' && httpCampaignItems.find(item => item.domainName === domainName)?.validationStatus === 'valid') {
             return 'Validated';
         }
         return 'Not Validated';
     };
 
-  const _getDomainStatusFromItem = (validationStatus: CampaignPhaseStatus): DomainActivityStatus => {
-    switch (validationStatus) {
-      case 'Succeeded': return 'Validated';
-      case 'Failed': return 'Failed';
-      case 'InProgress': return 'Pending';
-      default: return 'Pending';
-    }
-  };
 
 
   useEffect(() => {
@@ -198,9 +173,9 @@ export default function CampaignDashboardPage() {
               setCampaign(campaignDetailsResponse.data);
               // Domain generation stream will update streamedDomains, which is then merged here.
               // For other campaign types, their items are fetched separately.
-              if (campaignDetailsResponse.data.selectedType === 'domain_generation') {
+              if (campaignDetailsResponse.data.campaignType === 'domain_generation') {
                 // Initial load of domains if not streaming
-                if(campaignDetailsResponse.data.phaseStatus !== 'InProgress' && campaignDetailsResponse.data.currentPhase === 'DomainGeneration') {
+                if(campaignDetailsResponse.data.status === 'completed') {
                     const genDomainsResp = await getGeneratedDomainsForCampaign(campaignId, { limit: 1000, cursor: 0 }); // Fetch a large batch
                     if (genDomainsResp.status === 'success' && genDomainsResp.data) {
                        if(isMountedRef.current) setGeneratedDomains(genDomainsResp.data);
@@ -228,7 +203,7 @@ export default function CampaignDashboardPage() {
 
   // Polling for non-streaming updates (e.g., overall campaign status, progress for non-DG phases)
   useEffect(() => {
-    if (!campaign || campaign.currentPhase === 'Completed' || campaign.phaseStatus === 'Failed' || campaign.phaseStatus === 'Paused' || campaign.currentPhase === 'Idle' || (campaign.currentPhase === 'DomainGeneration' && campaign.phaseStatus === 'InProgress')) {
+    if (!campaign || campaign.status === 'completed' || campaign.status === 'failed' || campaign.status === 'paused' || campaign.status === 'pending' || (campaign.campaignType === 'domain_generation' && campaign.status === 'running')) {
       return;
     }
     const intervalId = setInterval(() => loadCampaignData(false) , 3000);
@@ -237,26 +212,26 @@ export default function CampaignDashboardPage() {
 
   // Fetch campaign items (DNS or HTTP) based on actual campaign type
   useEffect(() => {
-    if (!campaign || !campaign.selectedType) return; // Use campaign.selectedType now
+    if (!campaign || !campaign.campaignType) return; // Use campaign.campaignType now
 
     const fetchItems = async () => {
       if (!isMountedRef.current) return;
       try {
-        if (campaign.selectedType === 'dns_validation') {
+        if (campaign.campaignType === 'dns_validation') {
           const dnsItemsResponse = await getDnsCampaignDomains(campaign.id, { limit: pageSize, cursor: String((currentPage - 1) * pageSize) });
           if (dnsItemsResponse.status === 'success' && dnsItemsResponse.data) {
            if(isMountedRef.current) setDnsCampaignItems(dnsItemsResponse.data);
           } else {
             toast({ title: "Error Loading DNS Items", description: dnsItemsResponse.message, variant: "destructive" });
           }
-        } else if (campaign.selectedType === 'http_keyword_validation') {
+        } else if (campaign.campaignType === 'http_keyword_validation') {
           const httpItemsResponse = await getHttpCampaignItems(campaign.id, { limit: pageSize, cursor: String((currentPage - 1) * pageSize) });
           if (httpItemsResponse.status === 'success' && httpItemsResponse.data) {
             if(isMountedRef.current) setHttpCampaignItems(httpItemsResponse.data);
           } else {
             toast({ title: "Error Loading HTTP Items", description: httpItemsResponse.message, variant: "destructive" });
           }
-        } else if (campaign.selectedType === 'domain_generation' && campaign.phaseStatus !== 'InProgress') {
+        } else if (campaign.campaignType === 'domain_generation' && campaign.status !== 'running') {
             // Fetch initial/all generated domains if not streaming
             const genDomainsResp = await getGeneratedDomainsForCampaign(campaign.id, { limit: pageSize, cursor: (currentPage -1) * pageSize });
             if(genDomainsResp.status === 'success' && genDomainsResp.data) {
@@ -273,19 +248,19 @@ export default function CampaignDashboardPage() {
     
     // Fetch items if the campaign phase relevant to item display is active or completed
     // And also if the campaign itself is of the type that would have these items.
-    const selectedType = campaign.selectedType || campaign.campaignType;
-    const currentPhase = campaign.currentPhase;
+    const selectedType = campaign.campaignType;
+    const currentPhase = campaign.status;
     
     const phasesForType = CAMPAIGN_PHASES_ORDERED[selectedType];
-    const isDNSPhaseActiveOrPast = selectedType === 'dns_validation' && currentPhase && phasesForType && (currentPhase === 'DNSValidation' || phasesForType.indexOf(currentPhase) > phasesForType.indexOf('DNSValidation') || currentPhase === 'Completed');
-    const isHTTPPhaseActiveOrPast = selectedType === 'http_keyword_validation' && currentPhase && phasesForType && (currentPhase === 'HTTPValidation' || phasesForType.indexOf(currentPhase) > phasesForType.indexOf('HTTPValidation') || currentPhase === 'Completed');
-    const isDomainGenPhaseNotStreaming = campaign.selectedType === 'domain_generation' && campaign.phaseStatus !== 'InProgress';
+    const isDNSPhaseActiveOrPast = selectedType === 'dns_validation' && currentPhase && phasesForType && (currentPhase === 'dns_validation' || phasesForType.indexOf(currentPhase) > phasesForType.indexOf('dns_validation') || currentPhase === 'completed');
+    const isHTTPPhaseActiveOrPast = selectedType === 'http_keyword_validation' && currentPhase && phasesForType && (currentPhase === 'http_keyword_validation' || phasesForType.indexOf(currentPhase) > phasesForType.indexOf('http_keyword_validation') || currentPhase === 'completed');
+    const isDomainGenPhaseNotStreaming = campaign.campaignType === 'domain_generation' && campaign.status !== 'running';
 
 
     if (isDNSPhaseActiveOrPast || isHTTPPhaseActiveOrPast || isDomainGenPhaseNotStreaming) {
       fetchItems();
       // Simple poll for items if not domain gen streaming
-      if (!isDomainGenPhaseNotStreaming || campaign.phaseStatus !== 'InProgress') {
+      if (!isDomainGenPhaseNotStreaming || campaign.status !== 'running') {
           const itemPollInterval = setInterval(fetchItems, 5000);
           return () => clearInterval(itemPollInterval);
       }
@@ -298,9 +273,9 @@ export default function CampaignDashboardPage() {
 
   // Effect for handling domain generation streaming via WebSocket
   useEffect(() => {
-    if (!campaign || campaign.selectedType !== 'domain_generation' || campaign.currentPhase !== 'DomainGeneration' || campaign.phaseStatus !== 'InProgress' || !isMountedRef.current) {
+    if (!campaign || campaign.campaignType !== 'domain_generation' || campaign.status !== 'running' || !isMountedRef.current) {
       if(streamCleanupRef.current) {
-        console.log(`[${campaignId}] Stopping stream because conditions not met (phase: ${campaign?.currentPhase}, status: ${campaign?.phaseStatus})`);
+        console.log(`[${campaignId}] Stopping stream because conditions not met (status: ${campaign?.status})`);
         streamCleanupRef.current();
         streamCleanupRef.current = null;
       }
@@ -317,10 +292,10 @@ export default function CampaignDashboardPage() {
         if (!isMountedRef.current) return;
          // Update the main 'generatedDomains' state used by the table directly
         setGeneratedDomains(prev => {
-            const newSet = new Set([...prev.map(d => d.domain), domain]);
+            const newSet = new Set([...prev.map(d => d.domainName), domain]);
             // Create new GeneratedDomain objects for the table
             return Array.from(newSet).map(dName => {
-                const existingDomain = prev.find(gd => gd.domain === dName);
+                const existingDomain = prev.find(gd => gd.domainName === dName);
                 return {
                     id: existingDomain?.id || dName, // Use existing ID or domain name as fallback
                     generationCampaignId: campaignId,
@@ -328,17 +303,12 @@ export default function CampaignDashboardPage() {
                     offsetIndex: existingDomain?.offsetIndex || 0,
                     generatedAt: existingDomain?.generatedAt || new Date().toISOString(),
                     createdAt: existingDomain?.createdAt || new Date().toISOString(),
-                    domain: dName,
-                    campaignId: campaignId,
-                    index: existingDomain?.index || 0, // Preserve index if known, else 0
-                    status: existingDomain?.status || 'Generated' as const,
-                    validationResults: existingDomain?.validationResults
                 } as GeneratedDomain;
             });
         });
     };
 
-    const handleStreamComplete = (phaseCompleted: CampaignPhase, error?: Error) => {
+    const handleStreamComplete = (phaseCompleted: CampaignStatus, error?: Error) => {
         if (!isMountedRef.current) {
           console.log(`[${campaignId}] Stream onComplete (WS) called but component unmounted.`);
           return;
@@ -363,14 +333,14 @@ export default function CampaignDashboardPage() {
           if (data.domain) {
             handleDomainReceived(data.domain);
           }
-        } else if (message.type === 'campaign_phase_complete') {
-          handleStreamComplete('DomainGeneration');
+        } else if (message.type === 'campaign_complete') {
+          handleStreamComplete('completed');
         }
       },
       (error) => {
         console.error(`[${campaignId}] Error setting up domain stream (WS):`, error);
         if (isMountedRef.current) {
-          handleStreamComplete('DomainGeneration', error instanceof Error ? error : new Error(String(error)));
+          handleStreamComplete('failed', error instanceof Error ? error : new Error(String(error)));
         }
       }
     );
@@ -383,7 +353,7 @@ export default function CampaignDashboardPage() {
 
     return () => {
       if (streamCleanupRef.current) {
-        console.log(`[${campaignId}] Cleaning up WebSocket stream from useEffect (phase: ${campaign?.currentPhase}).`);
+        console.log(`[${campaignId}] Cleaning up WebSocket stream from useEffect (status: ${campaign?.status}).`);
         streamCleanupRef.current();
         streamCleanupRef.current = null;
       }
@@ -392,7 +362,7 @@ export default function CampaignDashboardPage() {
 
 
   const submitStartPhase = async (payload: StartCampaignPhasePayload) => {
-    if (!campaign || !campaign.selectedType || actionLoading[`phase-${payload.phaseToStart}`]) return;
+    if (!campaign || !campaign.campaignType || actionLoading[`phase-${payload.phaseToStart}`]) return;
     setActionLoading(prev => ({...prev, [`phase-${payload.phaseToStart}`]: true }));
     try {
       // The campaignService.startCampaignPhase now uses the V2 /start endpoint
@@ -414,14 +384,14 @@ export default function CampaignDashboardPage() {
     } finally {
       // For DomainGeneration, loading state is managed by stream start/end.
       // For other phases, reset it here.
-      if (payload.phaseToStart !== 'DomainGeneration' && isMountedRef.current) {
+      if (payload.phaseToStart !== 'domain_generation' && isMountedRef.current) {
         setActionLoading(prev => ({...prev, [`phase-${payload.phaseToStart}`]: false }));
       }
     }
   };
 
-  const handlePhaseActionTrigger = (phaseToStart: CampaignPhase) => {
-    if (!campaign || !campaign.selectedType || actionLoading[`phase-${phaseToStart}`]) return;
+  const handlePhaseActionTrigger = (phaseToStart: CampaignStatus) => {
+    if (!campaign || !campaign.campaignType || actionLoading[`phase-${phaseToStart}`]) return;
 
     // V2 API uses simple campaignId, not complex payload
     const actionKey = `phase-${phaseToStart}`;
@@ -431,8 +401,8 @@ export default function CampaignDashboardPage() {
       phaseToStart,
       // Note: V2 API /start endpoint just needs campaignId
       // Domain source and other configs are stored in campaign already
-      domainSource: campaign.domainSourceConfig,
-      numberOfDomainsToProcess: campaign.initialDomainsToProcessCount
+      domainSource: campaign.dnsValidationParams?.sourceGenerationCampaignId,
+      numberOfDomainsToProcess: campaign.totalItems
     };
     
     // Use the simplified V2 API call
@@ -441,7 +411,7 @@ export default function CampaignDashboardPage() {
 
   
   const handleCampaignControl = async (action: 'pause' | 'resume' | 'stop') => {
-    if (!campaign || !campaign.selectedType || actionLoading[`control-${action}`]) return;
+    if (!campaign || !campaign.campaignType || actionLoading[`control-${action}`]) return;
     setActionLoading(prev => ({...prev, [`control-${action}`]: true }));
     try {
         let response: { status: string; data?: Partial<Campaign>; message?: string };
@@ -490,27 +460,26 @@ export default function CampaignDashboardPage() {
   };
 
   const campaignDomainDetails = useMemo((): CampaignDomainDetail[] => {
-    if (!campaign || !campaign.selectedType) return []; // Use campaign.selectedType
+    if (!campaign || !campaign.campaignType) return []; // Use campaign.campaignType
     
     let itemsToMap: Array<GeneratedDomain | CampaignValidationItem | { domainName: string; id: string }> = [];
     let itemType: 'dns' | 'http' | 'domain_gen' | 'lead_gen_base' = 'domain_gen'; // Default assumption
 
-    if (campaign.selectedType === 'domain_generation') {
+    if (campaign.campaignType === 'domain_generation') {
         itemsToMap = generatedDomains; // Use fetched/streamed generated domains
         itemType = 'domain_gen';
-    } else if (campaign.selectedType === 'dns_validation') {
+    } else if (campaign.campaignType === 'dns_validation') {
         itemsToMap = dnsCampaignItems;
         itemType = 'dns';
-    } else if (campaign.selectedType === 'http_keyword_validation') {
+    } else if (campaign.campaignType === 'http_keyword_validation') {
         itemsToMap = httpCampaignItems;
         itemType = 'http';
-    } else if (campaign.selectedType === 'lead_generation') {
+    } else if (campaign.campaignType === 'http_keyword_validation') {
         // For Lead Gen, the "base" list of domains might come from its HTTP validated input
         // or its own generation if that was the source.
         // This needs more specific handling based on how Lead Gen sources its domains.
         // For now, assume it operates on httpValidatedDomains if available, or campaign.domains if internal gen.
-        itemsToMap = campaign.httpValidatedDomains?.map(d => ({domainName: d, id: d})) || // If sourced from HTTP
-                     campaign.domains?.map(d => ({domainName: d, id: d})) || [];             // If sourced from internal Gen
+        itemsToMap = httpCampaignItems.map(d => ({domainName: d.domainName, id: d.id})) || [];
         itemType = 'lead_gen_base'; // Indicates we're showing base domains, lead status applied
     }
 
@@ -527,7 +496,7 @@ export default function CampaignDashboardPage() {
                 id: ('id' in item && item.id) || domainName,
                 domainName,
                 generatedDate: campaign.createdAt,
-                dnsStatus: isDnsItem ? getDomainStatusFromItem((item as CampaignValidationItem).validationStatus) : getGlobalDomainStatusForPhase(domainName, 'DNSValidation', campaign),
+                dnsStatus: isDnsItem ? getDomainStatusFromItem((item as CampaignValidationItem).validationStatus) : getGlobalDomainStatusForPhase(domainName, 'dns_validation', campaign),
                 dnsError: isDnsItem ? (item as CampaignValidationItem).errorDetails : undefined,
                 dnsResultsByPersona: isDnsItem ? {'backend-persona': {
                     id: `dns-${domainName}`,
@@ -535,9 +504,10 @@ export default function CampaignDashboardPage() {
                     domainName: domainName,
                     validationStatus: (item as CampaignValidationItem).validationStatus,
                     createdAt: (item as CampaignValidationItem).lastCheckedAt || new Date().toISOString(),
+                    attempts: (item as CampaignValidationItem).attempts,
                 }} : undefined,
 
-                httpStatus: isHttpItem ? getDomainStatusFromItem((item as CampaignValidationItem).validationStatus) : getGlobalDomainStatusForPhase(domainName, 'HTTPValidation', campaign),
+                httpStatus: isHttpItem ? getDomainStatusFromItem((item as CampaignValidationItem).validationStatus) : getGlobalDomainStatusForPhase(domainName, 'http_keyword_validation', campaign),
                 httpError: isHttpItem ? (item as CampaignValidationItem).errorDetails : undefined,
                 httpStatusCode: isHttpItem ? (item as CampaignValidationItem).httpStatusCode : undefined,
                 httpFinalUrl: isHttpItem ? (item as CampaignValidationItem).finalUrl : undefined,
@@ -546,21 +516,21 @@ export default function CampaignDashboardPage() {
                 httpResponseHeaders: isHttpItem ? (item as CampaignValidationItem).responseHeaders : undefined,
                 
                 leadScanStatus: leadInfo.status,
-                leadDetails: campaign.leads?.find(l => l.sourceUrl?.includes(domainName) || l.name?.includes(domainName)),
+                leadDetails: undefined,
             };
         }).sort((a,b) => a.domainName.localeCompare(b.domainName));
     } else { // For Domain Generation or Lead Gen base domains
         return itemsToMap.map((item: GeneratedDomain | CampaignValidationItem | { domainName: string; id: string }): CampaignDomainDetail => {
-            const domainName = ('domain' in item && item.domain) || ('domainName' in item && item.domainName) || '';
+            const domainName = ('domainName' in item && item.domainName) || '';
             const leadInfo = getGlobalLeadStatusAndScore(domainName, campaign);
             return {
                 id: ('id' in item && item.id) || domainName,
                 domainName,
                 generatedDate: ('generatedAt' in item && item.generatedAt) || campaign.createdAt,
-                dnsStatus: getGlobalDomainStatusForPhase(domainName, 'DNSValidation', campaign),
-                httpStatus: getGlobalDomainStatusForPhase(domainName, 'HTTPValidation', campaign),
+                dnsStatus: getGlobalDomainStatusForPhase(domainName, 'dns_validation', campaign),
+                httpStatus: getGlobalDomainStatusForPhase(domainName, 'http_keyword_validation', campaign),
                 leadScanStatus: leadInfo.status,
-                leadDetails: campaign.leads?.find(l => l.sourceUrl?.includes(domainName) || l.name?.includes(domainName)),
+                leadDetails: undefined,
             };
         }).sort((a,b) => a.domainName.localeCompare(b.domainName));
     }
@@ -593,7 +563,7 @@ export default function CampaignDashboardPage() {
       </div>
     );
   }
-  if (!campaign || !campaign.selectedType) { // Use campaign.selectedType
+  if (!campaign || !campaign.campaignType) { // Use campaign.campaignType
     return (
       <div className="text-center py-10">
         <AlertCircle className="mx-auto h-12 w-12 text-destructive" />
@@ -603,77 +573,77 @@ export default function CampaignDashboardPage() {
     );
   }
 
-  const phasesForSelectedType = CAMPAIGN_PHASES_ORDERED[campaign.selectedType || campaign.campaignType] || [];
-  const currentPhaseIndexInType = (campaign.currentPhase === "Idle" || campaign.currentPhase === "Completed" || campaign.phaseStatus === "Failed" || campaign.phaseStatus === "Paused")
+  const phasesForSelectedType = CAMPAIGN_PHASES_ORDERED[campaign.campaignType] || [];
+  const currentPhaseIndexInType = (campaign.status === "pending" || campaign.status === "completed" || campaign.status === "failed" || campaign.status === "paused")
     ? -1
-    : campaign.currentPhase ? phasesForSelectedType.indexOf(campaign.currentPhase) : -1;
+    : campaign.status ? phasesForSelectedType.indexOf(campaign.status) : -1;
 
   const renderPhaseButtons = () => {
-    if (campaign.currentPhase === "Completed") return <p className="text-lg font-semibold text-green-500 flex items-center gap-2"><CheckCircle className="h-6 w-6"/>Campaign Completed!</p>;
+    if (campaign.status === "completed") return <p className="text-lg font-semibold text-green-500 flex items-center gap-2"><CheckCircle className="h-6 w-6"/>Campaign Completed!</p>;
     
-    if (campaign.phaseStatus === "Failed") {
-       const failedPhaseName = campaign.currentPhase ? (phaseDisplayNames[campaign.currentPhase] || campaign.currentPhase) : 'Unknown Phase';
+    if (campaign.status === "failed") {
+       const failedPhaseName = campaign.campaignType ? (phaseDisplayNames[campaign.campaignType] || campaign.campaignType) : 'Unknown Phase';
        // Retry for failed phase should use the StartCampaignPhase logic
-       return ( 
-         <div className="text-center"> 
-           <p className="text-lg font-semibold text-destructive mb-2">Failed: {failedPhaseName}</p> 
-           {campaign.lastErrorMessage && <p className="text-sm text-muted-foreground mb-3">Error: {campaign.lastErrorMessage}</p>} 
-           {campaign.currentPhase && (
-             <PhaseGateButton 
-               label={`Retry ${failedPhaseName}`} 
-               onClick={() => handlePhaseActionTrigger(campaign.currentPhase!)} 
-               Icon={RefreshCw} 
-               variant="destructive" 
-               isLoading={actionLoading[`phase-${campaign.currentPhase}`]} 
-               disabled={!!actionLoading[`phase-${campaign.currentPhase}`]} 
+       return (
+         <div className="text-center">
+           <p className="text-lg font-semibold text-destructive mb-2">Failed: {failedPhaseName}</p>
+           {campaign.errorMessage && <p className="text-sm text-muted-foreground mb-3">Error: {campaign.errorMessage}</p>}
+           {campaign.status && (
+             <PhaseGateButton
+               label={`Retry ${failedPhaseName}`}
+               onClick={() => handlePhaseActionTrigger(campaign.campaignType!)}
+               Icon={RefreshCw}
+               variant="destructive"
+               isLoading={actionLoading[`phase-${campaign.campaignType}`]}
+               disabled={!!actionLoading[`phase-${campaign.campaignType}`]}
              />
            )}
-         </div> 
+         </div>
        );
     }
-    if (campaign.phaseStatus === "Paused") {
-        const pausedPhaseName = campaign.currentPhase ? (phaseDisplayNames[campaign.currentPhase] || campaign.currentPhase) : 'Unknown Phase';
+    if (campaign.status === "paused") {
+        const pausedPhaseName = campaign.campaignType ? (phaseDisplayNames[campaign.campaignType] || campaign.campaignType) : 'Unknown Phase';
         return <PhaseGateButton label={`Resume ${pausedPhaseName}`} onClick={() => handleCampaignControl('resume')} Icon={PlayCircle} isLoading={actionLoading['control-resume']} disabled={!!actionLoading['control-resume']} />;
     }
-    if (campaign.currentPhase === "Idle" || (campaign.phaseStatus === "Pending" && campaign.currentPhase !== "Failed")) {
+    if (campaign.status === "pending") {
         // Start the very first phase of this campaign type from the V2 spec
-        const selectedType = campaign.selectedType || campaign.campaignType;
+        const selectedType = campaign.campaignType;
         if (selectedType) {
           const firstPhase = getFirstPhase(selectedType);
           if (firstPhase) {
-            const phaseDisplayName = phaseDisplayNames[firstPhase as CampaignPhase] || firstPhase;
-            const phaseIcon = phaseIcons[firstPhase as CampaignPhase] || Play;
-            return <PhaseGateButton label={`Start ${phaseDisplayName}`} onClick={() => handlePhaseActionTrigger(firstPhase as CampaignPhase)} Icon={phaseIcon} isLoading={actionLoading[`phase-${firstPhase}`]} disabled={!!actionLoading[`phase-${firstPhase}`]} />;
+            const phaseDisplayName = phaseDisplayNames[firstPhase as CampaignType] || firstPhase;
+            const phaseIcon = phaseIcons[firstPhase as CampaignType] || Play;
+            return <PhaseGateButton label={`Start ${phaseDisplayName}`} onClick={() => handlePhaseActionTrigger(firstPhase as CampaignType)} Icon={phaseIcon} isLoading={actionLoading[`phase-${firstPhase}`]} disabled={!!actionLoading[`phase-${firstPhase}`]} />;
           }
         }
     }
-    if (campaign.phaseStatus === "InProgress") {
-        let progressText = `(${campaign.progress}%)`;
-        if(campaign.currentPhase === 'DomainGeneration') {
+    if (campaign.status === "running") {
+        let progressText = `(${campaign.progressPercentage}%)`;
+        if(campaign.campaignType === 'domain_generation') {
              const generatedCount = generatedDomains.length; // Use length of fetched/streamed domains
-             const campaignTarget = campaign.domainGenerationConfig?.maxDomainsToGenerate || 'all possible';
-             progressText = `(${generatedCount} / ${campaignTarget} - ${campaign.progress}%)`;
+             const campaignTarget = campaign.domainGenerationParams?.numDomainsToGenerate || 'all possible';
+             progressText = `(${generatedCount} / ${campaignTarget} - ${campaign.progressPercentage}%)`;
         }
-        const currentPhaseName = campaign.currentPhase ? (phaseDisplayNames[campaign.currentPhase] || campaign.currentPhase) : 'Unknown Phase';
+        const currentPhaseName = campaign.campaignType ? (phaseDisplayNames[campaign.campaignType] || campaign.campaignType) : 'Unknown Phase';
         return <p className="text-sm text-muted-foreground text-center">Current phase: {currentPhaseName} is in progress {progressText}... <RefreshCw className="inline-block ml-2 h-4 w-4 animate-spin" /></p>;
     }
     
     // This logic might be simplified if backend drives all phase transitions after /start
-    if (campaign.phaseStatus === "Succeeded" && campaign.currentPhase !== "Failed") {
-        const selectedType = campaign.selectedType || campaign.campaignType;
-        if (selectedType && campaign.currentPhase) {
-          const nextPhaseToStart = getNextPhase(selectedType, campaign.currentPhase);
+    if (campaign.status === "completed" && campaign.status !== "failed") {
+        const selectedType = campaign.campaignType;
+        if (selectedType && campaign.status) {
+          const nextPhaseToStart = getNextPhase(selectedType, campaign.status);
           if (nextPhaseToStart) {
-            const phaseDisplayName = phaseDisplayNames[nextPhaseToStart as CampaignPhase] || nextPhaseToStart;
-            const phaseIcon = phaseIcons[nextPhaseToStart as CampaignPhase] || Play;
-            return <PhaseGateButton label={`Start Next Phase: ${phaseDisplayName}`} onClick={() => handlePhaseActionTrigger(nextPhaseToStart as CampaignPhase)} Icon={phaseIcon} isLoading={actionLoading[`phase-${nextPhaseToStart}`]} disabled={!!actionLoading[`phase-${nextPhaseToStart}`]} />;
+            const phaseDisplayName = phaseDisplayNames[nextPhaseToStart as CampaignType] || nextPhaseToStart;
+            const phaseIcon = phaseIcons[nextPhaseToStart as CampaignType] || Play;
+            return <PhaseGateButton label={`Start Next Phase: ${phaseDisplayName}`} onClick={() => handlePhaseActionTrigger(nextPhaseToStart as CampaignType)} Icon={phaseIcon} isLoading={actionLoading[`phase-${nextPhaseToStart}`]} disabled={!!actionLoading[`phase-${nextPhaseToStart}`]} />;
           } else {
               const phasesForType = CAMPAIGN_PHASES_ORDERED[selectedType];
-              if (phasesForType && phasesForType.length === 1 && phasesForType[0] === campaign.currentPhase) {
+              if (phasesForType && phasesForType.length === 1 && phasesForType[0] === campaign.status) {
                  return <p className="text-lg font-semibold text-green-500 flex items-center gap-2"><CheckCircle className="h-6 w-6"/>Campaign Type Process Completed!</p>;
             }
              // If no next phase but not "Completed", it might mean the backend will auto-transition or campaign is done.
-            const currentPhaseName = campaign.currentPhase ? (phaseDisplayNames[campaign.currentPhase] || campaign.currentPhase) : 'Unknown Phase';
+            const currentPhaseName = campaign.campaignType ? (phaseDisplayNames[campaign.campaignType] || campaign.campaignType) : 'Unknown Phase';
             return <p className="text-sm text-green-600 text-center">Phase {currentPhaseName} succeeded. Waiting for backend to transition or finalize...</p>;
         }
         }
@@ -682,20 +652,20 @@ export default function CampaignDashboardPage() {
   };
 
   const renderCampaignControlButtons = () => {
-    if (!campaign || campaign.currentPhase === 'Completed' || campaign.currentPhase === 'Idle' || campaign.phaseStatus === 'Failed') return null;
+    if (!campaign || campaign.status === 'completed' || campaign.status === 'pending' || campaign.status === 'failed') return null;
     return (
       <div className="flex gap-2 justify-center">
-        {campaign.phaseStatus === 'InProgress' && (
+        {campaign.status === 'running' && (
           <Button variant="outline" size="sm" onClick={() => handleCampaignControl('pause')} disabled={actionLoading['control-pause']} isLoading={actionLoading['control-pause']}>
             <PauseCircle className="mr-2 h-4 w-4" /> Pause <span className="text-xs ml-1 text-muted-foreground">(API: /pause)</span>
           </Button>
         )}
-        {campaign.phaseStatus === 'Paused' && (
+        {campaign.status === 'paused' && (
           <Button variant="outline" size="sm" onClick={() => handleCampaignControl('resume')} disabled={actionLoading['control-resume']} isLoading={actionLoading['control-resume']}>
             <PlayCircle className="mr-2 h-4 w-4" /> Resume <span className="text-xs ml-1 text-muted-foreground">(API: /resume)</span>
           </Button>
         )}
-        {(campaign.phaseStatus === 'InProgress' || campaign.phaseStatus === 'Paused') && (
+        {(campaign.status === 'running' || campaign.status === 'paused') && (
           <Button variant="destructive" size="sm" onClick={() => handleCampaignControl('stop')} disabled={actionLoading['control-stop']} isLoading={actionLoading['control-stop']}>
             <StopCircle className="mr-2 h-4 w-4" /> Cancel <span className="text-xs ml-1 text-muted-foreground">(API: /cancel)</span>
           </Button>
@@ -712,10 +682,10 @@ export default function CampaignDashboardPage() {
   };
 
   const renderConsolidatedResultsTable = () => {
-    if (campaignDomainDetails.length === 0 && campaign.currentPhase !== 'DomainGeneration' && !(campaign.phaseStatus === 'InProgress' && (campaign.currentPhase === 'DNSValidation' || campaign.currentPhase === 'HTTPValidation'))) {
+    if (campaignDomainDetails.length === 0 && campaign.campaignType !== 'domain_generation' && !(campaign.status === 'running' && (campaign.campaignType === 'dns_validation' || campaign.campaignType === 'http_keyword_validation'))) {
         return <p className="text-center text-muted-foreground py-6">No domains processed or generated yet for this campaign.</p>;
     }
-    if (campaignDomainDetails.length === 0 && (campaign.phaseStatus === 'InProgress' && (campaign.currentPhase === 'DomainGeneration' || campaign.currentPhase === 'DNSValidation' || campaign.currentPhase === 'HTTPValidation'))) {
+    if (campaignDomainDetails.length === 0 && (campaign.status === 'running' && (campaign.campaignType === 'domain_generation' || campaign.campaignType === 'dns_validation' || campaign.campaignType === 'http_keyword_validation'))) {
         return <p className="text-center text-muted-foreground py-6 flex items-center justify-center"><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Waiting for domain results...</p>;
     }
 
@@ -815,30 +785,26 @@ export default function CampaignDashboardPage() {
                             // For other types, depends on how source domains are stored/accessed.
                             // This needs to be type-aware.
                             let domainsToDownload: string[] | undefined = undefined;
-                            if (campaign.selectedType === 'domain_generation') {
-                                domainsToDownload = generatedDomains.map(d => d.domain);
-                            } else if (campaign.domainSourceConfig?.type === 'upload' && campaign.domainSourceConfig.uploadedDomains) {
-                                domainsToDownload = campaign.domainSourceConfig.uploadedDomains;
-                            } else if (campaign.domains) { // Fallback for non-DG if .domains is populated (e.g. from source campaign)
-                                domainsToDownload = campaign.domains;
+                            if (campaign.campaignType === 'domain_generation') {
+                                domainsToDownload = generatedDomains.map(d => d.domainName);
+                            } else if (campaign.dnsValidationParams?.sourceGenerationCampaignId) {
+                                // Need to fetch the domains from the source campaign
                             }
                             handleDownloadDomains(domainsToDownload, 'initial_or_generated_domains');
                         }}
                         disabled={
-                            (campaign.selectedType === 'domain_generation' && generatedDomains.length === 0) &&
-                            (campaign.selectedType !== 'domain_generation' && (!campaign.domainSourceConfig?.uploadedDomains || campaign.domainSourceConfig.uploadedDomains.length === 0) && (!campaign.domains || campaign.domains.length === 0))
+                            (campaign.campaignType === 'domain_generation' && generatedDomains.length === 0)
                         }
                     >
                         <Download className="mr-2 h-4 w-4" /> Export Initial/Generated ({
-                           campaign.selectedType === 'domain_generation' ? generatedDomains.length :
-                           (campaign.domainSourceConfig?.uploadedDomains?.length || campaign.domains?.length || 0)
+                           campaign.campaignType === 'domain_generation' ? generatedDomains.length : 0
                         })
                          <span className="text-xs ml-1 text-muted-foreground">(API: /results/generated-domains)</span>
                     </Button>
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDownloadDomains(dnsCampaignItems.map(d => d.domain), 'dns_validated_domains')}
+                        onClick={() => handleDownloadDomains(dnsCampaignItems.map(d => d.domainName), 'dns_validated_domains')}
                         disabled={dnsCampaignItems.length === 0}
                     >
                         <Download className="mr-2 h-4 w-4" /> Export DNS Valid ({dnsCampaignItems.length})
@@ -847,7 +813,7 @@ export default function CampaignDashboardPage() {
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDownloadDomains(httpCampaignItems.map(item => item.domainOrUrl || item.domain).filter(Boolean), 'http_validated_domains')}
+                        onClick={() => handleDownloadDomains(httpCampaignItems.map(item => item.domainName).filter(Boolean), 'http_validated_domains')}
                         disabled={httpCampaignItems.length === 0}
                     >
                         <Download className="mr-2 h-4 w-4" /> Export HTTP Valid ({httpCampaignItems.length})
@@ -864,7 +830,7 @@ export default function CampaignDashboardPage() {
     <div className="space-y-6">
       <PageHeader
         title={campaign.name}
-        description={campaign.description || `Dashboard for ${campaign.selectedType} campaign.`}
+        description={`Dashboard for ${campaign.campaignType} campaign.`}
         icon={Briefcase}
         actionButtons={<Button variant="outline" onClick={() => loadCampaignData(true)} disabled={loading || Object.values(actionLoading).some(v=>v)}><RefreshCw className={cn("mr-2 h-4 w-4", (loading || Object.values(actionLoading).some(v=>v)) && "animate-spin")}/> Refresh</Button>}
       />
@@ -889,8 +855,7 @@ export default function CampaignDashboardPage() {
       {renderConsolidatedResultsTable()}
 
       {(phasesForSelectedType.includes("LeadGeneration") &&
-        (currentPhaseIndexInType >= phasesForSelectedType.indexOf("LeadGeneration") || campaign.currentPhase === "LeadGeneration" || (campaign.currentPhase as string) === "Completed") &&
-        (campaign.extractedContent && campaign.extractedContent.length > 0 || campaign.leads && campaign.leads.length > 0 || (campaign.phaseStatus === 'InProgress' as CampaignPhaseStatus) && campaign.currentPhase === 'LeadGeneration')
+        (currentPhaseIndexInType >= phasesForSelectedType.indexOf("http_keyword_validation") || campaign.status === "completed")
         ) && (
         <ContentSimilarityView campaign={campaign} />
       )}

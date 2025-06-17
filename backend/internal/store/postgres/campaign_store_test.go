@@ -45,71 +45,30 @@ func (s *CampaignStoreTestSuite) SetupSuite() {
 	s.db = db
 	s.store = NewCampaignStorePostgres(s.db)
 
-	// Run migrations
-	_, err = db.Exec(`
-		CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-		
-		-- Create campaigns table if not exists
-		CREATE TABLE IF NOT EXISTS campaigns (
-			id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-			name TEXT NOT NULL,
-			campaign_type TEXT NOT NULL,
-			status TEXT NOT NULL,
-			user_id TEXT,
-			total_items BIGINT DEFAULT 0,
-			processed_items BIGINT DEFAULT 0,
-			successful_items BIGINT DEFAULT 0,
-			failed_items BIGINT DEFAULT 0,
-			progress_percentage DOUBLE PRECISION DEFAULT 0.0,
-			metadata JSONB,
-			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-			updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-			started_at TIMESTAMPTZ,
-			completed_at TIMESTAMPTZ,
-			error_message TEXT
-		);
-
-		-- Create domain_generation_campaign_params table
-		CREATE TABLE IF NOT EXISTS domain_generation_campaign_params (
-			campaign_id UUID PRIMARY KEY REFERENCES campaigns(id) ON DELETE CASCADE,
-			pattern_type TEXT NOT NULL,
-			variable_length INT,
-			character_set TEXT,
-			constant_string TEXT,
-			tld TEXT NOT NULL,
-			num_domains_to_generate INT NOT NULL,
-			total_possible_combinations BIGINT NOT NULL,
-			current_offset BIGINT NOT NULL DEFAULT 0
-		);
-
-		-- Create generated_domains table with all required columns
-		CREATE TABLE IF NOT EXISTS generated_domains (
-			id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-			domain_generation_campaign_id UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
-			domain_name TEXT NOT NULL,
-			source_keyword TEXT,
-			source_pattern TEXT,
-			tld TEXT,
-			offset_index BIGINT NOT NULL DEFAULT 0,
-			generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-			CONSTRAINT uq_generated_domains_campaign_name UNIQUE (domain_generation_campaign_id, domain_name)
-		);
-
-		-- Create indexes
-		CREATE INDEX IF NOT EXISTS idx_generated_domains_campaign_id ON generated_domains(domain_generation_campaign_id);
-		CREATE INDEX IF NOT EXISTS idx_generated_domains_name ON generated_domains(domain_name);
-		CREATE INDEX IF NOT EXISTS idx_generated_domains_offset ON generated_domains(domain_generation_campaign_id, offset_index);
-
-		-- Create domain_generation_config_states table
-		CREATE TABLE IF NOT EXISTS domain_generation_config_states (
-			config_hash TEXT PRIMARY KEY,
-			last_offset BIGINT NOT NULL,
-			config_details JSONB NOT NULL,
-			updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-		);
+	// Clean test data by truncating tables to ensure a clean state
+	// This prevents data from previous test runs from affecting current tests
+	_, err = s.db.Exec(`
+		TRUNCATE TABLE 
+			campaigns, 
+			personas, 
+			proxies, 
+			keyword_sets, 
+			campaign_jobs,
+			audit_logs,
+			generated_domains,
+			dns_validation_results,
+			http_keyword_results,
+			domain_generation_campaign_params,
+			dns_validation_params,
+			http_keyword_campaign_params,
+			domain_generation_config_states
+		RESTART IDENTITY CASCADE;
 	`)
-	require.NoError(s.T(), err, "Failed to create test tables")
+	require.NoError(s.T(), err, "Failed to clean test data")
+
+	// Migrations are now handled centrally in TestMain for the package.
+	// This ensures all tests in the package run against the same schema.
+	require.NoError(s.T(), err, "Failed to connect to test database")
 }
 
 func (s *CampaignStoreTestSuite) SetupTest() {

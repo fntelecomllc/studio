@@ -5,7 +5,6 @@
 import apiClient from './apiClient.production';
 import type {
   Campaign,
-  CampaignSelectedType,
   CreateCampaignPayload,
   CampaignsListResponse,
   CampaignDetailResponse,
@@ -17,46 +16,6 @@ import type {
   CampaignValidationItem,
 } from '@/lib/types';
 
-// Backend V2 API interfaces - Updated to match backend exactly
-interface CreateDomainGenerationRequest {
-  name: string;
-  patternType: 'prefix' | 'suffix' | 'both';
-  variableLength: number;
-  characterSet: string;
-  constantString: string;
-  tld: string;
-  numDomainsToGenerate?: number;
-  userId?: string;
-}
-
-interface CreateDNSValidationRequest {
-  name: string;
-  sourceGenerationCampaignId: string; // FIXED: Backend expects sourceGenerationCampaignId per models.go:257
-  personaIds: string[];
-  rotationIntervalSeconds?: number;
-  processingSpeedPerMinute?: number;
-  batchSize?: number;
-  retryAttempts?: number;
-  userId?: string;
-}
-
-interface CreateHTTPKeywordRequest {
-  name: string;
-  sourceCampaignId: string; // Backend expects sourceCampaignId per models.go:283
-  keywordSetIds?: string[];
-  adHocKeywords?: string[];
-  personaIds: string[];
-  proxyPoolId?: string;
-  proxySelectionStrategy?: string;
-  rotationIntervalSeconds?: number;
-  processingSpeedPerMinute?: number;
-  batchSize?: number;
-  retryAttempts?: number;
-  targetHttpPorts?: number[];
-  sourceType: string; // FIXED: Required field per models.go:295
-  proxyIds?: string[]; // FIXED: Added missing field per models.go:296
-  userId?: string;
-}
 
 class CampaignService {
   private static instance: CampaignService;
@@ -71,7 +30,7 @@ class CampaignService {
 
   // Campaign Management - FIXED ENDPOINTS to match backend /api/v2/campaigns
   async getCampaigns(filters?: {
-    type?: CampaignSelectedType;
+    type?: string;
     status?: string;
     limit?: number;
     offset?: number;
@@ -105,23 +64,25 @@ class CampaignService {
     try {
       console.log('[CampaignService] Creating campaign with payload:', payload);
       
-      let response: CampaignCreationResponse;
+      let endpoint = '';
       switch (payload.campaignType) {
         case 'domain_generation':
-          response = await this.createDomainGenerationCampaign(this.mapToDomainGenRequest(payload));
+          endpoint = '/api/v2/campaigns/generate';
           break;
         case 'dns_validation':
-          response = await this.createDNSValidationCampaign(this.mapToDNSRequest(payload));
+          endpoint = '/api/v2/campaigns/dns-validate';
           break;
         case 'http_keyword_validation':
-          response = await this.createHTTPKeywordCampaign(this.mapToHTTPRequest(payload));
+          endpoint = '/api/v2/campaigns/keyword-validate';
           break;
         default:
           throw new Error(`Unsupported campaign type: ${payload.campaignType}`);
       }
+
+      const response = await apiClient.post<Campaign>(endpoint, payload as unknown as Record<string, unknown>);
       
       console.log('[CampaignService] Campaign created successfully:', response);
-      return response;
+      return response as CampaignCreationResponse;
     } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any -- Error handling for diagnostic logging
       console.error('[CampaignService] Campaign creation failed:', error);
       
@@ -257,136 +218,6 @@ class CampaignService {
     }
   }
 
-  // Private campaign creation methods - FIXED ENDPOINTS to match backend /api/v2/campaigns
-  private async createDomainGenerationCampaign(
-    payload: CreateDomainGenerationRequest
-  ): Promise<CampaignCreationResponse> {
-    console.log('[CampaignService] Creating domain generation campaign with payload:', payload);
-    return apiClient.post<Campaign>('/api/v2/campaigns/generate', payload as unknown as Record<string, unknown>);
-  }
-
-  private async createDNSValidationCampaign(
-    payload: CreateDNSValidationRequest
-  ): Promise<CampaignCreationResponse> {
-    console.log('[CampaignService] Creating DNS validation campaign with payload:', payload);
-    return apiClient.post<Campaign>('/api/v2/campaigns/dns-validate', payload as unknown as Record<string, unknown>);
-  }
-
-  private async createHTTPKeywordCampaign(
-    payload: CreateHTTPKeywordRequest
-  ): Promise<CampaignCreationResponse> {
-    console.log('[CampaignService] Creating HTTP keyword campaign with payload:', payload);
-    return apiClient.post<Campaign>('/api/v2/campaigns/keyword-validate', payload as unknown as Record<string, unknown>);
-  }
-
-  // Payload mapping - FIXED to match exact backend expectations
-  private mapToDomainGenRequest(payload: CreateCampaignPayload): CreateDomainGenerationRequest {
-    console.log('[CampaignService] mapToDomainGenRequest - payload:', JSON.stringify(payload, null, 2));
-    
-    if (!payload.domainGenerationConfig) {
-      console.error('[CampaignService] No domainGenerationConfig in payload');
-      throw new Error('Domain generation configuration is required for generation campaigns');
-    }
-
-    const config = payload.domainGenerationConfig;
-    console.log('[CampaignService] Domain generation config:', JSON.stringify(config, null, 2));
-    
-    // Validate required fields
-    if (!config.generationPattern) {
-      console.error('[CampaignService] Missing generationPattern');
-      throw new Error('Generation pattern is required');
-    }
-    if (!config.constantPart) {
-      console.error('[CampaignService] Missing constantPart');
-      throw new Error('Constant part is required');
-    }
-    
-    // Map frontend pattern names to backend pattern names
-    const patternTypeMapping = {
-      'prefix_variable': 'prefix',
-      'suffix_variable': 'suffix',
-      'both_variable': 'both'
-    } as const;
-    
-    const backendPatternType = patternTypeMapping[config.generationPattern as keyof typeof patternTypeMapping];
-    if (!backendPatternType) {
-      throw new Error(`Invalid generation pattern: ${config.generationPattern}`);
-    }
-    
-    // Determine variable length based on pattern type
-    let variableLength: number;
-    if (config.generationPattern === 'prefix_variable') {
-      variableLength = config.prefixVariableLength || 1;
-    } else if (config.generationPattern === 'suffix_variable') {
-      variableLength = config.suffixVariableLength || 1;
-    } else {
-      // For 'both', use the max of prefix or suffix, or default to 1
-      variableLength = Math.max(config.prefixVariableLength || 1, config.suffixVariableLength || 1);
-    }
-    
-    // Add validation logging for the campaign name
-    if (!payload.campaignName && !payload.name) {
-      console.error('[CampaignService] Missing campaign name in payload');
-      throw new Error('Campaign name is required');
-    }
-
-    const request: CreateDomainGenerationRequest = {
-      name: payload.campaignName || payload.name || '', // Fallback to 'name' if 'campaignName' is missing
-      patternType: backendPatternType,
-      variableLength: variableLength,
-      characterSet: config.allowedCharSet || 'abcdefghijklmnopqrstuvwxyz',
-      constantString: config.constantPart || '',
-      tld: config.tlds?.[0] || '.com', // Backend expects single TLD, take first one
-      numDomainsToGenerate: config.maxDomainsToGenerate || 1000,
-      userId: this.userId,
-    };
-    
-    console.log('[CampaignService] Mapped domain generation request:', JSON.stringify(request, null, 2));
-    return request;
-  }
-
-  private mapToDNSRequest(payload: CreateCampaignPayload): CreateDNSValidationRequest {
-    if (!payload.domainSourceConfig?.sourceCampaignId) {
-      throw new Error('Source campaign ID is required for DNS validation campaigns');
-    }
-    if (!payload.assignedDnsPersonaId) {
-      throw new Error('DNS persona is required for DNS validation campaigns');
-    }
-
-    const request: CreateDNSValidationRequest = {
-      name: payload.campaignName || payload.name,
-      sourceGenerationCampaignId: payload.domainSourceConfig.sourceCampaignId, // FIXED: Backend expects sourceGenerationCampaignId
-      personaIds: [payload.assignedDnsPersonaId], // Backend expects array of persona IDs
-      userId: this.userId,
-    };
-    
-    console.log('[CampaignService] Mapped DNS validation request:', request);
-    return request;
-  }
-
-  private mapToHTTPRequest(payload: CreateCampaignPayload): CreateHTTPKeywordRequest {
-    if (!payload.domainSourceConfig?.sourceCampaignId) {
-      throw new Error('Source campaign ID is required for HTTP keyword validation campaigns');
-    }
-    if (!payload.assignedHttpPersonaId) {
-      throw new Error('HTTP persona is required for HTTP keyword validation campaigns');
-    }
-
-    const request: CreateHTTPKeywordRequest = {
-      name: payload.campaignName || payload.name,
-      sourceCampaignId: payload.domainSourceConfig.sourceCampaignId, // Backend expects this exact field name
-      personaIds: [payload.assignedHttpPersonaId], // Backend expects array of persona IDs
-      adHocKeywords: payload.leadGenerationSpecificConfig?.targetKeywords || [],
-      proxyPoolId: payload.proxyAssignment?.proxyId,
-      proxySelectionStrategy: payload.proxyAssignment?.mode === 'rotate_active' ? 'round_robin' : undefined,
-      sourceType: 'dns_validation', // FIXED: Required field - source domains from DNS validation campaign
-      proxyIds: payload.proxyAssignment?.proxyId ? [payload.proxyAssignment.proxyId] : undefined, // FIXED: Added missing proxyIds field
-      userId: this.userId,
-    };
-    
-    console.log('[CampaignService] Mapped HTTP keyword validation request:', request);
-    return request;
-  }
 }
 
 // Export singleton and functions for backward compatibility

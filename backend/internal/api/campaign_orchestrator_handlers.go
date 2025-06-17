@@ -41,7 +41,7 @@ func (h *CampaignOrchestratorAPIHandler) RegisterCampaignOrchestrationRoutes(gro
 	// Campaign reading routes - require campaigns:read permission
 	group.GET("", authMiddleware.RequirePermission("campaigns:read"), h.listCampaigns)
 	group.GET("/:campaignId", authMiddleware.RequirePermission("campaigns:read"), h.getCampaignDetails)
-	group.GET("/:campaignId/status", authMiddleware.RequirePermission("campaigns:read"), h.getCampaignStatus)
+	// group.GET("/:campaignId/status", authMiddleware.RequirePermission("campaigns:read"), h.getCampaignStatus)
 
 	// Campaign control routes - require campaigns:execute permission
 	group.POST("/:campaignId/start", authMiddleware.RequirePermission("campaigns:execute"), h.startCampaign)
@@ -50,7 +50,7 @@ func (h *CampaignOrchestratorAPIHandler) RegisterCampaignOrchestrationRoutes(gro
 	group.POST("/:campaignId/cancel", authMiddleware.RequirePermission("campaigns:execute"), h.cancelCampaign)
 
 	// Campaign modification routes - require campaigns:update permission
-	group.PUT("/:campaignId", authMiddleware.RequirePermission("campaigns:update"), h.updateCampaign)
+	// group.PUT("/:campaignId", authMiddleware.RequirePermission("campaigns:update"), h.updateCampaign)
 
 	// Campaign deletion routes - require campaigns:delete permission
 	group.DELETE("/:campaignId", authMiddleware.RequirePermission("campaigns:delete"), h.deleteCampaign)
@@ -256,27 +256,6 @@ func (h *CampaignOrchestratorAPIHandler) getCampaignDetails(c *gin.Context) {
 	respondWithJSONGin(c, http.StatusOK, resp)
 }
 
-func (h *CampaignOrchestratorAPIHandler) getCampaignStatus(c *gin.Context) {
-	campaignIDStr := c.Param("campaignId")
-	campaignID, err := uuid.Parse(campaignIDStr)
-	if err != nil {
-		respondWithErrorGin(c, http.StatusBadRequest, "Invalid campaign ID format")
-		return
-	}
-
-	status, progress, err := h.orchestratorService.GetCampaignStatus(c.Request.Context(), campaignID)
-	if err != nil {
-		// if errors.Is(err, store.ErrNotFound) { // Example for future
-		if err.Error() == "record not found" { // Or whatever store.ErrNotFound.Error() actually returns
-			respondWithErrorGin(c, http.StatusNotFound, "Campaign not found")
-		} else {
-			log.Printf("Error getting campaign status for %s: %v", campaignIDStr, err)
-			respondWithErrorGin(c, http.StatusInternalServerError, "Failed to get campaign status")
-		}
-		return
-	}
-	respondWithJSONGin(c, http.StatusOK, gin.H{"status": status, "progressPercentage": progress})
-}
 
 // --- Campaign Control Handlers ---
 
@@ -375,28 +354,6 @@ func (h *CampaignOrchestratorAPIHandler) cancelCampaign(c *gin.Context) {
 	respondWithJSONGin(c, http.StatusOK, gin.H{"message": "Campaign cancellation requested"})
 }
 
-func (h *CampaignOrchestratorAPIHandler) updateCampaign(c *gin.Context) {
-	campaignIDStr := c.Param("campaignId")
-	campaignID, err := uuid.Parse(campaignIDStr)
-	if err != nil {
-		respondWithErrorGin(c, http.StatusBadRequest, "Invalid campaign ID format")
-		return
-	}
-
-	var req services.UpdateCampaignRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		respondWithErrorGin(c, http.StatusBadRequest, "Invalid request payload: "+err.Error())
-		return
-	}
-
-	campaign, err := h.orchestratorService.UpdateCampaign(c.Request.Context(), campaignID, req)
-	if err != nil {
-		log.Printf("Error updating campaign %s: %v", campaignIDStr, err)
-		respondWithErrorGin(c, http.StatusInternalServerError, fmt.Sprintf("Failed to update campaign: %v", err))
-		return
-	}
-	respondWithJSONGin(c, http.StatusOK, campaign)
-}
 
 func (h *CampaignOrchestratorAPIHandler) deleteCampaign(c *gin.Context) {
 	campaignIDStr := c.Param("campaignId")

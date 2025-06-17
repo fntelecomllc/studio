@@ -9,7 +9,7 @@
 
 -- Create integrity monitoring tables
 CREATE TABLE IF NOT EXISTS safety.integrity_monitoring (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     check_name TEXT NOT NULL,
     check_type TEXT NOT NULL, -- 'constraint', 'referential', 'business_rule', 'data_type'
     check_sql TEXT NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS safety.integrity_monitoring (
 
 -- Integrity violation log
 CREATE TABLE IF NOT EXISTS safety.integrity_violations (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     check_id UUID NOT NULL REFERENCES safety.integrity_monitoring(id),
     violation_count INTEGER NOT NULL,
     violation_details JSONB,
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS safety.integrity_violations (
 
 -- Real-time monitoring status
 CREATE TABLE IF NOT EXISTS safety.monitoring_status (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     monitoring_session_id UUID NOT NULL,
     migration_phase TEXT NOT NULL, -- 'preparation', 'shadow_creation', 'data_migration', 'cutover', 'cleanup'
     started_at TIMESTAMPTZ DEFAULT NOW(),
@@ -343,7 +343,7 @@ CREATE OR REPLACE FUNCTION safety.start_monitoring_session(
 )
 RETURNS JSONB AS $$
 DECLARE
-    session_id UUID := uuid_generate_v4();
+    session_id UUID := gen_random_uuid();
     session_results JSONB;
 BEGIN
     -- Register monitoring session

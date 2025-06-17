@@ -400,7 +400,7 @@ ALTER SEQUENCE auth.auth_audit_log_id_seq OWNED BY auth.auth_audit_log.id;
 --
 
 CREATE TABLE auth.password_reset_tokens (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT public.gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     token_hash character varying(255) NOT NULL,
     expires_at timestamp without time zone NOT NULL,
@@ -419,7 +419,7 @@ ALTER TABLE auth.password_reset_tokens OWNER TO domainflow;
 --
 
 CREATE TABLE auth.permissions (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT public.gen_random_uuid() NOT NULL,
     name character varying(100) NOT NULL,
     display_name character varying(150) NOT NULL,
     description text,
@@ -491,7 +491,7 @@ ALTER TABLE auth.role_permissions OWNER TO domainflow;
 --
 
 CREATE TABLE auth.roles (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT public.gen_random_uuid() NOT NULL,
     name character varying(50) NOT NULL,
     display_name character varying(100) NOT NULL,
     description text,
@@ -584,7 +584,7 @@ ALTER TABLE auth.user_roles OWNER TO domainflow;
 --
 
 CREATE TABLE auth.users (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT public.gen_random_uuid() NOT NULL,
     email character varying(255) NOT NULL,
     email_verified boolean DEFAULT false,
     email_verification_token character varying(255),
@@ -615,7 +615,7 @@ ALTER TABLE auth.users OWNER TO domainflow;
 --
 
 CREATE TABLE public.audit_logs (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT public.gen_random_uuid() NOT NULL,
     "timestamp" timestamp with time zone DEFAULT now() NOT NULL,
     user_id text,
     action text NOT NULL,
@@ -653,7 +653,7 @@ COMMENT ON COLUMN public.audit_logs.entity_type IS 'e.g., Campaign, Persona, Pro
 --
 
 CREATE TABLE public.campaign_jobs (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT public.gen_random_uuid() NOT NULL,
     campaign_id uuid NOT NULL,
     job_type text NOT NULL,
     status text DEFAULT 'pending'::text NOT NULL,
@@ -700,7 +700,7 @@ COMMENT ON COLUMN public.campaign_jobs.status IS 'e.g., Pending, Queued, Running
 --
 
 CREATE TABLE public.campaigns (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT public.gen_random_uuid() NOT NULL,
     name text NOT NULL,
     campaign_type text DEFAULT 'domain_generation'::text NOT NULL,
     status text NOT NULL,
@@ -767,7 +767,7 @@ ALTER TABLE public.dns_validation_params OWNER TO domainflow;
 --
 
 CREATE TABLE public.dns_validation_results (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT public.gen_random_uuid() NOT NULL,
     dns_campaign_id uuid NOT NULL,
     generated_domain_id uuid,
     domain_name text NOT NULL,
@@ -833,7 +833,7 @@ ALTER TABLE public.domain_generation_config_states OWNER TO domainflow;
 --
 
 CREATE TABLE public.generated_domains (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT public.gen_random_uuid() NOT NULL,
     domain_generation_campaign_id uuid NOT NULL,
     domain_name text NOT NULL,
     source_keyword text,
@@ -892,7 +892,7 @@ COMMENT ON COLUMN public.http_keyword_campaign_params.source_type IS 'DomainGene
 --
 
 CREATE TABLE public.http_keyword_results (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT public.gen_random_uuid() NOT NULL,
     http_keyword_campaign_id uuid NOT NULL,
     dns_result_id uuid,
     domain_name text NOT NULL,
@@ -929,7 +929,7 @@ COMMENT ON COLUMN public.http_keyword_results.validation_status IS 'e.g., Succes
 --
 
 CREATE TABLE public.keyword_sets (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT public.gen_random_uuid() NOT NULL,
     name text NOT NULL,
     description text,
     keywords jsonb DEFAULT '[]'::jsonb NOT NULL,
@@ -956,7 +956,7 @@ COMMENT ON COLUMN public.keyword_sets.keywords IS 'Array of KeywordRule objects:
 --
 
 CREATE TABLE public.personas (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT public.gen_random_uuid() NOT NULL,
     name text NOT NULL,
     description text,
     persona_type text NOT NULL,
@@ -994,7 +994,7 @@ COMMENT ON COLUMN public.personas.config_details IS 'Stores DNSValidatorConfigJS
 --
 
 CREATE TABLE public.proxies (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT public.gen_random_uuid() NOT NULL,
     name text NOT NULL,
     description text,
     address text NOT NULL,

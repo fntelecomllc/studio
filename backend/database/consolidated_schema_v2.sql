@@ -17,7 +17,7 @@ CREATE SCHEMA IF NOT EXISTS auth;
 
 -- Users table with comprehensive security features
 CREATE TABLE IF NOT EXISTS auth.users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
     email_verified BOOLEAN DEFAULT FALSE,
     email_verification_token VARCHAR(255),
@@ -82,7 +82,7 @@ CREATE INDEX IF NOT EXISTS idx_sessions_cleanup ON auth.sessions(is_active, expi
 
 -- Roles table
 CREATE TABLE IF NOT EXISTS auth.roles (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(50) UNIQUE NOT NULL,
     display_name VARCHAR(100) NOT NULL,
     description TEXT,
@@ -96,7 +96,7 @@ CREATE INDEX IF NOT EXISTS idx_roles_system ON auth.roles(is_system_role);
 
 -- Permissions table with enhanced resource management
 CREATE TABLE IF NOT EXISTS auth.permissions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) UNIQUE NOT NULL,
     display_name VARCHAR(150) NOT NULL,
     description TEXT,
@@ -138,7 +138,7 @@ CREATE INDEX IF NOT EXISTS idx_role_permissions_permission_id ON auth.role_permi
 
 -- Password reset tokens
 CREATE TABLE IF NOT EXISTS auth.password_reset_tokens (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     token_hash VARCHAR(255) NOT NULL,
     expires_at TIMESTAMP NOT NULL,
@@ -198,7 +198,7 @@ CREATE INDEX IF NOT EXISTS idx_rate_limits_cleanup ON auth.rate_limits(window_st
 
 -- Campaigns Table: Central table for all campaign types with enhanced metadata
 CREATE TABLE IF NOT EXISTS campaigns (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     campaign_type TEXT NOT NULL DEFAULT 'domain_generation' CHECK (campaign_type IN ('domain_generation', 'dns_validation', 'http_keyword_validation')),
     status TEXT NOT NULL,
@@ -252,7 +252,7 @@ CREATE TABLE IF NOT EXISTS domain_generation_campaign_params (
 
 -- Generated Domains Table with partitioning support readiness
 CREATE TABLE IF NOT EXISTS generated_domains (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     domain_generation_campaign_id UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
     domain_name TEXT NOT NULL,
     source_keyword TEXT,
@@ -293,7 +293,7 @@ CREATE INDEX IF NOT EXISTS idx_config_states_updated ON domain_generation_config
 
 -- Personas Table with enhanced configuration validation
 CREATE TABLE IF NOT EXISTS personas (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     description TEXT,
     persona_type TEXT NOT NULL CHECK (persona_type IN ('dns', 'http')),
@@ -318,7 +318,7 @@ CREATE INDEX IF NOT EXISTS idx_personas_performance ON personas(success_rate DES
 
 -- Keyword Sets Table with enhanced rule management
 CREATE TABLE IF NOT EXISTS keyword_sets (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL UNIQUE,
     description TEXT,
     keywords JSONB NOT NULL DEFAULT '[]'::jsonb,
@@ -337,7 +337,7 @@ CREATE INDEX IF NOT EXISTS idx_keyword_sets_usage ON keyword_sets(usage_count DE
 
 -- Keyword Rules Table (from migration 000006)
 CREATE TABLE IF NOT EXISTS keyword_rules (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     keyword_set_id UUID NOT NULL REFERENCES keyword_sets(id) ON DELETE CASCADE,
     pattern TEXT NOT NULL,
     rule_type TEXT NOT NULL CHECK (rule_type IN ('string', 'regex', 'case_insensitive')),
@@ -367,7 +367,7 @@ CREATE TABLE IF NOT EXISTS dns_validation_params (
 
 -- DNS Validation Results Table with enhanced tracking
 CREATE TABLE IF NOT EXISTS dns_validation_results (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     dns_campaign_id UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
     generated_domain_id UUID REFERENCES generated_domains(id) ON DELETE SET NULL,
     domain_name TEXT NOT NULL,
@@ -418,7 +418,7 @@ CREATE TABLE IF NOT EXISTS http_keyword_campaign_params (
 
 -- Proxies Table with enhanced health monitoring
 CREATE TABLE IF NOT EXISTS proxies (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL UNIQUE,
     description TEXT,
     address TEXT NOT NULL UNIQUE,
@@ -454,7 +454,7 @@ CREATE INDEX IF NOT EXISTS idx_proxies_country ON proxies(country_code, is_enabl
 
 -- HTTP Keyword Results Table with enhanced content analysis
 CREATE TABLE IF NOT EXISTS http_keyword_results (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     http_keyword_campaign_id UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
     dns_result_id UUID REFERENCES dns_validation_results(id) ON DELETE SET NULL,
     domain_name TEXT NOT NULL,
@@ -492,7 +492,7 @@ CREATE INDEX IF NOT EXISTS idx_http_results_performance ON http_keyword_results(
 
 -- Audit Logs Table with enhanced filtering
 CREATE TABLE IF NOT EXISTS audit_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     action TEXT NOT NULL,
@@ -518,7 +518,7 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_session ON audit_logs(session_id) WHER
 
 -- Campaign Jobs Table with enhanced job management
 CREATE TABLE IF NOT EXISTS campaign_jobs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     campaign_id UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
     job_type TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'pending',

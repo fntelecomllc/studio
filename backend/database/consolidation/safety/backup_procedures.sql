@@ -12,7 +12,7 @@ CREATE SCHEMA IF NOT EXISTS safety;
 
 -- Backup registry table
 CREATE TABLE IF NOT EXISTS safety.backup_registry (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     backup_name TEXT NOT NULL UNIQUE,
     backup_type TEXT NOT NULL, -- 'full', 'schema_only', 'data_only', 'incremental'
     backup_scope TEXT NOT NULL, -- 'complete', 'consolidation_tables', 'auth_only'
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS safety.backup_registry (
 
 -- Backup verification log
 CREATE TABLE IF NOT EXISTS safety.backup_verification_log (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     backup_id UUID NOT NULL REFERENCES safety.backup_registry(id) ON DELETE CASCADE,
     verification_type TEXT NOT NULL, -- 'checksum', 'structure', 'data_integrity', 'recovery_test'
     verification_status TEXT NOT NULL, -- 'passed', 'failed', 'warning'
@@ -513,7 +513,7 @@ DECLARE
     test_table_name TEXT;
     original_count INTEGER;
     recovered_count INTEGER;
-    recovery_test_id UUID := uuid_generate_v4();
+    recovery_test_id UUID := gen_random_uuid();
 BEGIN
     backup_schema := 'backup_' || replace(backup_name, '-', '_');
     test_schema := 'recovery_test_' || TO_CHAR(NOW(), 'YYYYMMDD_HH24MISS');

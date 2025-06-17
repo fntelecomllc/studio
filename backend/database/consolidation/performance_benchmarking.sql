@@ -12,7 +12,7 @@ CREATE SCHEMA IF NOT EXISTS benchmarks;
 
 -- Performance test results table
 CREATE TABLE IF NOT EXISTS benchmarks.performance_tests (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     test_suite_id UUID NOT NULL,
     test_name TEXT NOT NULL,
     test_category TEXT NOT NULL, -- 'query', 'index', 'insert', 'update', 'delete'
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS benchmarks.performance_tests (
 
 -- Benchmark test suites table
 CREATE TABLE IF NOT EXISTS benchmarks.test_suites (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     suite_name TEXT NOT NULL,
     schema_version TEXT NOT NULL,
     started_at TIMESTAMPTZ DEFAULT NOW(),
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS benchmarks.test_suites (
 
 -- Benchmark comparisons table
 CREATE TABLE IF NOT EXISTS benchmarks.performance_comparisons (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     pre_consolidation_suite_id UUID REFERENCES benchmarks.test_suites(id),
     post_consolidation_suite_id UUID REFERENCES benchmarks.test_suites(id),
     comparison_results JSONB NOT NULL,
@@ -80,7 +80,7 @@ DECLARE
     test_id UUID;
 BEGIN
     -- Generate test ID
-    test_id := uuid_generate_v4();
+    test_id := gen_random_uuid();
     
     -- Collect system metrics before test
     system_metrics := jsonb_build_object(
@@ -358,7 +358,7 @@ DECLARE
     test_count INTEGER := 0;
     comparison_id UUID;
 BEGIN
-    comparison_id := uuid_generate_v4();
+    comparison_id := gen_random_uuid();
     
     -- Compare matching tests between suites
     FOR pre_test IN 

@@ -461,7 +461,7 @@ DECLARE
 BEGIN
     -- Initialize results
     comprehensive_results := jsonb_build_object(
-        'validation_id', uuid_generate_v4(),
+        'validation_id', gen_random_uuid(),
         'started_at', start_time,
         'validations', '{}'::jsonb
     );

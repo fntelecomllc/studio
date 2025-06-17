@@ -9,7 +9,7 @@
 
 -- Emergency response log
 CREATE TABLE IF NOT EXISTS safety.emergency_response_log (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     incident_timestamp TIMESTAMPTZ DEFAULT NOW(),
     incident_type TEXT NOT NULL, -- 'data_corruption', 'performance_degradation', 'system_failure', 'constraint_violation'
     severity_level TEXT NOT NULL, -- 'low', 'medium', 'high', 'critical'
@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS safety.emergency_response_log (
 
 -- Emergency contacts and escalation
 CREATE TABLE IF NOT EXISTS safety.emergency_contacts (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     contact_name TEXT NOT NULL,
     contact_role TEXT NOT NULL, -- 'dba', 'sysadmin', 'developer', 'manager'
     contact_method TEXT NOT NULL, -- 'email', 'sms', 'slack', 'pager'
@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS safety.emergency_contacts (
 
 -- Emergency response procedures registry
 CREATE TABLE IF NOT EXISTS safety.emergency_procedures (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     procedure_name TEXT NOT NULL UNIQUE,
     incident_type TEXT NOT NULL,
     severity_threshold TEXT NOT NULL,

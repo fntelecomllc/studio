@@ -12,7 +12,7 @@ CREATE SCHEMA IF NOT EXISTS monitoring;
 
 -- System performance metrics table
 CREATE TABLE IF NOT EXISTS monitoring.system_metrics (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     metric_timestamp TIMESTAMPTZ DEFAULT NOW(),
     migration_phase TEXT, -- 'preparation', 'shadow_creation', 'data_migration', 'cutover', 'cleanup'
     cpu_usage_percent NUMERIC(5,2),
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS monitoring.system_metrics (
 
 -- Database performance metrics table
 CREATE TABLE IF NOT EXISTS monitoring.database_performance (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     measured_at TIMESTAMPTZ DEFAULT NOW(),
     migration_phase TEXT,
     table_name TEXT NOT NULL,
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS monitoring.database_performance (
 
 -- Query performance monitoring
 CREATE TABLE IF NOT EXISTS monitoring.query_performance (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     captured_at TIMESTAMPTZ DEFAULT NOW(),
     migration_phase TEXT,
     query_hash TEXT,
@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS monitoring.query_performance (
 
 -- Migration operation log
 CREATE TABLE IF NOT EXISTS monitoring.migration_operations (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     operation_timestamp TIMESTAMPTZ DEFAULT NOW(),
     migration_phase TEXT NOT NULL,
     operation_type TEXT NOT NULL, -- 'table_creation', 'data_copy', 'index_creation', 'constraint_addition'
@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS monitoring.migration_operations (
 
 -- Alert thresholds configuration
 CREATE TABLE IF NOT EXISTS monitoring.alert_thresholds (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     metric_name TEXT NOT NULL UNIQUE,
     threshold_type TEXT NOT NULL, -- 'warning', 'critical'
     threshold_value NUMERIC NOT NULL,
@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS monitoring.alert_thresholds (
 
 -- Alert log
 CREATE TABLE IF NOT EXISTS monitoring.alert_log (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     alert_timestamp TIMESTAMPTZ DEFAULT NOW(),
     alert_threshold_id UUID REFERENCES monitoring.alert_thresholds(id),
     metric_name TEXT NOT NULL,
@@ -503,7 +503,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION monitoring.start_migration_monitoring(migration_phase TEXT)
 RETURNS JSONB AS $$
 DECLARE
-    monitoring_session_id UUID := uuid_generate_v4();
+    monitoring_session_id UUID := gen_random_uuid();
     monitoring_results JSONB;
 BEGIN
     -- Collect initial baseline metrics

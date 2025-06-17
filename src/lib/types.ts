@@ -127,7 +127,7 @@ export interface Persona {
   tags?: string[];
   configDetails: DNSConfigDetails | HTTPConfigDetails; // Raw JSON config
   isEnabled: boolean;
-  status: PersonaStatus;
+  status: string;
   lastTested?: string;
   lastError?: string;
   createdAt: string;
@@ -145,7 +145,7 @@ export interface Proxy {
   host?: string;
   port?: number;
   notes?: string;
-  status: ProxyStatus;
+  status: string;
   isEnabled: boolean;
   isHealthy: boolean;
   lastStatus?: string;
@@ -250,29 +250,6 @@ export interface Campaign {
   dnsValidationParams?: DNSValidationCampaignParams;
   httpKeywordValidationParams?: HTTPKeywordCampaignParams;
   
-  // Frontend compatibility fields (legacy)
-  selectedType?: CampaignType; // Alias for campaignType
-  currentPhase?: CampaignPhase;
-  phaseStatus?: CampaignPhaseStatus;
-  progress?: number; // Alias for progressPercentage
-  lastErrorMessage?: string; // Alias for errorMessage
-  description?: string;
-  domainGenerationConfig?: DomainGenerationConfig;
-  domainSourceConfig?: DomainSource;
-  initialDomainsToProcessCount?: number;
-  leadGenerationSpecificConfig?: LeadGenerationSpecificConfig;
-  assignedHttpPersonaId?: string;
-  assignedDnsPersonaId?: string;
-  httpPersonaId?: string;
-  dnsPersonaIds?: string[];
-  proxyAssignment?: ProxyAssignment;
-  domains?: string[];
-  dnsValidatedDomains?: string[];
-  httpValidatedDomains?: string[];
-  extractedContent?: ExtractedContentItem[];
-  leads?: Lead[];
-  generatedDomains?: GeneratedDomain[];
-  uploadHistory?: UploadEvent[];
 }
 
 // Generated Domain - matches backend GeneratedDomain exactly
@@ -288,58 +265,7 @@ export interface GeneratedDomainBackend {
   createdAt: string;
 }
 
-// Generated Domain with frontend compatibility - unified interface
-export interface GeneratedDomain extends GeneratedDomainBackend {
-  // Frontend compatibility fields (computed/mapped)
-  domain: string; // Maps to domainName
-  campaignId: string; // Maps to generationCampaignId
-  index: number; // Maps to offsetIndex
-  status: 'Generated' | 'Validated' | 'Failed';
-  validationResults?: {
-    dns?: DNSValidationResult;
-    http?: HTTPKeywordResult;
-  };
-}
-
-// Helper function to create GeneratedDomain from backend data
-export function createGeneratedDomain(backend: GeneratedDomainBackend, overrides?: Partial<Pick<GeneratedDomain, 'status' | 'validationResults'>>): GeneratedDomain {
-  return {
-    ...backend,
-    domain: backend.domainName,
-    campaignId: backend.generationCampaignId,
-    index: backend.offsetIndex,
-    status: overrides?.status || 'Generated',
-    validationResults: overrides?.validationResults,
-  };
-}
-
-// Helper function to create GeneratedDomain from frontend data
-export function createGeneratedDomainFromLegacy(legacy: {
-  id: string;
-  domain: string;
-  campaignId: string;
-  index: number;
-  generatedAt: string;
-  status: 'Generated' | 'Validated' | 'Failed';
-  validationResults?: {
-    dns?: DNSValidationResult;
-    http?: HTTPKeywordResult;
-  };
-}): GeneratedDomain {
-  return {
-    id: legacy.id,
-    generationCampaignId: legacy.campaignId,
-    domainName: legacy.domain,
-    offsetIndex: legacy.index,
-    generatedAt: legacy.generatedAt,
-    createdAt: legacy.generatedAt, // Use generatedAt as fallback for createdAt
-    domain: legacy.domain,
-    campaignId: legacy.campaignId,
-    index: legacy.index,
-    status: legacy.status,
-    validationResults: legacy.validationResults,
-  };
-}
+export type GeneratedDomain = GeneratedDomainBackend;
 
 // DNS Validation Result - matches backend DNSValidationResult exactly
 export interface DNSValidationResult {
@@ -350,7 +276,7 @@ export interface DNSValidationResult {
   validationStatus: string;
   dnsRecords?: Record<string, unknown>;
   validatedByPersonaId?: string;
-  attempts?: number;
+  attempts: number | null;
   lastCheckedAt?: string;
   createdAt: string;
 }
@@ -371,7 +297,7 @@ export interface HTTPKeywordResult {
   contentHash?: string;
   validatedByPersonaId?: string;
   usedProxyId?: string;
-  attempts: number;
+  attempts: number | null;
   lastCheckedAt?: string;
   createdAt: string;
 }
@@ -630,7 +556,7 @@ export interface LatestDomainActivity {
   domainName: string;
   campaignId: string;
   campaignName: string;
-  phase: CampaignPhase;
+  phase: CampaignStatus;
   status: DomainActivityStatus;
   timestamp: string;
   activity: string;
@@ -686,29 +612,6 @@ export interface ApiResponse<T = null> {
   request_id?: string;
 }
 
-// ===== LEGACY COMPATIBILITY TYPES (DEPRECATED) =====
-
-// Legacy campaign type aliases - use CampaignType instead
-export type CampaignSelectedType = CampaignType;
-
-// Legacy campaign phase - use CampaignStatus instead
-export type CampaignPhase = 
-  | "Idle"
-  | "DomainGeneration"
-  | "DNSValidation"
-  | "HTTPValidation"
-  | "LeadGeneration"
-  | "Completed"
-  | "Failed";
-
-// Legacy phase status - use CampaignStatus instead
-export type CampaignPhaseStatus = 'Pending' | 'InProgress' | 'Succeeded' | 'Failed' | 'Idle' | 'Paused';
-
-// Legacy persona types - use PersonaType instead
-export type PersonaStatus = 'Active' | 'Disabled' | 'Testing' | 'Failed';
-
-// Legacy proxy status - use boolean isEnabled instead
-export type ProxyStatus = 'Active' | 'Disabled' | 'Testing' | 'Failed';
 
 // ===== FORM PAYLOAD TYPES =====
 
@@ -720,14 +623,6 @@ export interface CreateCampaignPayload {
   dnsValidationParams?: DNSValidationCampaignParams;
   httpKeywordValidationParams?: HTTPKeywordCampaignParams;
   
-  // Legacy/compatibility properties for existing campaign service
-  campaignName?: string; // Alias for name
-  domainGenerationConfig?: DomainGenerationConfig;
-  domainSourceConfig?: DomainSource;
-  assignedDnsPersonaId?: string;
-  assignedHttpPersonaId?: string;
-  leadGenerationSpecificConfig?: LeadGenerationSpecificConfig;
-  proxyAssignment?: ProxyAssignment;
 }
 
 // Update Campaign Payload
@@ -802,8 +697,8 @@ export type HttpPersona = Persona & { personaType: 'http' };
 export type DnsPersona = Persona & { personaType: 'dns' };
 export type CreateHttpPersonaPayload = CreatePersonaPayload & { personaType: 'http' };
 export type CreateDnsPersonaPayload = CreatePersonaPayload & { personaType: 'dns' };
-export type UpdateHttpPersonaPayload = Partial<CreatePersonaPayload> & { status?: PersonaStatus };
-export type UpdateDnsPersonaPayload = Partial<CreatePersonaPayload> & { status?: PersonaStatus };
+export type UpdateHttpPersonaPayload = Partial<CreatePersonaPayload> & { status?: string };
+export type UpdateDnsPersonaPayload = Partial<CreatePersonaPayload> & { status?: string };
 export type PersonaActionResponse = ApiResponse<Persona>;
 
 // Persona Service Responses
@@ -840,7 +735,7 @@ export interface AuthResponse<T = unknown> {
 
 // Start Campaign Phase Payload
 export interface StartCampaignPhasePayload {
-  phaseToStart: CampaignPhase;
+  phaseToStart: CampaignStatus;
   domainSource?: DomainSource;
   numberOfDomainsToProcess?: number;
 }
@@ -869,7 +764,7 @@ export interface CampaignValidationItem {
   id: string;
   domain: string;
   domainOrUrl?: string;
-  validationStatus: CampaignPhaseStatus;
+  validationStatus: CampaignStatus;
   lastCheckedAt?: string;
   errorDetails?: string;
   resultsByPersona?: Record<string, DNSValidationResult>;
@@ -891,7 +786,7 @@ export interface DomainSource {
   uploadedDomains?: string[];
   sourceCampaignId?: string;
   sourceCampaignName?: string;
-  sourcePhase?: CampaignPhase;
+  sourcePhase?: CampaignStatus;
 }
 
 // Domain Generation Configuration

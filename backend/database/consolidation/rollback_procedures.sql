@@ -49,7 +49,7 @@ BEGIN
     
     -- Create backup metadata table
     EXECUTE format('CREATE TABLE rollback_%s.backup_metadata (
-        backup_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        backup_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         original_schema_version TEXT,
         backup_timestamp TIMESTAMPTZ DEFAULT NOW(),
         backup_reason TEXT,
@@ -226,7 +226,7 @@ DECLARE
 BEGIN
     -- Initialize rollback log
     rollback_results := jsonb_build_object(
-        'rollback_id', uuid_generate_v4(),
+        'rollback_id', gen_random_uuid(),
         'rollback_schema', rollback_schema,
         'rollback_reason', rollback_reason,
         'started_at', start_time,
@@ -447,7 +447,7 @@ DECLARE
     start_time TIMESTAMP := NOW();
 BEGIN
     test_results := jsonb_build_object(
-        'test_id', uuid_generate_v4(),
+        'test_id', gen_random_uuid(),
         'rollback_schema', rollback_schema,
         'test_type', 'dry_run',
         'started_at', start_time
@@ -507,7 +507,7 @@ DECLARE
 BEGIN
     -- Create monitoring table for automatic rollback triggers
     CREATE TABLE IF NOT EXISTS consolidation.rollback_triggers (
-        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         trigger_name TEXT NOT NULL,
         condition_sql TEXT NOT NULL,
         rollback_schema TEXT NOT NULL,

@@ -195,7 +195,7 @@ BEGIN
                     id, domain_generation_campaign_id, domain_name, source_keyword,
                     source_pattern, tld, offset_index, generated_at, created_at,
                     'pending', -- Default validation status
-                    uuid_generate_v4(), -- Generate batch ID
+                    gen_random_uuid(), -- Generate batch ID
                     0, -- Initial validation attempts
                     NULL -- No validation performed yet
                 FROM generated_domains;
@@ -414,7 +414,7 @@ DECLARE
 BEGIN
     -- Initialize consolidation log
     consolidation_log := jsonb_build_object(
-        'consolidation_id', uuid_generate_v4(),
+        'consolidation_id', gen_random_uuid(),
         'started_at', start_time,
         'dry_run', dry_run,
         'phases', '[]'::jsonb

@@ -9,36 +9,37 @@ import (
 	"github.com/fntelecomllc/studio/backend/internal/models"
 	"github.com/fntelecomllc/studio/backend/internal/services"
 	"github.com/fntelecomllc/studio/backend/internal/store"
-	"github.com/fntelecomllc/studio/backend/internal/store/postgres"
-	"github.com/fntelecomllc/studio/backend/internal/testutil"
-
 	"github.com/google/uuid"
 	_ "github.com/lib/pq" // PostgreSQL driver (imported for side effects)
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
-func TestDomainGenerationServiceImpl_CreateDomainGenerationCampaign(t *testing.T) {
-	db, campaignStore, auditLogStore, _, _, _, _, teardown := testutil.SetupTestStores(t)
-	defer teardown()
+type DomainGenerationServiceTestSuite struct {
+	ServiceTestSuite
+	dgService services.DomainGenerationService
+}
 
-	if db == nil {
-		t.Skip("Skipping test as DB setup failed or was skipped.")
-		return
-	}
+func (s *DomainGenerationServiceTestSuite) SetupTest() {
+	s.dgService = services.NewDomainGenerationService(s.DB, s.CampaignStore, s.CampaignJobStore, s.AuditLogStore)
+}
 
-	// Initialize campaign job store for domain generation service
-	campaignJobStore := postgres.NewCampaignJobStorePostgres(db)
-	dgService := services.NewDomainGenerationService(db, campaignStore, campaignJobStore, auditLogStore)
+func TestDomainGenerationService(t *testing.T) {
+	suite.Run(t, new(DomainGenerationServiceTestSuite))
+}
+
+func (s *DomainGenerationServiceTestSuite) TestCreateDomainGenerationCampaign() {
+	t := s.T()
 	ctx := context.Background()
 
-	baseUserID := "test-user-" + uuid.NewString()
+	baseUserID := uuid.New()
 	baseCampaignName := "Test Gen Campaign Base " + time.Now().Format(time.RFC3339Nano)
 
 	baseReq := services.CreateDomainGenerationCampaignRequest{
 		Name:                 baseCampaignName,
-		UserID:               uuid.MustParse(baseUserID),
-		PatternType:          "prefix", // Corrected from "Iterative"
+		UserID:               baseUserID,
+		PatternType:          "prefix",
 		VariableLength:       3,
 		CharacterSet:         "abc",
 		ConstantString:       "prefix",
@@ -50,7 +51,7 @@ func TestDomainGenerationServiceImpl_CreateDomainGenerationCampaign(t *testing.T
 		req := baseReq
 		req.Name = "Success Campaign " + uuid.NewString()
 
-		campaign, err := dgService.CreateCampaign(ctx, req)
+		campaign, err := s.dgService.CreateCampaign(ctx, req)
 
 		require.NoError(t, err)
 		require.NotNil(t, campaign)
@@ -65,7 +66,7 @@ func TestDomainGenerationServiceImpl_CreateDomainGenerationCampaign(t *testing.T
 		require.NotNil(t, campaign.TotalItems)
 		assert.True(t, *campaign.TotalItems >= 0)
 
-		fetchedCampaign, dbErr := campaignStore.GetCampaignByID(ctx, db, campaign.ID)
+		fetchedCampaign, dbErr := s.CampaignStore.GetCampaignByID(ctx, s.DB, campaign.ID)
 		require.NoError(t, dbErr)
 		require.NotNil(t, fetchedCampaign)
 		assert.Equal(t, req.Name, fetchedCampaign.Name)
@@ -76,7 +77,7 @@ func TestDomainGenerationServiceImpl_CreateDomainGenerationCampaign(t *testing.T
 			assert.Equal(t, *campaign.TotalItems, *fetchedCampaign.TotalItems)
 		}
 
-		fetchedParams, dbParamsErr := campaignStore.GetDomainGenerationParams(ctx, db, campaign.ID)
+		fetchedParams, dbParamsErr := s.CampaignStore.GetDomainGenerationParams(ctx, s.DB, campaign.ID)
 		require.NoError(t, dbParamsErr)
 		require.NotNil(t, fetchedParams)
 		assert.Equal(t, campaign.ID, fetchedParams.CampaignID)
@@ -97,7 +98,7 @@ func TestDomainGenerationServiceImpl_CreateDomainGenerationCampaign(t *testing.T
 			EntityType: "Campaign",
 			Limit:      5,
 		}
-		auditLogs, auditErr := auditLogStore.ListAuditLogs(ctx, db, auditLogFilter)
+		auditLogs, auditErr := s.AuditLogStore.ListAuditLogs(ctx, s.DB, auditLogFilter)
 		require.NoError(t, auditErr)
 		require.NotEmpty(t, auditLogs)
 		foundExpectedLog := false
@@ -165,7 +166,7 @@ func TestDomainGenerationServiceImpl_CreateDomainGenerationCampaign(t *testing.T
 			req.Name = "Error Test " + tc.name + " " + uuid.NewString()
 			tc.modifier(&req)
 
-			campaign, err := dgService.CreateCampaign(ctx, req)
+			campaign, err := s.dgService.CreateCampaign(ctx, req)
 
 			require.Error(t, err, "Expected an error for test case: %s", tc.name)
 			if tc.expectedError != "" {
@@ -174,11 +175,9 @@ func TestDomainGenerationServiceImpl_CreateDomainGenerationCampaign(t *testing.T
 			assert.Nil(t, campaign, "Campaign should be nil on error for test case: %s", tc.name)
 
 			if campaign != nil && campaign.ID != uuid.Nil {
-				fetchedCampaign, _ := campaignStore.GetCampaignByID(ctx, db, campaign.ID)
+				fetchedCampaign, _ := s.CampaignStore.GetCampaignByID(ctx, s.DB, campaign.ID)
 				assert.Nil(t, fetchedCampaign, "Campaign should not have been created in DB on error for test case: %s", tc.name)
 			}
 		})
 	}
 }
-
-// TODO: Add TestDomainGenerationServiceImpl_ProcessDomainGenerationBatch
