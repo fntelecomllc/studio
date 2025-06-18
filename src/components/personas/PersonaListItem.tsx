@@ -52,7 +52,7 @@ const getStatusBadgeInfo = (status: PersonaStatus | undefined): { variant: "defa
 
 export default function PersonaListItem({ persona, onDelete, onTest, onToggleStatus, isTesting, isTogglingStatus }: PersonaListItemProps) {
   const { toast } = useToast();
-  const statusInfo = getStatusBadgeInfo(persona.status);
+  const statusInfo = getStatusBadgeInfo(persona.status as PersonaStatus);
 
   const handleDelete = () => {
     onDelete(persona.id, persona.personaType);

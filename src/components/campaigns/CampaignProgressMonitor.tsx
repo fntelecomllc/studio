@@ -280,7 +280,7 @@ const CampaignProgressMonitor = memo(({
         </div>
 
         {/* Real-time Stats */}
-        {realtimeData.currentPhase === 'DomainGeneration' && (
+        {realtimeData.currentPhase === 'domain_generation' && (
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <span className="text-muted-foreground">Domains Generated:</span>

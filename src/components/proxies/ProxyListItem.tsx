@@ -36,7 +36,7 @@ const getStatusBadgeInfo = (status: ProxyStatus): { variant: "default" | "second
 };
 
 export default function ProxyListItem({ proxy, onEdit, onDelete, onTest, onToggleStatus, isLoading }: ProxyListItemProps) {
-  const statusInfo = getStatusBadgeInfo(proxy.status);
+  const statusInfo = getStatusBadgeInfo(proxy.status as ProxyStatus);
 
   const handleToggle = (checked: boolean) => {
     onToggleStatus(proxy, checked ? 'Active' : 'Disabled');

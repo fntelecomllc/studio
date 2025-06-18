@@ -19,13 +19,18 @@ interface CampaignProgressProps {
 }
 
 const phaseDisplayNames: Record<CampaignPhase, string> = {
+  idle: "Campaign Start",
+  domain_generation: "Domain Generation",
+  dns_validation: "DNS Validation",
+  http_keyword_validation: "HTTP Validation",
+  lead_generation: "Lead Generation",
+  completed: "Campaign Complete",
+  // Legacy support
   Idle: "Campaign Start",
-  DomainGeneration: "Domain Generation",
   DNSValidation: "DNS Validation",
   HTTPValidation: "HTTP Validation",
   LeadGeneration: "Lead Generation",
   Completed: "Campaign Complete",
-  Failed: "Phase Failed",
 };
 
 // Memoized phase status icon component for better performance

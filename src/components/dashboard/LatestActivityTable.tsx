@@ -39,7 +39,7 @@ const getGlobalDomainStatusForPhase = (
 ): DomainActivityStatus => {
   const selectedType = campaign.selectedType || campaign.campaignType;
   const phasesForType = CAMPAIGN_PHASES_ORDERED[selectedType];
-  if (!phasesForType || !phasesForType.includes(phase)) return 'N/A'; // Phase not applicable to this campaign type
+  if (!phasesForType || !phasesForType.includes(phase)) return 'n_a'; // Phase not applicable to this campaign type
 
   const phaseIndexInType = phasesForType.indexOf(phase);
   const currentCampaignPhaseIndexInType = campaign.currentPhase ? phasesForType.indexOf(campaign.currentPhase) : -1;
@@ -50,39 +50,39 @@ const getGlobalDomainStatusForPhase = (
   else if (phase === 'HTTPValidation') validatedInThisPhase = !!campaign.httpValidatedDomains?.includes(domainName);
   // LeadGeneration status is handled separately by getGlobalLeadStatus
 
-  if (validatedInThisPhase) return 'Validated';
+  if (validatedInThisPhase) return 'validated';
   
   // If campaign is fully completed, and this phase was part of its flow
   if (campaign.currentPhase === 'Completed' && phasesForType.includes(phase)) {
      // If it reached here, it means it wasn't in the validated list for this phase
-     return 'Not Validated';
+     return 'not_validated';
   }
 
   // If current campaign phase is past the phase we're checking for this domain,
   // and it wasn't validated, then it's 'Not Validated' for that phase.
   if (currentCampaignPhaseIndexInType > phaseIndexInType || (campaign.currentPhase === phase && campaign.phaseStatus === 'Failed')) {
     // Check if this domain *should* have been processed by this phase
-    if (phase === 'DNSValidation' && (campaign.domains || []).includes(domainName)) return 'Not Validated';
-    if (phase === 'HTTPValidation' && (campaign.dnsValidatedDomains || []).includes(domainName)) return 'Not Validated';
-    return 'N/A'; // Not applicable or filtered out before even reaching this phase's potential input
+    if (phase === 'DNSValidation' && (campaign.domains || []).includes(domainName)) return 'not_validated';
+    if (phase === 'HTTPValidation' && (campaign.dnsValidatedDomains || []).includes(domainName)) return 'not_validated';
+    return 'n_a'; // Not applicable or filtered out before even reaching this phase's potential input
   }
   
   // If current campaign phase IS the phase we're checking and it's active
   if (campaign.currentPhase === phase && (campaign.phaseStatus === 'InProgress' || campaign.phaseStatus === 'Paused' || campaign.phaseStatus === 'Pending')) {
-    return 'Pending';
+    return 'pending';
   }
   
   // If current campaign phase is before the phase we're checking, or campaign is Idle
   if (currentCampaignPhaseIndexInType < phaseIndexInType || campaign.currentPhase === 'Idle') {
     // If the domain was generated (in `campaign.domains`) but not yet DNS validated, it's pending for DNS
-    if (phase === 'DNSValidation' && (campaign.domains || []).includes(domainName)) return 'Pending';
+    if (phase === 'DNSValidation' && (campaign.domains || []).includes(domainName)) return 'pending';
      // If DNS validated but not yet HTTP validated, it's pending for HTTP
-    if (phase === 'HTTPValidation' && (campaign.dnsValidatedDomains || []).includes(domainName)) return 'Pending';
+    if (phase === 'HTTPValidation' && (campaign.dnsValidatedDomains || []).includes(domainName)) return 'pending';
 
-    return 'Pending'; // General pending for phases not yet reached
+    return 'pending'; // General pending for phases not yet reached
   }
 
-  return 'Pending'; // Default catch-all
+  return 'pending'; // Default catch-all
 };
 
 
@@ -92,7 +92,7 @@ const getGlobalLeadStatusAndScore = (
 ): { status: DomainActivityStatus; score?: number } => {
     const selectedType = campaign.selectedType || campaign.campaignType;
     const phasesForType = CAMPAIGN_PHASES_ORDERED[selectedType];
-    if (!phasesForType || !phasesForType.includes('LeadGeneration')) return { status: 'N/A' };
+    if (!phasesForType || !phasesForType.includes('LeadGeneration')) return { status: 'n_a' };
 
     const leadGenPhaseIndex = phasesForType.indexOf('LeadGeneration');
     const currentPhaseOrderInType = campaign.currentPhase ? phasesForType.indexOf(campaign.currentPhase) : -1;
@@ -103,30 +103,30 @@ const getGlobalLeadStatusAndScore = (
 
 
     if (campaign.currentPhase === 'LeadGeneration' && campaign.phaseStatus === 'Succeeded') {
-        return { status: hasLeads ? 'Scanned' : 'No Leads', score };
+        return { status: hasLeads ? 'scanned' : 'no_leads', score };
     }
     // If campaign is fully completed, and lead generation was part of its flow
     if (campaign.currentPhase === 'Completed' && phasesForType && phasesForType.includes('LeadGeneration')) {
         // Check if leads exist for this domain from when the LeadGen phase was active
-        return { status: hasLeads ? 'Scanned' : 'No Leads', score };
+        return { status: hasLeads ? 'scanned' : 'no_leads', score };
     }
     if (campaign.currentPhase === 'LeadGeneration' && (campaign.phaseStatus === 'InProgress' || campaign.phaseStatus === 'Pending' || campaign.phaseStatus === 'Paused')) {
-        return { status: 'Pending', score };
+        return { status: 'pending', score };
     }
     if (campaign.currentPhase === 'LeadGeneration' && campaign.phaseStatus === 'Failed') {
-        return { status: 'Failed', score };
+        return { status: 'failed', score };
     }
     // If current campaign phase is before Lead Generation
     if (currentPhaseOrderInType < leadGenPhaseIndex || campaign.currentPhase === 'Idle') {
-        return { status: 'Pending', score };
+        return { status: 'pending', score };
     }
     // If current phase is HTTPValidation Succeeded, and LeadGen is next applicable phase
     if (phasesForType && phasesForType[currentPhaseOrderInType] === 'HTTPValidation' && campaign.phaseStatus === 'Succeeded' && phasesForType[leadGenPhaseIndex] === 'LeadGeneration' && leadGenPhaseIndex > currentPhaseOrderInType) {
-        return { status: 'Pending', score };
+        return { status: 'pending', score };
     }
 
 
-    return { status: 'Pending', score }; // Default if phase not yet active for this domain
+    return { status: 'pending', score }; // Default if phase not yet active for this domain
 };
 
 const getSimilarityBadgeVariant = (score: number | undefined) => {
@@ -144,14 +144,14 @@ const StatusBadge: React.FC<{ status: DomainActivityStatus; score?: number }> = 
   let text = status;
 
   switch (status) {
-    case 'Validated': Icon = CheckCircle; variant = 'default'; break;
-    case 'Generating': Icon = Dna; variant = 'secondary'; text="Generating"; break; 
-    case 'Scanned': Icon = Search; variant = 'default'; break;
-    case 'Not Validated': Icon = XCircle; variant = 'destructive'; break;
-    case 'Failed': Icon = AlertCircle; variant = 'destructive'; break;
-    case 'No Leads': Icon = ShieldQuestion; variant = 'secondary'; text = "No Leads"; break;
-    case 'Pending': Icon = Clock; variant = 'secondary'; break;
-    case 'N/A': Icon = HelpCircle; variant = 'outline'; break;
+    case 'validated': Icon = CheckCircle; variant = 'default'; break;
+    case 'generating': Icon = Dna; variant = 'secondary'; text="generating"; break; 
+    case 'scanned': Icon = Search; variant = 'default'; break;
+    case 'not_validated': Icon = XCircle; variant = 'destructive'; break;
+    case 'failed': Icon = AlertCircle; variant = 'destructive'; break;
+    case 'no_leads': Icon = ShieldQuestion; variant = 'secondary'; text = "no_leads"; break;
+    case 'pending': Icon = Clock; variant = 'secondary'; break;
+    case 'n_a': Icon = HelpCircle; variant = 'outline'; break;
     default: Icon = HelpCircle;
   }
 
@@ -332,7 +332,7 @@ export default function LatestActivityTable() {
                     ) : (
                       // Show a dash if lead scan was attempted but no score (e.g., No Leads, Failed, or N/A from lead scan)
                       // but not if it's still Pending for lead scan
-                      item.leadScanStatus !== 'N/A' && item.leadScanStatus !== 'Pending' ? <span className="text-xs text-muted-foreground">-</span> : null
+                      item.leadScanStatus !== 'n_a' && item.leadScanStatus !== 'pending' ? <span className="text-xs text-muted-foreground">-</span> : null
                     )}
                   </TableCell>
                   <TableCell>
