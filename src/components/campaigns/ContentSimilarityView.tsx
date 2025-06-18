@@ -43,7 +43,7 @@ export default function ContentSimilarityView({ campaign, onAnalysisComplete }: 
       
       toast({
         title: "AI Analysis Complete",
-        description: `Advanced analysis for content from ${item.url || 'source'} finished.`,
+        description: `Advanced analysis for content from ${item.sourceUrl || 'source'} finished.`,
       });
        if (onAnalysisComplete) {
            // This callback is less critical now that the service updates the store,
@@ -152,8 +152,8 @@ export default function ContentSimilarityView({ campaign, onAnalysisComplete }: 
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={getSimilarityBadgeVariant(item.similarityScore)}>
-                          {item.similarityScore}%
+                        <Badge variant={getSimilarityBadgeVariant(item.similarityScore || 0)}>
+                          {item.similarityScore || 0}%
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -216,8 +216,8 @@ export default function ContentSimilarityView({ campaign, onAnalysisComplete }: 
                       </TableCell>
                       <TableCell>{lead.company || 'N/A'}</TableCell>
                       <TableCell>
-                        <Badge variant={getSimilarityBadgeVariant(lead.similarityScore)}>
-                          {lead.similarityScore}%
+                        <Badge variant={getSimilarityBadgeVariant(lead.similarityScore || 0)}>
+                          {lead.similarityScore || 0}%
                         </Badge>
                       </TableCell>
                       <TableCell>

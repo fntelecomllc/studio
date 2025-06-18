@@ -153,6 +153,8 @@ export const LOADING_OPERATIONS = {
   
   // Personas
   FETCH_PERSONAS: 'personas.fetch',
+  FETCH_HTTP_PERSONAS: 'personas.fetch_http',
+  FETCH_DNS_PERSONAS: 'personas.fetch_dns',
   CREATE_PERSONA: 'personas.create',
   UPDATE_PERSONA: 'personas.update',
   DELETE_PERSONA: 'personas.delete',

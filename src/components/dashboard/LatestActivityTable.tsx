@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CheckCircle, XCircle, Clock, HelpCircle, Search, ShieldQuestion, ExternalLink, Activity, Dna, AlertCircle, ChevronLeft, ChevronRight, Percent } from 'lucide-react';
 import Link from 'next/link';
 import { getCampaigns } from '@/lib/services/campaignService.production'; // Updated import path
+import { useLoadingStore, LOADING_OPERATIONS } from '@/lib/stores/loadingStore';
 
 const MAX_ITEMS_DISPLAY_INITIAL_LOAD = 200; // Max items to process for the global table initially
 const DEFAULT_PAGE_SIZE_GLOBAL = 50;
@@ -169,13 +170,16 @@ const StatusBadge: React.FC<{ status: DomainActivityStatus; score?: number }> = 
 
 export default function LatestActivityTable() {
   const [allActivityData, setAllActivityData] = useState<LatestDomainActivity[]>([]);
-  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE_GLOBAL);
 
+  // Use centralized loading state
+  const { startLoading, stopLoading, isLoading } = useLoadingStore();
+  const loading = isLoading(LOADING_OPERATIONS.FETCH_DASHBOARD_DATA);
+
 
   const fetchAndProcessData = useCallback(async (showLoadingSpinner = true) => {
-    if (showLoadingSpinner) setLoading(true);
+    if (showLoadingSpinner) startLoading(LOADING_OPERATIONS.FETCH_DASHBOARD_DATA, "Loading dashboard activity");
     try {
       const response: CampaignsListResponse = await getCampaigns();
       const processedActivities: LatestDomainActivity[] = [];
@@ -219,9 +223,9 @@ export default function LatestActivityTable() {
       console.error("Failed to load or process activity data:", error);
        setAllActivityData([]); // Clear on major error
     } finally {
-      if (showLoadingSpinner) setLoading(false);
+      if (showLoadingSpinner) stopLoading(LOADING_OPERATIONS.FETCH_DASHBOARD_DATA);
     }
-  }, []);
+  }, [startLoading, stopLoading]);
 
   useEffect(() => {
     fetchAndProcessData(); // Initial fetch

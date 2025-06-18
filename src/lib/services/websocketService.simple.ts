@@ -77,12 +77,29 @@ export class WebSocketService {
   private url = '';
 
   constructor() {
+    this.initializeUrl();
+  }
+
+  private initializeUrl(): void {
     // Initialize WebSocket URL based on environment
     if (typeof window !== 'undefined') {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host;
-      this.url = `${protocol}//${host}/api/v2/ws`;
+      const host = window.location.hostname;
+      const port = this.getWebSocketPort();
+      this.url = `${protocol}//${host}:${port}/api/v2/ws`;
     }
+  }
+
+  private getWebSocketPort(): string {
+    if (typeof window !== 'undefined') {
+      // In development, use backend port 8080
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return '8080';
+      }
+      // In production, use same port as frontend
+      return window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
+    }
+    return '8080';
   }
 
   connect(): Promise<void> {
@@ -112,13 +129,24 @@ export class WebSocketService {
             this.handleMessage(message);
           } catch (error) {
             console.error('[WebSocket] Failed to parse message:', error);
+            this.errorHandlers.forEach(handler => {
+              try {
+                handler(error instanceof Error ? error : new Error('Failed to parse WebSocket message'));
+              } catch (err) {
+                console.error('[WebSocket] Error in error handler:', err);
+              }
+            });
           }
         };
 
-        this.ws.onclose = () => {
+        this.ws.onclose = (event) => {
           console.log('[WebSocket] Connection closed');
           this.connected = false;
-          this.attemptReconnect();
+          
+          // Only attempt reconnect on unexpected closure
+          if (event.code !== 1000 && event.code !== 1001) {
+            this.attemptReconnect();
+          }
         };
 
         this.ws.onerror = (error) => {
@@ -126,7 +154,7 @@ export class WebSocketService {
           this.connected = false;
           this.errorHandlers.forEach(handler => {
             try {
-              handler(new Error('WebSocket connection error'));
+              handler(error instanceof Error ? error : new Error('WebSocket connection error'));
             } catch (err) {
               console.error('[WebSocket] Error in error handler:', err);
             }
@@ -184,7 +212,7 @@ export class WebSocketService {
     this.campaignConnections.clear();
     
     if (this.ws) {
-      this.ws.close();
+      this.ws.close(1000, 'Manual disconnect');
       this.ws = null;
     }
   }
@@ -237,7 +265,7 @@ export class WebSocketService {
 
     // Return cleanup function
     return () => {
-      // Send unsubscribe message
+      // Send unsubscribe message if connected
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
         const unsubscribeMessage = {
           type: 'unsubscribe_campaign',
@@ -248,6 +276,11 @@ export class WebSocketService {
       
       this.campaignConnections.delete(campaignId);
       console.log(`[WebSocket] Unsubscribed from campaign: ${campaignId}`);
+      
+      // Clean disconnect if this was the last campaign
+      if (this.campaignConnections.size === 0) {
+        this.disconnect();
+      }
     };
   }
 

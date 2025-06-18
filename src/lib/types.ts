@@ -332,8 +332,8 @@ export interface Campaign {
   domains?: string[];
   dnsValidatedDomains?: string[];
   httpValidatedDomains?: string[];
-  extractedContent?: Record<string, unknown>[];
-  leads?: Record<string, unknown>[];
+  extractedContent?: ExtractedContentItem[];
+  leads?: Lead[];
   
   // UI configuration fields
   domainSourceConfig?: {
@@ -915,6 +915,9 @@ export interface CampaignValidationItem {
 // Domain Source Types - frontend domain input sources
 export type DomainSource = "manual" | "upload" | "campaign_output" | "generation";
 
+// Domain Source Selection Mode - for campaign form domain source configuration
+export type DomainSourceSelectionMode = "none" | "upload" | "campaign_output";
+
 // Domain Generation Pattern - matches backend DomainGenerationPattern
 export type DomainGenerationPattern = 
   | "prefix_variable"
@@ -947,7 +950,28 @@ export interface DomainGenerationConfig {
 export interface ExtractedContentItem {
   id: string;
   text: string;
-  url?: string;
+  sourceUrl?: string;
+  extractedAt: string;
+  similarityScore?: number;
+  previousCampaignId?: string;
+  advancedAnalysis?: {
+    summary?: string;
+    advancedKeywords?: string[];
+    categories?: string[];
+    sentiment?: string;
+  };
+  metadata?: Record<string, unknown>;
+}
+
+// Lead interface for campaign results
+export interface Lead {
+  id: string;
+  name?: string;
+  email?: string;
+  company?: string;
+  sourceUrl?: string;
+  similarityScore?: number;
+  previousCampaignId?: string;
   extractedAt: string;
   metadata?: Record<string, unknown>;
 }

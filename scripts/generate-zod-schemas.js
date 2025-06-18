@@ -290,15 +290,15 @@ function main() {
 import { z } from 'zod';
 
 // Enum schemas (defined inline to avoid circular imports)
-const personaTypeEnumSchema = z.enum(['dns', 'http']);
-const proxyProtocolEnumSchema = z.enum(['http', 'https', 'socks5', 'socks4']);
-const campaignTypeEnumSchema = z.enum(['domain_generation', 'dns_validation', 'http_keyword_validation']);
-const campaignStatusEnumSchema = z.enum(['pending', 'queued', 'running', 'pausing', 'paused', 'completed', 'failed', 'archived', 'cancelled']);
-const jobStatusEnumSchema = z.enum(['pending', 'queued', 'running', 'processing', 'completed', 'failed', 'retry']);
-const validationStatusEnumSchema = z.enum(['pending', 'valid', 'invalid', 'error', 'skipped']);
-const dnsValidationStatusEnumSchema = z.enum(['resolved', 'unresolved', 'timeout', 'error']);
-const httpValidationStatusEnumSchema = z.enum(['success', 'failed', 'timeout', 'error']);
-const keywordRuleTypeEnumSchema = z.enum(['string', 'regex']);
+const _personaTypeEnumSchema = z.enum(['dns', 'http']);
+const _proxyProtocolEnumSchema = z.enum(['http', 'https', 'socks5', 'socks4']);
+const _campaignTypeEnumSchema = z.enum(['domain_generation', 'dns_validation', 'http_keyword_validation']);
+const _campaignStatusEnumSchema = z.enum(['pending', 'queued', 'running', 'pausing', 'paused', 'completed', 'failed', 'archived', 'cancelled']);
+const _jobStatusEnumSchema = z.enum(['pending', 'queued', 'running', 'processing', 'completed', 'failed', 'retry']);
+const _validationStatusEnumSchema = z.enum(['pending', 'valid', 'invalid', 'error', 'skipped']);
+const _dnsValidationStatusEnumSchema = z.enum(['resolved', 'unresolved', 'timeout', 'error']);
+const _httpValidationStatusEnumSchema = z.enum(['success', 'failed', 'timeout', 'error']);
+const _keywordRuleTypeEnumSchema = z.enum(['string', 'regex']);
 
 `;
   

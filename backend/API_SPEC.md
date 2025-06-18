@@ -438,9 +438,38 @@ These endpoints manage server-wide default configurations stored in `config.json
 
 These APIs manage persistent, multi-stage campaigns processed by background workers.
 
-**1. Create Domain Generation Campaign**
+### Campaign Creation Endpoints
+
+The API provides multiple campaign creation interfaces to support different client requirements:
+
+#### Unified Campaign Creation (Recommended)
+
+**1. Create Campaign (Unified Endpoint)**
+-   **Endpoint:** `POST /` 
+-   **Description:** Creates a campaign of any type through a single, unified interface. This is the **recommended endpoint** for all new integrations.
+-   **Request Body (`services.CreateCampaignRequest`):
+    ```json
+    {
+      "campaignType": "domain_generation", // "domain_generation", "dns_validation", or "http_keyword_validation"
+      "name": "My Campaign",
+      "description": "Campaign description",
+      // Type-specific parameters based on campaignType:
+      "domainGenerationParams": { /* for domain_generation campaigns */ },
+      "dnsValidationParams": { /* for dns_validation campaigns */ },
+      "httpKeywordParams": { /* for http_keyword_validation campaigns */ }
+    }
+    ```
+-   **Success Response (201 Created):** `models.Campaign` object with appropriate embedded parameters.
+-   **Error Responses:** 400 (Validation Error), 401, 500.
+
+#### Legacy Type-Specific Endpoints (Deprecated)
+
+> **⚠️ DEPRECATION NOTICE:** The following endpoints are maintained for backwards compatibility only. New integrations should use the unified `POST /` endpoint above.
+
+**2. Create Domain Generation Campaign (Legacy)**
+**2. Create Domain Generation Campaign (Legacy)**
 -   **Endpoint:** `POST /generate`
--   **Description:** Creates a new campaign to generate domain names based on specified patterns.
+-   **Description:** Creates a new campaign to generate domain names based on specified patterns. **Use unified endpoint instead.**
 -   **Request Body (`services.CreateDomainGenerationCampaignRequest`):
     ```json
     {
@@ -457,9 +486,9 @@ These APIs manage persistent, multi-stage campaigns processed by background work
 -   **Success Response (201 Created):** `models.Campaign` object (includes embedded `domainGenerationParams`).
 -   **Error Responses:** 400 (Validation Error), 401, 500.
 
-**2. Create DNS Validation Campaign**
+**3. Create DNS Validation Campaign (Legacy)**
 -   **Endpoint:** `POST /dns-validate`
--   **Description:** Creates a campaign to perform DNS validation on domains from a previously completed Domain Generation campaign.
+-   **Description:** Creates a campaign to perform DNS validation on domains from a previously completed Domain Generation campaign. **Use unified endpoint instead.**
 -   **Request Body (`services.CreateDNSValidationCampaignRequest`):
     ```json
     {
@@ -474,9 +503,11 @@ These APIs manage persistent, multi-stage campaigns processed by background work
 -   **Success Response (201 Created):** `models.Campaign` object (includes embedded `dnsValidationParams`).
 -   **Error Responses:** 400, 401, 404 (If source campaign or personas not found), 500.
 
-**3. Create HTTP & Keyword Validation Campaign**
--   **Endpoint:** `POST /http-keyword-validate`
--   **Description:** Creates a campaign to perform HTTP validation and keyword extraction on domains from a completed DNS Validation campaign.
+**4. Create HTTP & Keyword Validation Campaign (Legacy)**
+-   **Endpoint:** `POST /http-validate` OR `POST /keyword-validate` 
+-   **Description:** Creates a campaign to perform HTTP validation and keyword extraction on domains from a completed DNS Validation campaign. **Use unified endpoint instead.**
+   
+   > **🔄 ENDPOINT ALIASING:** Both `/http-validate` and `/keyword-validate` are aliases that map to the same handler. They accept identical payloads and produce identical results. This aliasing provides flexibility for different client naming conventions.
 -   **Request Body (`services.CreateHTTPKeywordCampaignRequest`):
     ```json
     {
@@ -494,7 +525,9 @@ These APIs manage persistent, multi-stage campaigns processed by background work
 -   **Success Response (201 Created):** `models.Campaign` object (includes embedded `httpKeywordValidationParams`).
 -   **Error Responses:** 400, 401, 404 (If source campaign, personas, or keyword sets not found), 500.
 
-**4. List Campaigns**
+### Campaign Management Endpoints
+
+**5. List Campaigns**
 -   **Endpoint:** `GET /`
 -   **Description:** Retrieves a list of all V2 campaigns.
 -   **Query Parameters (Optional):

@@ -26,22 +26,26 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
+import { useLoadingStore, LOADING_OPERATIONS } from '@/lib/stores/loadingStore';
 
 function ProxiesPageContent() {
   const [proxies, setProxies] = useState<Proxy[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProxy, setEditingProxy] = useState<Proxy | null>(null);
-  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({}); // For individual proxy actions
-  const [pageActionLoading, setPageActionLoading] = useState<string | null>(null); // For page-level actions
+  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
+  const [pageActionLoading, setPageActionLoading] = useState<string | null>(null);
 
   const [proxyToDelete, setProxyToDelete] = useState<Proxy | null>(null);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   
   const { toast } = useToast();
 
+  // Use centralized loading state
+  const { startLoading, stopLoading, isLoading } = useLoadingStore();
+  const loading = isLoading(LOADING_OPERATIONS.FETCH_PROXIES);
+
   const fetchProxiesData = useCallback(async (showLoadingSpinner = true) => {
-    if (showLoadingSpinner) setLoading(true);
+    if (showLoadingSpinner) startLoading(LOADING_OPERATIONS.FETCH_PROXIES, "Loading proxies");
     try {
       const response: ProxiesListResponse = await getProxies();
       if (response.status === 'success' && response.data) {
@@ -53,9 +57,9 @@ function ProxiesPageContent() {
       const message = err instanceof Error ? err.message : "An unexpected error occurred.";
       toast({ title: "Error", description: message, variant: "destructive" });
     } finally {
-      if (showLoadingSpinner) setLoading(false);
+      if (showLoadingSpinner) stopLoading(LOADING_OPERATIONS.FETCH_PROXIES);
     }
-  }, [toast]);
+  }, [toast, startLoading, stopLoading]);
 
   useEffect(() => {
     fetchProxiesData();

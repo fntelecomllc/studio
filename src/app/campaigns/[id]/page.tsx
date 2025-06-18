@@ -21,6 +21,7 @@ import { getCampaignById, startCampaign as startCampaignPhase, pauseCampaign, re
 import { websocketService } from '@/lib/services/websocketService.simple';
 import PhaseGateButton from '@/components/campaigns/PhaseGateButton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useLoadingStore } from '@/lib/stores/loadingStore';
 
 
 const phaseIcons: Record<CampaignType, LucideIcon> = {
@@ -109,8 +110,12 @@ export default function CampaignDashboardPage() {
   const [generatedDomains, setGeneratedDomains] = useState<GeneratedDomain[]>([]);
   const [dnsCampaignItems, setDnsCampaignItems] = useState<CampaignValidationItem[]>([]);
   const [httpCampaignItems, setHttpCampaignItems] = useState<CampaignValidationItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
+
+  // Use centralized loading state instead of local loading
+  const { startLoading, stopLoading, isLoading } = useLoadingStore();
+  const loadingOperationId = `campaign_details_${campaignId}`;
+  const loading = isLoading(loadingOperationId);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
@@ -129,7 +134,7 @@ export default function CampaignDashboardPage() {
         return { status: 'n_a' };
   };
 
-  const getGlobalDomainStatusForPhase = (domainName: string, phase: 'dns_validation' | 'http_keyword_validation', campaign: Campaign): DomainActivityStatus => {
+  const getGlobalDomainStatusForPhase = useCallback((domainName: string, phase: 'dns_validation' | 'http_keyword_validation', campaign: Campaign): DomainActivityStatus => {
         if (!campaign) {
             return 'n_a';
         }
@@ -141,7 +146,7 @@ export default function CampaignDashboardPage() {
             return 'validated';
         }
         return 'not_validated';
-    };
+    }, [dnsCampaignItems, httpCampaignItems]);
 
   // Helper to convert response headers from Record<string, unknown> to Record<string, string[]>
   const convertResponseHeaders = (headers?: Record<string, unknown>): Record<string, string[]> | undefined => {
@@ -176,10 +181,10 @@ export default function CampaignDashboardPage() {
   const loadCampaignData = useCallback(async (showLoadingSpinner = true) => {
     if (!campaignId || !campaignTypeFromQuery) { // campaignTypeFromQuery check added
       toast({ title: "Error", description: "Campaign ID or Type missing from URL.", variant: "destructive" });
-      if(isMountedRef.current) setLoading(false);
+      if(isMountedRef.current) stopLoading(loadingOperationId);
       return;
     }
-    if(showLoadingSpinner && isMountedRef.current) setLoading(true);
+    if(showLoadingSpinner && isMountedRef.current) startLoading(loadingOperationId, "Loading campaign details");
     try {
         // Generic getCampaignById is fine as backend V2 returns type-specific params
         const campaignDetailsResponse = await getCampaignById(campaignId);
@@ -209,9 +214,9 @@ export default function CampaignDashboardPage() {
         toast({ title: "Error", description: errorMessage, variant: "destructive"});
         if(isMountedRef.current) setCampaign(null);
     } finally {
-        if(showLoadingSpinner && isMountedRef.current) setLoading(false);
+        if(showLoadingSpinner && isMountedRef.current) stopLoading(loadingOperationId);
     }
-  }, [campaignId, campaignTypeFromQuery, toast]);
+  }, [campaignId, campaignTypeFromQuery, toast, startLoading, stopLoading, loadingOperationId]);
 
   useEffect(() => {
     loadCampaignData();

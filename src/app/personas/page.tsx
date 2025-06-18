@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { getPersonas, deletePersona, createPersona, testPersona, updatePersona } from '@/lib/services/personaService'; // Updated import
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
+import { useLoadingStore, LOADING_OPERATIONS } from '@/lib/stores/loadingStore';
 
 // Zod schemas for validating imported persona structures (remains the same)
 const HttpPersonaImportSchema = z.object({
@@ -74,8 +75,6 @@ const DnsPersonaImportSchema = z.object({
 function PersonasPageContent() {
   const [httpPersonas, setHttpPersonas] = useState<HttpPersona[]>([]);
   const [dnsPersonas, setDnsPersonas] = useState<DnsPersona[]>([]);
-  const [loadingHttp, setLoadingHttp] = useState(true);
-  const [loadingDns, setLoadingDns] = useState(true);
   const [activeTab, setActiveTab] = useState<'http' | 'dns'>('http');
   const [searchTermHttp, setSearchTermHttp] = useState("");
   const [searchTermDns, setSearchTermDns] = useState("");
@@ -83,10 +82,15 @@ function PersonasPageContent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [actionLoading, setActionLoading] = useState<Record<string, 'test' | 'toggle' | 'delete' | null>>({});
 
+  // Use centralized loading state
+  const { startLoading, stopLoading, isLoading } = useLoadingStore();
+  const loadingHttp = isLoading(LOADING_OPERATIONS.FETCH_HTTP_PERSONAS);
+  const loadingDns = isLoading(LOADING_OPERATIONS.FETCH_DNS_PERSONAS);
+
 
   const fetchPersonasData = useCallback(async (type: 'http' | 'dns', showLoading = true) => {
-    if (type === 'http') setLoadingHttp(showLoading);
-    else setLoadingDns(showLoading);
+    const operation = type === 'http' ? LOADING_OPERATIONS.FETCH_HTTP_PERSONAS : LOADING_OPERATIONS.FETCH_DNS_PERSONAS;
+    if (showLoading) startLoading(operation, `Loading ${type.toUpperCase()} personas`);
     try {
       const response: PersonasListResponse = await getPersonas(type);
       if (response.status === 'success' && response.data) {
@@ -99,10 +103,9 @@ function PersonasPageContent() {
       const errorMessage = error instanceof Error ? error.message : `Failed to load ${type.toUpperCase()} personas.`;
       toast({ title: `Error Loading ${type.toUpperCase()} Personas`, description: errorMessage, variant: "destructive"});
     } finally {
-      if (type === 'http') setLoadingHttp(false);
-      else setLoadingDns(false);
+      if (showLoading) stopLoading(operation);
     }
-  }, [toast]);
+  }, [toast, startLoading, stopLoading]);
 
   useEffect(() => {
     fetchPersonasData(activeTab);

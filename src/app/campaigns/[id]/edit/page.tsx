@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { getCampaignById } from '@/lib/services/campaignService.production'; 
 import { useToast } from '@/hooks/use-toast';
+import { useLoadingStore } from '@/lib/stores/loadingStore';
 
 function EditCampaignPageContent() {
   const params = useParams();
@@ -20,18 +21,21 @@ function EditCampaignPageContent() {
   const campaignId = params.id as string;
   
   const [campaign, setCampaign] = useState<Campaign | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Use centralized loading state
+  const { startLoading, stopLoading, isLoading } = useLoadingStore();
+  const loadingOperationId = `edit_campaign_${campaignId}`;
+  const loading = isLoading(loadingOperationId);
 
   useEffect(() => {
     if (!campaignId) {
       setError("Campaign ID is missing from URL.");
-      setLoading(false);
       return;
     }
     
     async function fetchCampaign() {
-      setLoading(true);
+      startLoading(loadingOperationId, "Loading campaign for editing");
       setError(null);
       try {
         const response: CampaignDetailResponse = await getCampaignById(campaignId);
@@ -48,11 +52,11 @@ function EditCampaignPageContent() {
         setCampaign(null);
         toast({ title: "Error Loading Campaign Data", description: errorMessage, variant: "destructive" });
       } finally {
-        setLoading(false);
+        stopLoading(loadingOperationId);
       }
     }
     fetchCampaign();
-  }, [campaignId, toast]);
+  }, [campaignId, toast, startLoading, stopLoading, loadingOperationId]);
 
   if (loading) {
     return (

@@ -31,15 +31,53 @@ func NewCampaignOrchestratorAPIHandler(orchService services.CampaignOrchestrator
 
 // RegisterCampaignOrchestrationRoutes registers all campaign orchestration related routes.
 // It requires a base group and auth middleware instance for permission-based access control.
+//
+// CAMPAIGN CREATION ENDPOINTS - ARCHITECTURAL DOCUMENTATION:
+//
+// This API provides multiple campaign creation endpoints to support different client integrations:
+//
+// 1. UNIFIED ENDPOINT (RECOMMENDED):
+//    POST /campaigns - Main endpoint using unified CreateCampaignRequest payload
+//    - Supports all campaign types through a single, consistent interface
+//    - Uses discriminated union based on "campaignType" field
+//    - Provides comprehensive validation and error handling
+//    - This is the preferred endpoint for new integrations
+//
+// 2. LEGACY TYPE-SPECIFIC ENDPOINTS (DEPRECATED):
+//    POST /campaigns/generate        - Domain generation campaigns only
+//    POST /campaigns/dns-validate    - DNS validation campaigns only  
+//    POST /campaigns/http-validate   - HTTP keyword validation campaigns only
+//    POST /campaigns/keyword-validate - HTTP keyword validation campaigns only (ALIAS)
+//    
+//    IMPORTANT: /http-validate and /keyword-validate are ALIASES that map to the SAME handler.
+//    This aliasing exists for backwards compatibility with different client naming conventions.
+//    Both endpoints accept identical payloads and produce identical results.
+//
+// MIGRATION GUIDANCE:
+// - New code should use the unified POST /campaigns endpoint
+// - Legacy endpoints will be maintained for backwards compatibility but are not recommended
+// - The legacy endpoints may be deprecated in future API versions
+//
+// ENDPOINT ALIASING CLARIFICATION:
+// - /http-validate: Originally named for HTTP-based validation workflows
+// - /keyword-validate: Added as alias to match client-side terminology  
+// - Both endpoints use the same handler: h.createHTTPKeywordCampaign
+// - Both accept CreateHTTPKeywordCampaignRequest payloads
+// - This aliasing provides flexibility for different client naming preferences
 func (h *CampaignOrchestratorAPIHandler) RegisterCampaignOrchestrationRoutes(group *gin.RouterGroup, authMiddleware *middleware.AuthMiddleware) {
+	// === CAMPAIGN CREATION ENDPOINTS ===
+	
 	// Unified campaign creation endpoint (preferred)
+	// Supports all campaign types through discriminated union
 	group.POST("", authMiddleware.RequirePermission("campaigns:create"), h.createCampaign)
 
-	// Legacy campaign creation routes - kept for backward compatibility (will be deprecated)
-	group.POST("/generate", authMiddleware.RequirePermission("campaigns:create"), h.createDomainGenerationCampaign)
-	group.POST("/dns-validate", authMiddleware.RequirePermission("campaigns:create"), h.createDNSValidationCampaign)
-	group.POST("/http-validate", authMiddleware.RequirePermission("campaigns:create"), h.createHTTPKeywordCampaign)
-	group.POST("/keyword-validate", authMiddleware.RequirePermission("campaigns:create"), h.createHTTPKeywordCampaign)
+	// Legacy campaign creation routes - kept for backward compatibility
+	// TODO: Consider deprecation in future API versions
+	// These endpoints provide type-specific creation for legacy clients
+	group.POST("/generate", authMiddleware.RequirePermission("campaigns:create"), h.createDomainGenerationCampaign)      // Domain generation only
+	group.POST("/dns-validate", authMiddleware.RequirePermission("campaigns:create"), h.createDNSValidationCampaign)     // DNS validation only
+	group.POST("/http-validate", authMiddleware.RequirePermission("campaigns:create"), h.createHTTPKeywordCampaign)      // HTTP keyword validation
+	group.POST("/keyword-validate", authMiddleware.RequirePermission("campaigns:create"), h.createHTTPKeywordCampaign)   // ALIAS: Same as /http-validate
 
 	// Campaign reading routes - require campaigns:read permission
 	group.GET("", authMiddleware.RequirePermission("campaigns:read"), h.listCampaigns)
@@ -156,7 +194,18 @@ func (h *CampaignOrchestratorAPIHandler) validateCampaignRequest(req services.Cr
 }
 
 // --- Legacy Campaign Creation Handlers (Deprecated) ---
+//
+// These handlers provide backwards compatibility for clients that haven't migrated 
+// to the unified campaign creation endpoint. Each handler accepts a type-specific 
+// request payload and delegates to the appropriate orchestrator service method.
+//
+// DEPRECATION NOTICE: These endpoints are maintained for backwards compatibility only.
+// New integrations should use the unified POST /campaigns endpoint instead.
 
+// createDomainGenerationCampaign handles legacy domain generation campaign creation.
+// Endpoint: POST /campaigns/generate
+// Payload: CreateDomainGenerationCampaignRequest
+// Use unified endpoint instead: POST /campaigns with campaignType="domain_generation"
 func (h *CampaignOrchestratorAPIHandler) createDomainGenerationCampaign(c *gin.Context) {
 	var req services.CreateDomainGenerationCampaignRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -205,6 +254,10 @@ func (h *CampaignOrchestratorAPIHandler) createDomainGenerationCampaign(c *gin.C
 	respondWithJSONGin(c, http.StatusCreated, campaign)
 }
 
+// createDNSValidationCampaign handles legacy DNS validation campaign creation.
+// Endpoint: POST /campaigns/dns-validate
+// Payload: CreateDNSValidationCampaignRequest  
+// Use unified endpoint instead: POST /campaigns with campaignType="dns_validation"
 func (h *CampaignOrchestratorAPIHandler) createDNSValidationCampaign(c *gin.Context) {
 	var req services.CreateDNSValidationCampaignRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -229,6 +282,23 @@ func (h *CampaignOrchestratorAPIHandler) createDNSValidationCampaign(c *gin.Cont
 	respondWithJSONGin(c, http.StatusCreated, campaign)
 }
 
+// createHTTPKeywordCampaign handles legacy HTTP keyword validation campaign creation.
+// 
+// ENDPOINT ALIASES: This handler serves TWO aliased endpoints:
+// - POST /campaigns/http-validate    (original endpoint name)
+// - POST /campaigns/keyword-validate (alias for client compatibility)
+//
+// Both endpoints:
+// - Accept identical CreateHTTPKeywordCampaignRequest payloads
+// - Produce identical campaign creation results  
+// - Use the same validation and error handling logic
+// - Are mapped to this single handler implementation
+//
+// The aliasing provides flexibility for different client naming conventions
+// while maintaining a single implementation point.
+//
+// Payload: CreateHTTPKeywordCampaignRequest
+// Use unified endpoint instead: POST /campaigns with campaignType="http_keyword_validation"
 func (h *CampaignOrchestratorAPIHandler) createHTTPKeywordCampaign(c *gin.Context) {
 	var req services.CreateHTTPKeywordCampaignRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

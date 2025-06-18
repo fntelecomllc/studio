@@ -7,7 +7,6 @@
 
 import { useCallback } from 'react';
 import { useLoadingStore } from '@/lib/stores/loadingStore';
-import type { LoadingStatus } from '@/lib/stores/loadingStore';
 
 /**
  * Hook for managing a single async operation with loading state
