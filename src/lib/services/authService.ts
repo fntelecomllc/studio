@@ -4,6 +4,7 @@ import { getApiBaseUrl } from '@/lib/config';
 import { logAuth } from '@/lib/utils/logger';
 import { apiClient } from '@/lib/api/client';
 import { ProductionApiClient } from '@/lib/services/apiClient.production';
+import { useLoadingStore, LOADING_OPERATIONS } from '@/lib/stores/loadingStore';
 import type {
   User,
   LoginResponse,
@@ -132,7 +133,10 @@ class AuthService {
     fieldErrors?: { [key: string]: string };
   }> {
     logAuth.success('Login attempt starting', { email: credentials.email });
-    this.setLoading(true);
+    
+    // Use centralized loading state
+    const loadingStore = useLoadingStore.getState();
+    loadingStore.startLoading(LOADING_OPERATIONS.LOGIN, 'Signing in...');
     
     try {
       const loginResponse = await apiClient.post<LoginResponse>('/api/v2/auth/login', {
@@ -172,6 +176,7 @@ class AuthService {
         this.updateAuthState(authUser, sessionExpiry, availablePermissions);
         
         logAuth.success('Login successful', { userId: loginResponse.data.user.id });
+        loadingStore.stopLoading(LOADING_OPERATIONS.LOGIN, 'succeeded');
         return { success: true };
       } else {
         // Handle API response errors with field details
@@ -187,7 +192,7 @@ class AuthService {
           });
         }
         
-        logAuth.warn('Login failed', { error: errorMsg, fieldErrors });
+        loadingStore.stopLoading(LOADING_OPERATIONS.LOGIN, 'failed', errorMsg);
         return { 
           success: false, 
           error: errorMsg,
@@ -197,16 +202,18 @@ class AuthService {
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Network error';
       logAuth.error('Login error', { error: errorMsg });
+      loadingStore.stopLoading(LOADING_OPERATIONS.LOGIN, 'failed', errorMsg);
       return { success: false, error: errorMsg };
-    } finally {
-      this.setLoading(false);
     }
   }
 
   // Logout
   async logout(): Promise<void> {
     logAuth.success('Logout starting');
-    this.setLoading(true);
+    
+    // Use centralized loading state
+    const loadingStore = useLoadingStore.getState();
+    loadingStore.startLoading(LOADING_OPERATIONS.LOGOUT, 'Signing out...');
 
     try {
       const baseUrl = await getApiBaseUrl();
@@ -217,15 +224,17 @@ class AuthService {
 
       if (response.ok) {
         logAuth.success('Logout successful');
+        loadingStore.stopLoading(LOADING_OPERATIONS.LOGOUT, 'succeeded');
       } else {
         logAuth.warn('Logout request failed', { status: response.status });
+        loadingStore.stopLoading(LOADING_OPERATIONS.LOGOUT, 'failed', `Logout failed with status: ${response.status}`);
       }
     } catch (error) {
       logAuth.error('Logout error', { error: error instanceof Error ? error.message : 'Unknown error' });
+      loadingStore.stopLoading(LOADING_OPERATIONS.LOGOUT, 'failed', error instanceof Error ? error.message : 'Unknown error');
     } finally {
       this.clearAuth();
       this.emit('logged_out');
-      this.setLoading(false);
     }
   }
 

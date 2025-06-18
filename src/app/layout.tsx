@@ -4,6 +4,7 @@ import { Inter, Roboto_Mono } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import ConditionalLayout from '@/components/layout/ConditionalLayout';
+import { GlobalLoadingIndicator } from '@/components/ui/global-loading';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -30,6 +31,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${inter.variable} ${robotoMono.variable} font-sans antialiased`} suppressHydrationWarning={true}>
+        <GlobalLoadingIndicator />
         <AuthProvider>
           <ConditionalLayout>
             {children}

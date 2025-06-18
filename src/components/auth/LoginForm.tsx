@@ -16,6 +16,8 @@ import Link from 'next/link';
 import { z } from 'zod';
 import { FormFieldError, FormErrorSummary } from '@/components/ui/form-field-error';
 import { FormErrorManager, type FormErrorState } from '@/lib/utils/errorHandling';
+import { useAuthLoading, LOADING_OPERATIONS } from '@/lib/stores/loadingStore';
+import { LoadingButton } from '@/components/ui/global-loading';
 
 // Enhanced validation schema with security considerations
 const loginSchema = z.object({
@@ -60,6 +62,9 @@ export function LoginForm({
   const router = useRouter();
   const searchParams = useSearchParams();
   
+  // Use centralized loading state
+  const { isLoginLoading } = useAuthLoading();
+  
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     password: '',
@@ -67,7 +72,8 @@ export function LoginForm({
   });
   
   const [fieldErrors, setFieldErrors] = useState<FormErrorState>({});
-  const [isMainLoginLoading, setIsMainLoginLoading] = useState(false);
+  // State management
+  const [isMainLoginLoading, setIsMainLoginLoading] = useState(false); // Keep for backward compatibility
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   
