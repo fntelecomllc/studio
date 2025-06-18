@@ -21,7 +21,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { CAMPAIGN_SELECTED_TYPES } from "@/lib/constants";
 import type { Campaign, CampaignSelectedType, CreateCampaignPayload, CampaignPhase, DomainGenerationPattern } from '@/lib/types';
-import { createCampaign } from "@/lib/services/campaignService.production";
+import { createCampaign, createCampaignUnified } from "@/lib/services/campaignService.production";
+import { 
+  type UnifiedCreateCampaignRequest,
+  createUnifiedCampaignPayload 
+} from '@/lib/schemas/unifiedCampaignSchema';
 import { 
   campaignFormSchema, 
   CampaignFormConstants, 
@@ -138,113 +142,184 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
   // Memoized form submission handler to prevent unnecessary re-creates
   const onSubmit = useCallback(async (data: CampaignFormValues) => {
     try {
-      // Build campaign payload based on campaign type
-      const campaignPayload: CreateCampaignPayload = {
-        name: data.name,
-        campaignType: data.selectedType,
-      };
+      // Clear previous errors
+      setFormFieldErrors({});
+      setFormMainError(null);
 
-      // Add domain generation config for domain_generation campaigns
-      if (data.selectedType === 'domain_generation') {
-        // Validate required fields
-        if (!data.generationPattern) {
+      // Build unified campaign payload based on campaign type
+      let unifiedPayload: UnifiedCreateCampaignRequest;
+
+      switch (data.selectedType) {
+        case 'domain_generation': {
+          // Validate required fields for domain generation
+          if (!data.generationPattern || !data.constantPart?.trim()) {
+            toast({
+              title: "Validation Error",
+              description: "Generation pattern and constant part are required for domain generation campaigns.",
+              variant: "destructive"
+            });
+            return;
+          }
+
+          // Parse TLDs from comma-separated input
+          const tlds = data.tldsInput ? data.tldsInput.split(',').map(tld => {
+            const trimmed = tld.trim();
+            return trimmed.startsWith('.') ? trimmed : `.${trimmed}`;
+          }).filter(tld => tld.length > 1) : ['.com'];
+
+          // Ensure numeric values are properly converted
+          const variableLength = data.prefixVariableLength !== undefined ? Number(data.prefixVariableLength) : 3;
+          const maxDomains = data.maxDomainsToGenerate !== undefined ? Number(data.maxDomainsToGenerate) : 1000;
+          
+          // Validate numeric values
+          if (isNaN(variableLength) || variableLength < 1) {
+            toast({
+              title: "Validation Error",
+              description: "Variable length must be a valid positive number.",
+              variant: "destructive"
+            });
+            return;
+          }
+          
+          if (isNaN(maxDomains) || maxDomains < 1) {
+            toast({
+              title: "Validation Error",
+              description: "Maximum domains to generate must be at least 1.",
+              variant: "destructive"
+            });
+            return;
+          }
+
+          // Map frontend pattern types to backend pattern types
+          const mapPatternType = (frontendPattern: DomainGenerationPattern): "prefix" | "suffix" | "both" => {
+            switch (frontendPattern) {
+              case "prefix_variable":
+                return "prefix";
+              case "suffix_variable":
+                return "suffix";
+              case "both_variable":
+                return "both";
+              case "constant_only":
+                return "prefix"; // Default to prefix for constant-only patterns
+              default:
+                return "prefix";
+            }
+          };
+
+          unifiedPayload = {
+            campaignType: 'domain_generation',
+            name: data.name,
+            description: data.description,
+            domainGenerationParams: {
+              patternType: mapPatternType(data.generationPattern),
+              variableLength: variableLength,
+              characterSet: data.allowedCharSet || 'abcdefghijklmnopqrstuvwxyz0123456789',
+              constantString: data.constantPart.trim(),
+              tld: tlds[0] || '.com',
+              numDomainsToGenerate: maxDomains,
+            },
+          };
+          break;
+        }
+
+        case 'dns_validation': {
+          // Validate required fields for DNS validation
+          if (!data.sourceCampaignId || data.sourceCampaignId === CampaignFormConstants.NONE_VALUE_PLACEHOLDER) {
+            toast({
+              title: "Validation Error",
+              description: "Source campaign is required for DNS validation campaigns.",
+              variant: "destructive"
+            });
+            return;
+          }
+
+          if (!data.assignedDnsPersonaId || data.assignedDnsPersonaId === CampaignFormConstants.NONE_VALUE_PLACEHOLDER) {
+            toast({
+              title: "Validation Error",
+              description: "DNS persona assignment is required for DNS validation campaigns.",
+              variant: "destructive"
+            });
+            return;
+          }
+
+          unifiedPayload = {
+            campaignType: 'dns_validation',
+            name: data.name,
+            description: data.description,
+            dnsValidationParams: {
+              sourceCampaignId: data.sourceCampaignId,
+              personaIds: [data.assignedDnsPersonaId],
+              rotationIntervalSeconds: 300,
+              processingSpeedPerMinute: 60,
+              batchSize: 10,
+              retryAttempts: 3,
+            },
+          };
+          break;
+        }
+
+        case 'http_keyword_validation': {
+          // Validate required fields for HTTP keyword validation
+          if (!data.sourceCampaignId || data.sourceCampaignId === CampaignFormConstants.NONE_VALUE_PLACEHOLDER) {
+            toast({
+              title: "Validation Error",
+              description: "Source campaign is required for HTTP keyword validation campaigns.",
+              variant: "destructive"
+            });
+            return;
+          }
+
+          if (!data.assignedHttpPersonaId || data.assignedHttpPersonaId === CampaignFormConstants.NONE_VALUE_PLACEHOLDER) {
+            toast({
+              title: "Validation Error",
+              description: "HTTP persona assignment is required for HTTP keyword validation campaigns.",
+              variant: "destructive"
+            });
+            return;
+          }
+
+          // Parse keywords from input
+          const adHocKeywords = data.targetKeywordsInput 
+            ? data.targetKeywordsInput.split(',').map(k => k.trim()).filter(k => k.length > 0) 
+            : [];
+
+          if (adHocKeywords.length === 0) {
+            toast({
+              title: "Validation Error",
+              description: "At least one keyword is required for HTTP keyword validation campaigns.",
+              variant: "destructive"
+            });
+            return;
+          }
+
+          unifiedPayload = {
+            campaignType: 'http_keyword_validation',
+            name: data.name,
+            description: data.description,
+            httpKeywordParams: {
+              sourceCampaignId: data.sourceCampaignId,
+              adHocKeywords: adHocKeywords,
+              personaIds: [data.assignedHttpPersonaId],
+              proxyPoolId: (data.assignedProxyId && data.assignedProxyId !== CampaignFormConstants.NONE_VALUE_PLACEHOLDER) 
+                ? data.assignedProxyId 
+                : undefined,
+              rotationIntervalSeconds: 300,
+              processingSpeedPerMinute: 60,
+              batchSize: 10,
+              retryAttempts: 3,
+              targetHttpPorts: [80, 443],
+            },
+          };
+          break;
+        }
+
+        default:
           toast({
             title: "Validation Error",
-            description: "Generation pattern is required for domain generation campaigns.",
+            description: "Invalid campaign type selected.",
             variant: "destructive"
           });
           return;
-        }
-        
-        if (!data.constantPart || data.constantPart.trim() === '') {
-          toast({
-            title: "Validation Error",
-            description: "Constant part is required and cannot be empty.",
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        // Parse TLDs from comma-separated input
-        const tlds = data.tldsInput ? data.tldsInput.split(',').map(tld => {
-          const trimmed = tld.trim();
-          return trimmed.startsWith('.') ? trimmed : `.${trimmed}`;
-        }).filter(tld => tld.length > 1) : ['.com'];
-
-        // Ensure numeric values are properly converted
-        const prefixLength = data.prefixVariableLength !== undefined ? Number(data.prefixVariableLength) : 3;
-        const suffixLength = data.suffixVariableLength !== undefined ? Number(data.suffixVariableLength) : 0;
-        const maxDomains = data.maxDomainsToGenerate !== undefined ? Number(data.maxDomainsToGenerate) : 1000;
-        
-        // Validate numeric values
-        if (isNaN(prefixLength) || prefixLength < 0) {
-          toast({
-            title: "Validation Error",
-            description: "Prefix variable length must be a valid non-negative number.",
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        if (isNaN(suffixLength) || suffixLength < 0) {
-          toast({
-            title: "Validation Error",
-            description: "Suffix variable length must be a valid non-negative number.",
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        if (isNaN(maxDomains) || maxDomains < 1) {
-          toast({
-            title: "Validation Error",
-            description: "Maximum domains to generate must be at least 1.",
-            variant: "destructive"
-          });
-          return;
-        }
-
-        campaignPayload.domainGenerationParams = {
-          patternType: data.generationPattern,
-          constantString: data.constantPart.trim(),
-          characterSet: data.allowedCharSet || 'abcdefghijklmnopqrstuvwxyz0123456789',
-          tld: tlds[0] || '.com', // Use first TLD as primary
-          variableLength: prefixLength,
-          numDomainsToGenerate: maxDomains,
-          totalPossibleCombinations: maxDomains,
-          currentOffset: 0,
-        };
-      }
-
-      // Add domain source config for validation campaigns
-      if (data.selectedType === 'dns_validation' || data.selectedType === 'http_keyword_validation') {
-        campaignPayload.dnsValidationParams = {
-          sourceGenerationCampaignId: data.sourceCampaignId !== CampaignFormConstants.NONE_VALUE_PLACEHOLDER ? data.sourceCampaignId : undefined,
-          personaIds: data.assignedDnsPersonaId && data.assignedDnsPersonaId !== CampaignFormConstants.NONE_VALUE_PLACEHOLDER ? [data.assignedDnsPersonaId] : [],
-          rotationIntervalSeconds: 300,
-          processingSpeedPerMinute: 60,
-          batchSize: 10,
-          retryAttempts: 3,
-          metadata: {}
-        };
-      }
-
-      // Add lead generation config for HTTP keyword validation
-      if (data.selectedType === 'http_keyword_validation') {
-        campaignPayload.httpKeywordValidationParams = {
-          sourceCampaignId: data.sourceCampaignId && data.sourceCampaignId !== CampaignFormConstants.NONE_VALUE_PLACEHOLDER ? data.sourceCampaignId : '',
-          keywordSetIds: [],
-          adHocKeywords: data.targetKeywordsInput ? data.targetKeywordsInput.split(',').map(k => k.trim()).filter(k => k.length > 0) : [],
-          personaIds: data.assignedHttpPersonaId && data.assignedHttpPersonaId !== CampaignFormConstants.NONE_VALUE_PLACEHOLDER ? [data.assignedHttpPersonaId] : [],
-          proxyIds: data.assignedProxyId && data.assignedProxyId !== CampaignFormConstants.NONE_VALUE_PLACEHOLDER ? [data.assignedProxyId] : undefined,
-          rotationIntervalSeconds: 300,
-          processingSpeedPerMinute: 60,
-          batchSize: 10,
-          retryAttempts: 3,
-          targetHttpPorts: [80, 443],
-          sourceType: 'campaign_output',
-          metadata: {}
-        };
       }
 
       // Handle campaign creation
@@ -257,7 +332,8 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
         });
         return;
       } else {
-        const response = await createCampaign(campaignPayload);
+        // Use the unified endpoint for new campaign creation
+        const response = await createCampaignUnified(unifiedPayload);
 
         if (response.status === 'success' && response.data) {
           toast({

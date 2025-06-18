@@ -1023,3 +1023,77 @@ func (s *campaignOrchestratorServiceImpl) DeleteCampaign(ctx context.Context, ca
 
 	return nil
 }
+
+// CreateCampaignUnified creates a campaign of any type using a unified request structure
+func (s *campaignOrchestratorServiceImpl) CreateCampaignUnified(ctx context.Context, req CreateCampaignRequest) (*models.Campaign, error) {
+	log.Printf("Orchestrator: Creating campaign with unified endpoint. Type: %s, Name: %s", req.CampaignType, req.Name)
+
+	switch req.CampaignType {
+	case "domain_generation":
+		if req.DomainGenerationParams == nil {
+			return nil, fmt.Errorf("domainGenerationParams required for domain_generation campaigns")
+		}
+
+		// Convert unified request to legacy request structure
+		legacyReq := CreateDomainGenerationCampaignRequest{
+			Name:                 req.Name,
+			PatternType:          req.DomainGenerationParams.PatternType,
+			VariableLength:       req.DomainGenerationParams.VariableLength,
+			CharacterSet:         req.DomainGenerationParams.CharacterSet,
+			ConstantString:       req.DomainGenerationParams.ConstantString,
+			TLD:                  req.DomainGenerationParams.TLD,
+			NumDomainsToGenerate: req.DomainGenerationParams.NumDomainsToGenerate,
+			UserID:               req.UserID,
+		}
+
+		return s.domainGenService.CreateCampaign(ctx, legacyReq)
+
+	case "dns_validation":
+		if req.DnsValidationParams == nil {
+			return nil, fmt.Errorf("dnsValidationParams required for dns_validation campaigns")
+		}
+
+		// Convert unified request to legacy request structure
+		legacyReq := CreateDNSValidationCampaignRequest{
+			Name:                       req.Name,
+			SourceGenerationCampaignID: req.DnsValidationParams.SourceGenerationCampaignID,
+			PersonaIDs:                 req.DnsValidationParams.PersonaIDs,
+			RotationIntervalSeconds:    req.DnsValidationParams.RotationIntervalSeconds,
+			ProcessingSpeedPerMinute:   req.DnsValidationParams.ProcessingSpeedPerMinute,
+			BatchSize:                  req.DnsValidationParams.BatchSize,
+			RetryAttempts:              req.DnsValidationParams.RetryAttempts,
+			UserID:                     req.UserID,
+		}
+
+		return s.dnsService.CreateCampaign(ctx, legacyReq)
+
+	case "http_keyword_validation":
+		if req.HttpKeywordParams == nil {
+			return nil, fmt.Errorf("httpKeywordParams required for http_keyword_validation campaigns")
+		}
+
+		// Convert unified request to legacy request structure
+		legacyReq := CreateHTTPKeywordCampaignRequest{
+			Name:                     req.Name,
+			SourceCampaignID:         req.HttpKeywordParams.SourceCampaignID,
+			KeywordSetIDs:            req.HttpKeywordParams.KeywordSetIDs,
+			AdHocKeywords:            req.HttpKeywordParams.AdHocKeywords,
+			PersonaIDs:               req.HttpKeywordParams.PersonaIDs,
+			ProxyPoolID:              req.HttpKeywordParams.ProxyPoolID,
+			ProxySelectionStrategy:   req.HttpKeywordParams.ProxySelectionStrategy,
+			RotationIntervalSeconds:  req.HttpKeywordParams.RotationIntervalSeconds,
+			ProcessingSpeedPerMinute: req.HttpKeywordParams.ProcessingSpeedPerMinute,
+			BatchSize:                req.HttpKeywordParams.BatchSize,
+			RetryAttempts:            req.HttpKeywordParams.RetryAttempts,
+			TargetHTTPPorts:          req.HttpKeywordParams.TargetHTTPPorts,
+			UserID:                   req.UserID,
+		}
+
+		return s.httpKeywordService.CreateCampaign(ctx, legacyReq)
+
+	default:
+		return nil, fmt.Errorf("unsupported campaign type: %s", req.CampaignType)
+	}
+}
+
+// Legacy campaign creation methods (kept for backward compatibility)

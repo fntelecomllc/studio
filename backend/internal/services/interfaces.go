@@ -32,6 +32,56 @@ type UpdateCampaignRequest struct {
 	TLD                        *string                    `json:"tld,omitempty"`
 }
 
+// --- Unified Campaign Creation Request DTO ---
+
+type CreateCampaignRequest struct {
+	CampaignType string `json:"campaignType" validate:"required,oneof=domain_generation dns_validation http_keyword_validation"`
+	Name         string `json:"name" validate:"required"`
+	Description  string `json:"description,omitempty"`
+	UserID       uuid.UUID `json:"userId,omitempty"`
+
+	// Domain Generation specific fields
+	DomainGenerationParams *DomainGenerationParams `json:"domainGenerationParams,omitempty"`
+
+	// DNS Validation specific fields
+	DnsValidationParams *DnsValidationParams `json:"dnsValidationParams,omitempty"`
+
+	// HTTP Keyword Validation specific fields
+	HttpKeywordParams *HttpKeywordParams `json:"httpKeywordParams,omitempty"`
+}
+
+type DomainGenerationParams struct {
+	PatternType          string `json:"patternType" validate:"required,oneof=prefix suffix both"`
+	VariableLength       int    `json:"variableLength" validate:"required,gt=0"`
+	CharacterSet         string `json:"characterSet" validate:"required"`
+	ConstantString       string `json:"constantString" validate:"required"`
+	TLD                  string `json:"tld" validate:"required"`
+	NumDomainsToGenerate int64  `json:"numDomainsToGenerate,omitempty" validate:"omitempty,gte=0"`
+}
+
+type DnsValidationParams struct {
+	SourceGenerationCampaignID uuid.UUID   `json:"sourceCampaignId" validate:"required"`
+	PersonaIDs                 []uuid.UUID `json:"personaIds" validate:"required,min=1,dive,uuid"`
+	RotationIntervalSeconds    int         `json:"rotationIntervalSeconds,omitempty" validate:"gte=0"`
+	ProcessingSpeedPerMinute   int         `json:"processingSpeedPerMinute,omitempty" validate:"gte=0"`
+	BatchSize                  int         `json:"batchSize,omitempty" validate:"gt=0"`
+	RetryAttempts              int         `json:"retryAttempts,omitempty" validate:"gte=0"`
+}
+
+type HttpKeywordParams struct {
+	SourceCampaignID         uuid.UUID   `json:"sourceCampaignId" validate:"required"`
+	KeywordSetIDs            []uuid.UUID `json:"keywordSetIds,omitempty" validate:"omitempty,dive,uuid"`
+	AdHocKeywords            []string    `json:"adHocKeywords,omitempty" validate:"omitempty,dive,min=1"`
+	PersonaIDs               []uuid.UUID `json:"personaIds" validate:"required,min=1,dive,uuid"`
+	ProxyPoolID              *uuid.UUID  `json:"proxyPoolId,omitempty"`
+	ProxySelectionStrategy   string      `json:"proxySelectionStrategy,omitempty"`
+	RotationIntervalSeconds  int         `json:"rotationIntervalSeconds,omitempty" validate:"gte=0"`
+	ProcessingSpeedPerMinute int         `json:"processingSpeedPerMinute,omitempty" validate:"gte=0"`
+	BatchSize                int         `json:"batchSize,omitempty" validate:"gt=0"`
+	RetryAttempts            int         `json:"retryAttempts,omitempty" validate:"gte=0"`
+	TargetHTTPPorts          []int       `json:"targetHttpPorts,omitempty" validate:"omitempty,dive,gt=0,lte=65535"`
+}
+
 // --- Campaign Creation Request DTOs (specific to each campaign type) ---
 
 type CreateDomainGenerationCampaignRequest struct {
@@ -96,6 +146,10 @@ type HTTPKeywordResultsResponse struct {
 
 // CampaignOrchestratorService defines the interface for managing the lifecycle of all campaigns.
 type CampaignOrchestratorService interface {
+	// Unified campaign creation method (preferred)
+	CreateCampaignUnified(ctx context.Context, req CreateCampaignRequest) (*models.Campaign, error)
+
+	// Legacy campaign creation methods (deprecated but maintained for backward compatibility)
 	CreateDomainGenerationCampaign(ctx context.Context, req CreateDomainGenerationCampaignRequest) (*models.Campaign, error)
 	CreateDNSValidationCampaign(ctx context.Context, req CreateDNSValidationCampaignRequest) (*models.Campaign, error)
 	CreateHTTPKeywordCampaign(ctx context.Context, req CreateHTTPKeywordCampaignRequest) (*models.Campaign, error)

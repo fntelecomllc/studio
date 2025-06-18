@@ -32,7 +32,10 @@ func NewCampaignOrchestratorAPIHandler(orchService services.CampaignOrchestrator
 // RegisterCampaignOrchestrationRoutes registers all campaign orchestration related routes.
 // It requires a base group and auth middleware instance for permission-based access control.
 func (h *CampaignOrchestratorAPIHandler) RegisterCampaignOrchestrationRoutes(group *gin.RouterGroup, authMiddleware *middleware.AuthMiddleware) {
-	// Campaign creation routes - require campaigns:create permission
+	// Unified campaign creation endpoint (preferred)
+	group.POST("", authMiddleware.RequirePermission("campaigns:create"), h.createCampaign)
+
+	// Legacy campaign creation routes - kept for backward compatibility (will be deprecated)
 	group.POST("/generate", authMiddleware.RequirePermission("campaigns:create"), h.createDomainGenerationCampaign)
 	group.POST("/dns-validate", authMiddleware.RequirePermission("campaigns:create"), h.createDNSValidationCampaign)
 	group.POST("/http-validate", authMiddleware.RequirePermission("campaigns:create"), h.createHTTPKeywordCampaign)
@@ -61,7 +64,98 @@ func (h *CampaignOrchestratorAPIHandler) RegisterCampaignOrchestrationRoutes(gro
 	group.GET("/:campaignId/results/http-keyword", authMiddleware.RequirePermission("campaigns:read"), h.getHTTPKeywordResults)
 }
 
-// --- Campaign Creation Handlers ---
+// --- Unified Campaign Creation Handler ---
+
+func (h *CampaignOrchestratorAPIHandler) createCampaign(c *gin.Context) {
+	var req services.CreateCampaignRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		// Use validation error response for binding errors
+		var validationErrors []ErrorDetail
+		validationErrors = append(validationErrors, ErrorDetail{
+			Field:   "body",
+			Code:    ErrorCodeValidation,
+			Message: "Invalid request payload: " + err.Error(),
+		})
+		respondWithValidationErrorGin(c, validationErrors)
+		return
+	}
+
+	// Validate struct if validator is available
+	if validate != nil {
+		if err := validate.Struct(req); err != nil {
+			// Convert validation errors to ErrorDetail slice
+			var validationErrors []ErrorDetail
+			validationErrors = append(validationErrors, ErrorDetail{
+				Code:    ErrorCodeValidation,
+				Message: "Validation failed: " + err.Error(),
+			})
+			respondWithValidationErrorGin(c, validationErrors)
+			return
+		}
+	}
+
+	// Validate that appropriate params are provided for the campaign type
+	if err := h.validateCampaignRequest(req); err != nil {
+		var validationErrors []ErrorDetail
+		validationErrors = append(validationErrors, ErrorDetail{
+			Code:    ErrorCodeValidation,
+			Message: err.Error(),
+		})
+		respondWithValidationErrorGin(c, validationErrors)
+		return
+	}
+
+	// Create campaign using the orchestrator service
+	campaign, err := h.orchestratorService.CreateCampaignUnified(c.Request.Context(), req)
+	if err != nil {
+		log.Printf("Error creating campaign: %v", err)
+		// Use detailed error response with appropriate error code
+		respondWithDetailedErrorGin(c, http.StatusInternalServerError, ErrorCodeInternalServer,
+			"Failed to create campaign", []ErrorDetail{
+				{
+					Code:    ErrorCodeInternalServer,
+					Message: err.Error(),
+					Context: map[string]interface{}{
+						"campaign_type": req.CampaignType,
+					},
+				},
+			})
+		return
+	}
+	respondWithJSONGin(c, http.StatusCreated, campaign)
+}
+
+// validateCampaignRequest ensures appropriate parameters are provided for each campaign type
+func (h *CampaignOrchestratorAPIHandler) validateCampaignRequest(req services.CreateCampaignRequest) error {
+	switch req.CampaignType {
+	case "domain_generation":
+		if req.DomainGenerationParams == nil {
+			return fmt.Errorf("domainGenerationParams required for domain_generation campaigns")
+		}
+		if req.DnsValidationParams != nil || req.HttpKeywordParams != nil {
+			return fmt.Errorf("only domainGenerationParams should be provided for domain_generation campaigns")
+		}
+	case "dns_validation":
+		if req.DnsValidationParams == nil {
+			return fmt.Errorf("dnsValidationParams required for dns_validation campaigns")
+		}
+		if req.DomainGenerationParams != nil || req.HttpKeywordParams != nil {
+			return fmt.Errorf("only dnsValidationParams should be provided for dns_validation campaigns")
+		}
+	case "http_keyword_validation":
+		if req.HttpKeywordParams == nil {
+			return fmt.Errorf("httpKeywordParams required for http_keyword_validation campaigns")
+		}
+		if req.DomainGenerationParams != nil || req.DnsValidationParams != nil {
+			return fmt.Errorf("only httpKeywordParams should be provided for http_keyword_validation campaigns")
+		}
+	default:
+		return fmt.Errorf("unsupported campaign type: %s", req.CampaignType)
+	}
+	return nil
+}
+
+// --- Legacy Campaign Creation Handlers (Deprecated) ---
 
 func (h *CampaignOrchestratorAPIHandler) createDomainGenerationCampaign(c *gin.Context) {
 	var req services.CreateDomainGenerationCampaignRequest

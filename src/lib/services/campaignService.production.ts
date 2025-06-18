@@ -15,6 +15,10 @@ import type {
   GeneratedDomain,
   CampaignValidationItem,
 } from '@/lib/types';
+import { 
+  type UnifiedCreateCampaignRequest,
+  unifiedCreateCampaignRequestSchema 
+} from '@/lib/schemas/unifiedCampaignSchema';
 
 
 class CampaignService {
@@ -60,6 +64,41 @@ class CampaignService {
     }
   }
 
+  // Unified Campaign Creation Method (preferred - uses single endpoint)
+  async createCampaignUnified(payload: UnifiedCreateCampaignRequest): Promise<CampaignCreationResponse> {
+    try {
+      console.log('[CampaignService] Creating campaign with unified payload:', payload);
+      
+      // Validate payload using Zod schema
+      const validatedPayload = unifiedCreateCampaignRequestSchema.parse(payload);
+      
+      const response = await apiClient.post<Campaign>('/api/v2/campaigns', validatedPayload);
+      
+      console.log('[CampaignService] Campaign created successfully via unified endpoint:', response);
+      return response as CampaignCreationResponse;
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any -- Error handling for diagnostic logging
+      console.error('[CampaignService] Unified campaign creation failed:', error);
+      
+      // Enhanced error handling with specific messages
+      if (error.response?.status === 403) {
+        throw new Error('Authentication failed. Please log in again.');
+      } else if (error.response?.status === 400) {
+        const message = error.response?.data?.message || 'Invalid campaign data provided.';
+        throw new Error(message);
+      } else if (error.response?.status === 422) {
+        const details = error.response?.data?.details || 'Validation failed.';
+        throw new Error(`Validation error: ${details}`);
+      } else if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      } else if (error.message) {
+        throw error;
+      } else {
+        throw new Error('Failed to create campaign. Please try again.');
+      }
+    }
+  }
+
+  // Legacy Campaign Creation Method (deprecated - kept for backward compatibility)
   async createCampaign(payload: CreateCampaignPayload): Promise<CampaignCreationResponse> {
     try {
       console.log('[CampaignService] Creating campaign with payload:', payload);
@@ -229,6 +268,11 @@ export const getCampaigns = (filters?: Parameters<typeof campaignService.getCamp
 export const getCampaignById = (campaignId: string) => 
   campaignService.getCampaignById(campaignId);
 
+// Unified campaign creation (preferred)
+export const createCampaignUnified = (payload: UnifiedCreateCampaignRequest) => 
+  campaignService.createCampaignUnified(payload);
+
+// Legacy campaign creation (deprecated)
 export const createCampaign = (payload: CreateCampaignPayload) => 
   campaignService.createCampaign(payload);
 
