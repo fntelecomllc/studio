@@ -4,12 +4,14 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/fntelecomllc/studio/backend/internal/config"
 	"github.com/fntelecomllc/studio/backend/internal/models"
@@ -569,6 +571,361 @@ func (h *AuthHandler) GetPermissions(c *gin.Context) {
 	})
 }
 
+// Admin User Management Endpoints
+
+// ListUsers handles GET /api/v2/admin/users
+func (h *AuthHandler) ListUsers(c *gin.Context) {
+	// Get pagination parameters
+	page := 1
+	limit := 10
+	
+	if pageStr := c.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+	
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
+			limit = l
+		}
+	}
+	
+	offset := (page - 1) * limit
+	
+	// Get users from database
+	query := `
+		SELECT u.id, u.email, u.first_name, u.last_name, u.is_active, u.is_locked, 
+		       u.created_at, u.updated_at, u.last_login_at, u.failed_login_attempts, u.mfa_enabled
+		FROM auth.users u
+		ORDER BY u.created_at DESC
+		LIMIT $1 OFFSET $2`
+	
+	rows, err := h.db.Query(query, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to fetch users",
+		})
+		return
+	}
+	defer rows.Close()
+	
+	var users []models.User
+	for rows.Next() {
+		var user models.User
+		var lastLoginAt sql.NullTime
+		
+		err := rows.Scan(
+			&user.ID, &user.Email, &user.FirstName, &user.LastName, 
+			&user.IsActive, &user.IsLocked, &user.CreatedAt, &user.UpdatedAt,
+			&lastLoginAt, &user.FailedLoginAttempts, &user.MFAEnabled,
+		)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error":   "Failed to scan user data",
+			})
+			return
+		}
+		
+		if lastLoginAt.Valid {
+			user.LastLoginAt = &lastLoginAt.Time
+		}
+		
+		users = append(users, user)
+	}
+	
+	// Get total count
+	var totalCount int
+	err = h.db.Get(&totalCount, "SELECT COUNT(*) FROM auth.users")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to get user count",
+		})
+		return
+	}
+	
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    users,
+		"pagination": gin.H{
+			"page":       page,
+			"limit":      limit,
+			"total":      totalCount,
+			"totalPages": (totalCount + limit - 1) / limit,
+		},
+	})
+}
+
+// CreateUser handles POST /api/v2/admin/users
+func (h *AuthHandler) CreateUser(c *gin.Context) {
+	var req models.CreateUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Invalid request format",
+		})
+		return
+	}
+	
+	// Hash the password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to hash password",
+		})
+		return
+	}
+	
+	// Create user in database
+	userID := uuid.New()
+	query := `
+		INSERT INTO auth.users (id, email, first_name, last_name, password_hash, is_active, mfa_enabled)
+		VALUES ($1, $2, $3, $4, $5, true, false)
+		RETURNING created_at, updated_at`
+	
+	var createdAt, updatedAt time.Time
+	err = h.db.QueryRow(query, userID, req.Email, req.FirstName, req.LastName, string(hashedPassword)).
+		Scan(&createdAt, &updatedAt)
+	if err != nil {
+		if strings.Contains(err.Error(), "duplicate key") {
+			c.JSON(http.StatusConflict, gin.H{
+				"success": false,
+				"error":   "User with this email already exists",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to create user",
+		})
+		return
+	}
+	
+	// Return created user
+	user := models.User{
+		ID:        userID,
+		Email:     req.Email,
+		FirstName: req.FirstName,
+		LastName:  req.LastName,
+		IsActive:  true,
+		IsLocked:  false,
+		CreatedAt: createdAt,
+		UpdatedAt: updatedAt,
+		MFAEnabled: false,
+	}
+	
+	c.JSON(http.StatusCreated, gin.H{
+		"success": true,
+		"data":    user,
+	})
+}
+
+// GetUser handles GET /api/v2/admin/users/:userId
+func (h *AuthHandler) GetUser(c *gin.Context) {
+	userIDStr := c.Param("userId")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Invalid user ID",
+		})
+		return
+	}
+	
+	// Get user from database
+	query := `
+		SELECT u.id, u.email, u.first_name, u.last_name, u.is_active, u.is_locked,
+		       u.created_at, u.updated_at, u.last_login_at, u.failed_login_attempts, u.mfa_enabled
+		FROM auth.users u
+		WHERE u.id = $1`
+	
+	var user models.User
+	var lastLoginAt sql.NullTime
+	
+	err = h.db.QueryRow(query, userID).Scan(
+		&user.ID, &user.Email, &user.FirstName, &user.LastName,
+		&user.IsActive, &user.IsLocked, &user.CreatedAt, &user.UpdatedAt,
+		&lastLoginAt, &user.FailedLoginAttempts, &user.MFAEnabled,
+	)
+	
+	if err != nil {
+		if err == sql.ErrNoRows {
+			c.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"error":   "User not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to fetch user",
+		})
+		return
+	}
+	
+	if lastLoginAt.Valid {
+		user.LastLoginAt = &lastLoginAt.Time
+	}
+	
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    user,
+	})
+}
+
+// UpdateUser handles PUT /api/v2/admin/users/:userId
+func (h *AuthHandler) UpdateUser(c *gin.Context) {
+	userIDStr := c.Param("userId")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Invalid user ID",
+		})
+		return
+	}
+	
+	var req models.UpdateUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Invalid request format",
+		})
+		return
+	}
+	
+	// Build dynamic update query
+	setParts := []string{}
+	args := []interface{}{}
+	argIndex := 1
+	
+	if req.FirstName != "" {
+		setParts = append(setParts, fmt.Sprintf("first_name = $%d", argIndex))
+		args = append(args, req.FirstName)
+		argIndex++
+	}
+	
+	if req.LastName != "" {
+		setParts = append(setParts, fmt.Sprintf("last_name = $%d", argIndex))
+		args = append(args, req.LastName)
+		argIndex++
+	}
+	
+	if req.IsActive != nil {
+		setParts = append(setParts, fmt.Sprintf("is_active = $%d", argIndex))
+		args = append(args, *req.IsActive)
+		argIndex++
+	}
+	
+	if len(setParts) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "No fields to update",
+		})
+		return
+	}
+	
+	// Add updated_at
+	setParts = append(setParts, fmt.Sprintf("updated_at = $%d", argIndex))
+	args = append(args, time.Now())
+	argIndex++
+	
+	// Add user ID for WHERE clause
+	args = append(args, userID)
+	
+	query := fmt.Sprintf(`
+		UPDATE auth.users 
+		SET %s
+		WHERE id = $%d
+		RETURNING id, email, first_name, last_name, is_active, is_locked,
+		          created_at, updated_at, last_login_at, failed_login_attempts, mfa_enabled`,
+		strings.Join(setParts, ", "), argIndex)
+	
+	var user models.User
+	var lastLoginAt sql.NullTime
+	
+	err = h.db.QueryRow(query, args...).Scan(
+		&user.ID, &user.Email, &user.FirstName, &user.LastName,
+		&user.IsActive, &user.IsLocked, &user.CreatedAt, &user.UpdatedAt,
+		&lastLoginAt, &user.FailedLoginAttempts, &user.MFAEnabled,
+	)
+	
+	if err != nil {
+		if err == sql.ErrNoRows {
+			c.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"error":   "User not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to update user",
+		})
+		return
+	}
+	
+	if lastLoginAt.Valid {
+		user.LastLoginAt = &lastLoginAt.Time
+	}
+	
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    user,
+	})
+}
+
+// DeleteUser handles DELETE /api/v2/admin/users/:userId
+func (h *AuthHandler) DeleteUser(c *gin.Context) {
+	userIDStr := c.Param("userId")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Invalid user ID",
+		})
+		return
+	}
+	
+	// Check if user exists first
+	var exists bool
+	err = h.db.Get(&exists, "SELECT EXISTS(SELECT 1 FROM auth.users WHERE id = $1)", userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to check user existence",
+		})
+		return
+	}
+	
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"error":   "User not found",
+		})
+		return
+	}
+	
+	// Delete user
+	_, err = h.db.Exec("DELETE FROM auth.users WHERE id = $1", userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to delete user",
+		})
+		return
+	}
+	
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "User deleted successfully",
+	})
+}
+
 // Helper functions
 
 func getClientIP(c *gin.Context) string {
@@ -590,7 +947,6 @@ func getClientIP(c *gin.Context) string {
 	return c.ClientIP()
 }
 
-// clearSessionCookies clears all session-related cookies
 func (h *AuthHandler) clearSessionCookies(c *gin.Context) {
 	// Clear new session cookie
 	c.SetCookie(
@@ -604,8 +960,6 @@ func (h *AuthHandler) clearSessionCookies(c *gin.Context) {
 	)
 
 	// Clear legacy cookies for backward compatibility
-	c.SetCookie(config.LegacySessionCookieName, "", -1, config.CookiePath, "", config.CookieSecure, config.CookieHttpOnly)
-	c.SetCookie(config.AuthTokensCookieName, "", -1, config.CookiePath, "", config.CookieSecure, false)
+	c.SetCookie("session_token", "", -1, "/", "", h.config.CookieSecure, true)
+	c.SetCookie("auth_tokens", "", -1, "/", "", h.config.CookieSecure, false)
 }
-
-// Helper functions

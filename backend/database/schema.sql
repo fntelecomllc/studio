@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS auth.users (
     last_login_ip INET,
     password_changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     must_change_password BOOLEAN DEFAULT FALSE,
+    mfa_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -177,7 +178,7 @@ CREATE TABLE IF NOT EXISTS campaigns (
     -- Current status of the campaign (e.g., 'pending', 'queued', 'running', 'paused', 'completed', 'failed', 'archived').
     status TEXT NOT NULL,
     -- Identifier for the user who created or owns the campaign. Can be NULL if system-generated or authentication is not used.
-    user_id TEXT,
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     -- Total number of items expected to be processed in this campaign.
     total_items BIGINT DEFAULT 0,
     -- Number of items that have been processed so far.
@@ -492,7 +493,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     -- Timestamp of when the audited action occurred. Defaults to the current time.
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     -- Identifier of the user who performed the action, if applicable.
-    user_id TEXT,
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     -- Description of the action performed (e.g., 'CampaignCreated', 'PersonaUpdated', 'ProxyTested'). This should be a controlled vocabulary.
     action TEXT NOT NULL,
     -- Type of the entity that was affected by the action (e.g., 'Campaign', 'Persona', 'Proxy').

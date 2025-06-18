@@ -135,7 +135,7 @@ class ProductionApiClient {
     
     this.sessionState.refreshPromise = (async () => {
       try {
-        const response = await fetch(`${this.baseUrl || window.location.origin}/auth/refresh`, {
+        const response = await fetch(`${this.baseUrl || window.location.origin}/api/v2/auth/refresh`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

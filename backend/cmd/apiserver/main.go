@@ -283,16 +283,16 @@ func main() {
 	apiV2.Use(authMiddleware.SessionAuth())
 	apiV2.Use(securityMiddleware.SessionProtection()) // Session-based protection for session-based requests
 	{
-		// TODO: Implement user management routes in session-based system
-		// userRoutes := apiV2.Group("/users")
-		// userRoutes.Use(authMiddleware.RequireRole("admin"))
-		// {
-		//     userRoutes.GET("", authHandler.ListUsers)
-		//     userRoutes.POST("", authHandler.CreateUser)
-		//     userRoutes.GET("/:userId", authHandler.GetUser)
-		//     userRoutes.PUT("/:userId", authHandler.UpdateUser)
-		//     userRoutes.DELETE("/:userId", authHandler.DeleteUser)
-		// }
+		// Admin user management routes
+		adminRoutes := apiV2.Group("/admin")
+		adminRoutes.Use(authMiddleware.RequirePermission("admin:users"))
+		{
+			adminRoutes.GET("/users", authHandler.ListUsers)
+			adminRoutes.POST("/users", authHandler.CreateUser)
+			adminRoutes.GET("/users/:userId", authHandler.GetUser)
+			adminRoutes.PUT("/users/:userId", authHandler.UpdateUser)
+			adminRoutes.DELETE("/users/:userId", authHandler.DeleteUser)
+		}
 
 		// Current user routes (authenticated users)
 		apiV2.GET("/me", authHandler.Me)

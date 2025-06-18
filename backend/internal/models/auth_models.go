@@ -1,6 +1,7 @@
 package models
 
 import (
+	"net"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,7 +24,7 @@ type User struct {
 	FailedLoginAttempts      int        `json:"-" db:"failed_login_attempts"`
 	LockedUntil              *time.Time `json:"-" db:"locked_until"`
 	LastLoginAt              *time.Time `json:"lastLoginAt" db:"last_login_at"`
-	LastLoginIP              *string    `json:"lastLoginIp" db:"last_login_ip"`
+	LastLoginIP              *net.IP    `json:"lastLoginIp" db:"last_login_ip"`
 	PasswordChangedAt        time.Time  `json:"-" db:"password_changed_at"`
 	MustChangePassword       bool       `json:"mustChangePassword" db:"must_change_password"`
 	

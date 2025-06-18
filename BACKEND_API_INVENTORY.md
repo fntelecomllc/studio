@@ -1,275 +1,302 @@
 # Backend API Inventory
 
-This document provides a complete inventory of the Go backend's API contracts, data structures, and other relevant components.
+This document provides a comprehensive inventory of the Go backend assets, including API endpoints, data structures, WebSocket handlers, and enums.
 
-## 1. HTTP REST Endpoints
+## Endpoints
 
-All API endpoints are prefixed with `/api/v2`.
+### Public Routes
 
-| Method | Path | Handler | Middleware | Description |
-| --- | --- | --- | --- | --- |
-| GET | `/ping` | `api.PingHandlerGin` | None | A public endpoint to check if the API is responsive. |
-| GET | `/health` | `api.HealthCheckHandler` | None | Provides a simple health check of the application. |
-| GET | `/health/ready` | `api.HealthCheckHandler` | None | Indicates if the application is ready to handle traffic. |
-| GET | `/health/live` | `api.HealthCheckHandler` | None | Indicates if the application is running. |
-| POST | `/auth/login` | `authHandler.Login` | `rateLimitMiddleware.LoginRateLimit()` | Authenticates a user and returns a session. |
-| POST | `/auth/logout` | `authHandler.Logout` | None | Logs out a user and invalidates their session. |
-| POST | `/auth/refresh` | `authHandler.RefreshSession` | None | Refreshes an existing session. |
-| GET | `/me` | `authHandler.Me` | `authMiddleware.SessionAuth()` | Retrieves the current authenticated user's details. |
-| POST | `/change-password` | `authHandler.ChangePassword` | `authMiddleware.SessionAuth()` | Allows the authenticated user to change their password. |
-| POST | `/personas/dns` | `apiHandler.CreateDNSPersonaGin` | `authMiddleware.RequirePermission("personas:create")` | Creates a new DNS persona. |
-| GET | `/personas/dns` | `apiHandler.ListDNSPersonasGin` | `authMiddleware.RequirePermission("personas:read")` | Lists all DNS personas. |
-| PUT | `/personas/dns/:personaId` | `apiHandler.UpdateDNSPersonaGin` | `authMiddleware.RequirePermission("personas:update")` | Updates a specific DNS persona. |
-| DELETE | `/personas/dns/:personaId` | `apiHandler.DeleteDNSPersonaGin` | `authMiddleware.RequirePermission("personas:delete")` | Deletes a specific DNS persona. |
-| POST | `/personas/http` | `apiHandler.CreateHTTPPersonaGin` | `authMiddleware.RequirePermission("personas:create")` | Creates a new HTTP persona. |
-| GET | `/personas/http` | `apiHandler.ListHTTPPersonasGin` | `authMiddleware.RequirePermission("personas:read")` | Lists all HTTP personas. |
-| PUT | `/personas/http/:personaId` | `apiHandler.UpdateHTTPPersonaGin` | `authMiddleware.RequirePermission("personas:update")` | Updates a specific HTTP persona. |
-| DELETE | `/personas/http/:personaId` | `apiHandler.DeleteHTTPPersonaGin` | `authMiddleware.RequirePermission("personas:delete")` | Deletes a specific HTTP persona. |
-| GET | `/proxies` | `apiHandler.ListProxiesGin` | `authMiddleware.RequirePermission("proxies:read")` | Lists all configured proxies. |
-| POST | `/proxies` | `apiHandler.AddProxyGin` | `authMiddleware.RequirePermission("proxies:create")` | Adds a new proxy. |
-| GET | `/proxies/status` | `apiHandler.GetProxyStatusesGin` | `authMiddleware.RequirePermission("proxies:read")` | Gets the health status of all proxies. |
-| PUT | `/proxies/:proxyId` | `apiHandler.UpdateProxyGin` | `authMiddleware.RequirePermission("proxies:update")` | Updates a specific proxy. |
-| DELETE | `/proxies/:proxyId` | `apiHandler.DeleteProxyGin` | `authMiddleware.RequirePermission("proxies:delete")` | Deletes a specific proxy. |
-| POST | `/proxies/:proxyId/test` | `apiHandler.TestProxyGin` | `authMiddleware.RequirePermission("proxies:read")` | Tests a specific proxy's connectivity. |
-| POST | `/proxies/:proxyId/health-check` | `apiHandler.ForceCheckSingleProxyGin` | `authMiddleware.RequirePermission("proxies:read")` | Forces a health check on a single proxy. |
-| POST | `/proxies/health-check` | `apiHandler.ForceCheckAllProxiesGin` | `authMiddleware.RequirePermission("proxies:read")` | Forces a health check on all proxies. |
-| GET | `/config/dns` | `apiHandler.GetDNSConfigGin` | `authMiddleware.RequirePermission("system:config")` | Retrieves the DNS validator configuration. |
-| POST | `/config/dns` | `apiHandler.UpdateDNSConfigGin` | `authMiddleware.RequirePermission("system:config")` | Updates the DNS validator configuration. |
-| GET | `/config/http` | `apiHandler.GetHTTPConfigGin` | `authMiddleware.RequirePermission("system:config")` | Retrieves the HTTP validator configuration. |
-| POST | `/config/http` | `apiHandler.UpdateHTTPConfigGin` | `authMiddleware.RequirePermission("system:config")` | Updates the HTTP validator configuration. |
-| GET | `/config/logging` | `apiHandler.GetLoggingConfigGin` | `authMiddleware.RequirePermission("system:config")` | Retrieves the logging configuration. |
-| POST | `/config/logging` | `apiHandler.UpdateLoggingConfigGin` | `authMiddleware.RequirePermission("system:config")` | Updates the logging configuration. |
-| GET | `/config/server` | `apiHandler.GetServerConfigGin` | `authMiddleware.RequirePermission("system:config")` | Retrieves the server configuration. |
-| PUT | `/config/server` | `apiHandler.UpdateServerConfigGin` | `authMiddleware.RequirePermission("system:config")` | Updates the server configuration. |
-| POST | `/keywords/sets` | `apiHandler.CreateKeywordSetGin` | `authMiddleware.RequirePermission("campaigns:create")` | Creates a new keyword set. |
-| GET | `/keywords/sets` | `apiHandler.ListKeywordSetsGin` | `authMiddleware.RequirePermission("campaigns:read")` | Lists all keyword sets. |
-| GET | `/keywords/sets/:setId` | `apiHandler.GetKeywordSetGin` | `authMiddleware.RequirePermission("campaigns:read")` | Retrieves a specific keyword set. |
-| PUT | `/keywords/sets/:setId` | `apiHandler.UpdateKeywordSetGin` | `authMiddleware.RequirePermission("campaigns:update")` | Updates a specific keyword set. |
-| DELETE | `/keywords/sets/:setId` | `apiHandler.DeleteKeywordSetGin` | `authMiddleware.RequirePermission("campaigns:delete")` | Deletes a specific keyword set. |
-| POST | `/extract/keywords` | `apiHandler.BatchExtractKeywordsGin` | `authMiddleware.RequirePermission("campaigns:read")` | Extracts keywords from a batch of text. |
-| GET | `/extract/keywords/stream` | `apiHandler.StreamExtractKeywordsGin` | `authMiddleware.RequirePermission("campaigns:read")` | Extracts keywords from a stream of text. |
-| POST | `/campaigns/generate` | `campaignOrchestratorAPIHandler.createDomainGenerationCampaign` | `authMiddleware.RequirePermission("campaigns:create")` | Creates a new domain generation campaign. |
-| POST | `/campaigns/dns-validate` | `campaignOrchestratorAPIHandler.createDNSValidationCampaign` | `authMiddleware.RequirePermission("campaigns:create")` | Creates a new DNS validation campaign. |
-| POST | `/campaigns/http-validate` | `campaignOrchestratorAPIHandler.createHTTPKeywordCampaign` | `authMiddleware.RequirePermission("campaigns:create")` | Creates a new HTTP keyword validation campaign. |
-| POST | `/campaigns/keyword-validate` | `campaignOrchestratorAPIHandler.createHTTPKeywordCampaign` | `authMiddleware.RequirePermission("campaigns:create")` | Creates a new HTTP keyword validation campaign. |
-| GET | `/campaigns` | `campaignOrchestratorAPIHandler.listCampaigns` | `authMiddleware.RequirePermission("campaigns:read")` | Lists all campaigns. |
-| GET | `/campaigns/:campaignId` | `campaignOrchestratorAPIHandler.getCampaignDetails` | `authMiddleware.RequirePermission("campaigns:read")` | Retrieves the details of a specific campaign. |
-| POST | `/campaigns/:campaignId/start` | `campaignOrchestratorAPIHandler.startCampaign` | `authMiddleware.RequirePermission("campaigns:execute")` | Starts a specific campaign. |
-| POST | `/campaigns/:campaignId/pause` | `campaignOrchestratorAPIHandler.pauseCampaign` | `authMiddleware.RequirePermission("campaigns:execute")` | Pauses a specific campaign. |
-| POST | `/campaigns/:campaignId/resume` | `campaignOrchestratorAPIHandler.resumeCampaign` | `authMiddleware.RequirePermission("campaigns:execute")` | Resumes a specific campaign. |
-| POST | `/campaigns/:campaignId/cancel` | `campaignOrchestratorAPIHandler.cancelCampaign` | `authMiddleware.RequirePermission("campaigns:execute")` | Cancels a specific campaign. |
-| DELETE | `/campaigns/:campaignId` | `campaignOrchestratorAPIHandler.deleteCampaign` | `authMiddleware.RequirePermission("campaigns:delete")` | Deletes a specific campaign. |
-| GET | `/campaigns/:campaignId/results/generated-domains` | `campaignOrchestratorAPIHandler.getGeneratedDomains` | `authMiddleware.RequirePermission("campaigns:read")` | Retrieves the generated domains for a campaign. |
-| GET | `/campaigns/:campaignId/results/dns-validation` | `campaignOrchestratorAPIHandler.getDNSValidationResults` | `authMiddleware.RequirePermission("campaigns:read")` | Retrieves the DNS validation results for a campaign. |
-| GET | `/campaigns/:campaignId/results/http-keyword` | `campaignOrchestratorAPIHandler.getHTTPKeywordResults` | `authMiddleware.RequirePermission("campaigns:read")` | Retrieves the HTTP keyword results for a campaign. |
+-   `GET /ping`: Pings the server.
+    -   Handler: `api.PingHandlerGin`
+-   `GET /health`: Health check.
+-   `GET /health/ready`: Readiness probe.
+-   `GET /health/live`: Liveness probe.
 
-## 2. WebSocket Connections
+### Authentication Routes (`/api/v2/auth`)
 
-| Path | Handler | Description |
-| --- | --- | --- |
-| `/api/v2/ws` | `webSocketAPIHandler.HandleConnections` | Establishes a WebSocket connection for real-time communication. |
+-   `POST /login`: User login.
+    -   Handler: `authHandler.Login`
+    -   Request Body: `models.LoginRequest`
+    -   Middleware: `rateLimitMiddleware.LoginRateLimit()`
+-   `POST /logout`: User logout.
+    -   Handler: `authHandler.Logout`
+-   `POST /refresh`: Refresh user session.
+    -   Handler: `authHandler.RefreshSession`
 
-The WebSocket connection is authenticated using the same session cookie as the REST API.
+### Protected Routes (`/api/v2`)
 
-## 3. Request/Response Models
+All routes in this group are protected by `authMiddleware.SessionAuth()` and `securityMiddleware.SessionProtection()`.
 
-This section details the primary Go `struct` types used in the API.
+#### User Routes
 
-### Authentication Models (`models.LoginRequest`, `models.ChangePasswordRequest`)
+-   `GET /me`: Get current user information.
+    -   Handler: `authHandler.Me`
+-   `GET /auth/permissions`: Get all available permissions.
+    -   Handler: `authHandler.GetPermissions`
+-   `POST /change-password`: Change user password.
+    -   Handler: `authHandler.ChangePassword`
+    -   Request Body: `models.ChangePasswordRequest`
 
-```go
-// models.LoginRequest
-type LoginRequest struct {
-    Email    string `json:"email" binding:"required,email"`
-    Password string `json:"password" binding:"required"`
-}
+#### Persona Routes (`/personas`)
 
-// models.ChangePasswordRequest
-type ChangePasswordRequest struct {
-    OldPassword string `json:"oldPassword" binding:"required"`
-    NewPassword string `json:"newPassword" binding:"required"`
-}
-```
+-   `POST /dns`: Create a DNS persona.
+    -   Handler: `apiHandler.CreateDNSPersonaGin`
+    -   Middleware: `authMiddleware.RequirePermission("personas:create")`
+-   `GET /dns`: List DNS personas.
+    -   Handler: `apiHandler.ListDNSPersonasGin`
+    -   Middleware: `authMiddleware.RequirePermission("personas:read")`
+-   `PUT /dns/:personaId`: Update a DNS persona.
+    -   Handler: `apiHandler.UpdateDNSPersonaGin`
+    -   Middleware: `authMiddleware.RequirePermission("personas:update")`
+-   `DELETE /dns/:personaId`: Delete a DNS persona.
+    -   Handler: `apiHandler.DeleteDNSPersonaGin`
+    -   Middleware: `authMiddleware.RequirePermission("personas:delete")`
+-   `POST /http`: Create an HTTP persona.
+    -   Handler: `apiHandler.CreateHTTPPersonaGin`
+    -   Middleware: `authMiddleware.RequirePermission("personas:create")`
+-   `GET /http`: List HTTP personas.
+    -   Handler: `apiHandler.ListHTTPPersonasGin`
+    -   Middleware: `authMiddleware.RequirePermission("personas:read")`
+-   `PUT /http/:personaId`: Update an HTTP persona.
+    -   Handler: `apiHandler.UpdateHTTPPersonaGin`
+    -   Middleware: `authMiddleware.RequirePermission("personas:update")`
+-   `DELETE /http/:personaId`: Delete an HTTP persona.
+    -   Handler: `apiHandler.DeleteHTTPPersonaGin`
+    -   Middleware: `authMiddleware.RequirePermission("personas:delete")`
 
-### Persona Models (`models.Persona`, `api.CreatePersonaRequest`, `api.UpdatePersonaRequest`)
+#### Proxy Routes (`/proxies`)
 
-```go
-// models.Persona
-type Persona struct {
-    ID            uuid.UUID       `db:"id" json:"id"`
-    Name          string          `db:"name" json:"name" validate:"required"`
-    PersonaType   PersonaTypeEnum `db:"persona_type" json:"personaType" validate:"required,oneof=dns http"`
-    Description   sql.NullString  `db:"description" json:"description,omitempty"`
-    ConfigDetails json.RawMessage `db:"config_details" json:"configDetails" validate:"required"`
-    IsEnabled     bool            `db:"is_enabled" json:"isEnabled"`
-    CreatedAt     time.Time       `db:"created_at" json:"createdAt"`
-    UpdatedAt     time.Time       `db:"updated_at" json:"updatedAt"`
-}
+-   `GET /`: List proxies.
+    -   Handler: `apiHandler.ListProxiesGin`
+    -   Middleware: `authMiddleware.RequirePermission("proxies:read")`
+-   `POST /`: Add a proxy.
+    -   Handler: `apiHandler.AddProxyGin`
+    -   Middleware: `authMiddleware.RequirePermission("proxies:create")`
+-   `GET /status`: Get proxy statuses.
+    -   Handler: `apiHandler.GetProxyStatusesGin`
+    -   Middleware: `authMiddleware.RequirePermission("proxies:read")`
+-   `PUT /:proxyId`: Update a proxy.
+    -   Handler: `apiHandler.UpdateProxyGin`
+    -   Middleware: `authMiddleware.RequirePermission("proxies:update")`
+-   `DELETE /:proxyId`: Delete a proxy.
+    -   Handler: `apiHandler.DeleteProxyGin`
+    -   Middleware: `authMiddleware.RequirePermission("proxies:delete")`
+-   `POST /:proxyId/test`: Test a proxy.
+    -   Handler: `apiHandler.TestProxyGin`
+    -   Middleware: `authMiddleware.RequirePermission("proxies:read")`
+-   `POST /:proxyId/health-check`: Force a health check on a single proxy.
+    -   Handler: `apiHandler.ForceCheckSingleProxyGin`
+    -   Middleware: `authMiddleware.RequirePermission("proxies:read")`
+-   `POST /health-check`: Force a health check on all proxies.
+    -   Handler: `apiHandler.ForceCheckAllProxiesGin`
+    -   Middleware: `authMiddleware.RequirePermission("proxies:read")`
 
-// api.CreatePersonaRequest
-type CreatePersonaRequest struct {
-    Name          string                 `json:"name" validate:"required,min=1,max=255"`
-    PersonaType   models.PersonaTypeEnum `json:"personaType" validate:"required,oneof=dns http"`
-    Description   string                 `json:"description,omitempty"`
-    ConfigDetails json.RawMessage        `json:"configDetails" validate:"required"`
-    IsEnabled     *bool                  `json:"isEnabled,omitempty"`
-}
+#### Configuration Routes (`/config`)
 
-// api.UpdatePersonaRequest
-type UpdatePersonaRequest struct {
-    Name          *string         `json:"name,omitempty" validate:"omitempty,min=1,max=255"`
-    Description   *string         `json:"description,omitempty"`
-    ConfigDetails json.RawMessage `json:"configDetails,omitempty"`
-    IsEnabled     *bool           `json:"isEnabled,omitempty"`
-}
-```
+-   `GET /dns`: Get DNS configuration.
+    -   Handler: `apiHandler.GetDNSConfigGin`
+    -   Middleware: `authMiddleware.RequirePermission("system:config")`
+-   `POST /dns`: Update DNS configuration.
+    -   Handler: `apiHandler.UpdateDNSConfigGin`
+    -   Middleware: `authMiddleware.RequirePermission("system:config")`
+-   `GET /http`: Get HTTP configuration.
+    -   Handler: `apiHandler.GetHTTPConfigGin`
+    -   Middleware: `authMiddleware.RequirePermission("system:config")`
+-   `POST /http`: Update HTTP configuration.
+    -   Handler: `apiHandler.UpdateHTTPConfigGin`
+    -   Middleware: `authMiddleware.RequirePermission("system:config")`
+-   `GET /logging`: Get logging configuration.
+    -   Handler: `apiHandler.GetLoggingConfigGin`
+    -   Middleware: `authMiddleware.RequirePermission("system:config")`
+-   `POST /logging`: Update logging configuration.
+    -   Handler: `apiHandler.UpdateLoggingConfigGin`
+    -   Middleware: `authMiddleware.RequirePermission("system:config")`
+-   `GET /server`: Get server configuration.
+    -   Handler: `apiHandler.GetServerConfigGin`
+    -   Middleware: `authMiddleware.RequirePermission("system:config")`
+-   `PUT /server`: Update server configuration.
+    -   Handler: `apiHandler.UpdateServerConfigGin`
+    -   Middleware: `authMiddleware.RequirePermission("system:config")`
 
-### Proxy Models (`models.Proxy`, `api.CreateProxyRequest`, `api.UpdateProxyRequest`)
+#### Keyword Set Routes (`/keywords/sets`)
 
-```go
-// models.Proxy
-type Proxy struct {
-    ID            uuid.UUID          `db:"id" json:"id"`
-    Name          string             `db:"name" json:"name" validate:"required"`
-    Description   sql.NullString     `db:"description" json:"description,omitempty"`
-    Address       string             `db:"address" json:"address" validate:"required"`
-    Protocol      *ProxyProtocolEnum `db:"protocol" json:"protocol,omitempty"`
-    Username      sql.NullString     `db:"username" json:"username,omitempty"`
-    PasswordHash  sql.NullString     `db:"password_hash" json:"-"`
-    Host          sql.NullString     `db:"host" json:"host,omitempty"`
-    Port          sql.NullInt32      `db:"port" json:"port,omitempty"`
-    IsEnabled     bool               `db:"is_enabled" json:"isEnabled"`
-    IsHealthy     bool               `db:"is_healthy" json:"isHealthy"`
-    LastStatus    sql.NullString     `db:"last_status" json:"lastStatus,omitempty"`
-    LastCheckedAt sql.NullTime       `db:"last_checked_at" json:"lastCheckedAt,omitempty"`
-    LatencyMs     sql.NullInt32      `db:"latency_ms" json:"latencyMs,omitempty"`
-    City          sql.NullString     `db:"city" json:"city,omitempty"`
-    CountryCode   sql.NullString     `db:"country_code" json:"countryCode,omitempty"`
-    Provider      sql.NullString     `db:"provider" json:"provider,omitempty"`
-    CreatedAt     time.Time          `db:"created_at" json:"createdAt"`
-    UpdatedAt     time.Time          `db:"updated_at" json:"updatedAt"`
-}
+-   `POST /`: Create a keyword set.
+    -   Handler: `apiHandler.CreateKeywordSetGin`
+    -   Middleware: `authMiddleware.RequirePermission("campaigns:create")`
+-   `GET /`: List keyword sets.
+    -   Handler: `apiHandler.ListKeywordSetsGin`
+    -   Middleware: `authMiddleware.RequirePermission("campaigns:read")`
+-   `GET /:setId`: Get a keyword set.
+    -   Handler: `apiHandler.GetKeywordSetGin`
+    -   Middleware: `authMiddleware.RequirePermission("campaigns:read")`
+-   `PUT /:setId`: Update a keyword set.
+    -   Handler: `apiHandler.UpdateKeywordSetGin`
+    -   Middleware: `authMiddleware.RequirePermission("campaigns:update")`
+-   `DELETE /:setId`: Delete a keyword set.
+    -   Handler: `apiHandler.DeleteKeywordSetGin`
+    -   Middleware: `authMiddleware.RequirePermission("campaigns:delete")`
 
-// api.CreateProxyRequest
-type CreateProxyRequest struct {
-    Name        string                   `json:"name" validate:"required,min=1,max=255"`
-    Description string                   `json:"description,omitempty"`
-    Protocol    models.ProxyProtocolEnum `json:"protocol" validate:"required,oneof=http https socks5 socks4"`
-    Address     string                   `json:"address" validate:"required,hostname_port"`
-    Username    string                   `json:"username,omitempty"`
-    Password    string                   `json:"password,omitempty"`
-    CountryCode string                   `json:"countryCode,omitempty"`
-    IsEnabled   *bool                    `json:"isEnabled,omitempty"`
-}
+#### Keyword Extraction Routes (`/extract/keywords`)
 
-// api.UpdateProxyRequest
-type UpdateProxyRequest struct {
-    Name        *string                   `json:"name,omitempty" validate:"omitempty,min=1,max=255"`
-    Description *string                   `json:"description,omitempty"`
-    Protocol    *models.ProxyProtocolEnum `json:"protocol,omitempty" validate:"omitempty,oneof=http https socks5 socks4"`
-    Address     *string                   `json:"address,omitempty" validate:"omitempty,hostname_port"`
-    Username    *string                   `json:"username,omitempty"`
-    Password    *string                   `json:"password,omitempty"`
-    CountryCode *string                   `json:"countryCode,omitempty"`
-    IsEnabled   *bool                     `json:"isEnabled,omitempty"`
-}
-```
+-   `POST /`: Batch extract keywords.
+    -   Handler: `apiHandler.BatchExtractKeywordsGin`
+    -   Middleware: `authMiddleware.RequirePermission("campaigns:read")`
+-   `GET /stream`: Stream extract keywords.
+    -   Handler: `apiHandler.StreamExtractKeywordsGin`
+    -   Middleware: `authMiddleware.RequirePermission("campaigns:read")`
 
-### KeywordSet Models (`models.KeywordSet`, `api.CreateKeywordSetRequest`, `api.UpdateKeywordSetRequest`)
+#### Campaign Routes (`/campaigns`)
 
-```go
-// models.KeywordSet
-type KeywordSet struct {
-    ID          uuid.UUID      `db:"id" json:"id"`
-    Name        string         `db:"name" json:"name" validate:"required"`
-    Description sql.NullString `db:"description" json:"description,omitempty"`
-    IsEnabled   bool           `db:"is_enabled" json:"isEnabled"`
-    CreatedAt   time.Time      `db:"created_at" json:"createdAt"`
-    UpdatedAt   time.Time      `db:"updated_at" json:"updatedAt"`
-    Rules       *[]KeywordRule `db:"rules" json:"rules,omitempty"`
-}
+-   `POST /`: Unified campaign creation.
+    -   Handler: `campaignOrchestratorAPIHandler.createCampaign`
+    -   Request Body: `services.CreateCampaignRequest`
+    -   Middleware: `authMiddleware.RequirePermission("campaigns:create")`
+-   `POST /generate`: Create a domain generation campaign (legacy).
+    -   Handler: `campaignOrchestratorAPIHandler.createDomainGenerationCampaign`
+    -   Request Body: `services.CreateDomainGenerationCampaignRequest`
+    -   Middleware: `authMiddleware.RequirePermission("campaigns:create")`
+-   `POST /dns-validate`: Create a DNS validation campaign (legacy).
+    -   Handler: `campaignOrchestratorAPIHandler.createDNSValidationCampaign`
+    -   Request Body: `services.CreateDNSValidationCampaignRequest`
+    -   Middleware: `authMiddleware.RequirePermission("campaigns:create")`
+-   `POST /http-validate`: Create an HTTP keyword campaign (legacy).
+    -   Handler: `campaignOrchestratorAPIHandler.createHTTPKeywordCampaign`
+    -   Request Body: `services.CreateHTTPKeywordCampaignRequest`
+    -   Middleware: `authMiddleware.RequirePermission("campaigns:create")`
+-   `POST /keyword-validate`: Alias for `/http-validate`.
+-   `GET /`: List campaigns.
+    -   Handler: `campaignOrchestratorAPIHandler.listCampaigns`
+    -   Middleware: `authMiddleware.RequirePermission("campaigns:read")`
+-   `GET /:campaignId`: Get campaign details.
+    -   Handler: `campaignOrchestratorAPIHandler.getCampaignDetails`
+    -   Middleware: `authMiddleware.RequirePermission("campaigns:read")`
+-   `POST /:campaignId/start`: Start a campaign.
+    -   Handler: `campaignOrchestratorAPIHandler.startCampaign`
+    -   Middleware: `authMiddleware.RequirePermission("campaigns:execute")`
+-   `POST /:campaignId/pause`: Pause a campaign.
+    -   Handler: `campaignOrchestratorAPIHandler.pauseCampaign`
+    -   Middleware: `authMiddleware.RequirePermission("campaigns:execute")`
+-   `POST /:campaignId/resume`: Resume a campaign.
+    -   Handler: `campaignOrchestratorAPIHandler.resumeCampaign`
+    -   Middleware: `authMiddleware.RequirePermission("campaigns:execute")`
+-   `POST /:campaignId/cancel`: Cancel a campaign.
+    -   Handler: `campaignOrchestratorAPIHandler.cancelCampaign`
+    -   Middleware: `authMiddleware.RequirePermission("campaigns:execute")`
+-   `DELETE /:campaignId`: Delete a campaign.
+    -   Handler: `campaignOrchestratorAPIHandler.deleteCampaign`
+    -   Middleware: `authMiddleware.RequirePermission("campaigns:delete")`
+-   `GET /:campaignId/results/generated-domains`: Get generated domains for a campaign.
+    -   Handler: `campaignOrchestratorAPIHandler.getGeneratedDomains`
+    -   Middleware: `authMiddleware.RequirePermission("campaigns:read")`
+-   `GET /:campaignId/results/dns-validation`: Get DNS validation results for a campaign.
+    -   Handler: `campaignOrchestratorAPIHandler.getDNSValidationResults`
+    -   Middleware: `authMiddleware.RequirePermission("campaigns:read")`
+-   `GET /:campaignId/results/http-keyword`: Get HTTP keyword results for a campaign.
+    -   Handler: `campaignOrchestratorAPIHandler.getHTTPKeywordResults`
+    -   Middleware: `authMiddleware.RequirePermission("campaigns:read")`
 
-// api.CreateKeywordSetRequest
-type CreateKeywordSetRequest struct {
-    Name        string               `json:"name" validate:"required,min=1,max=255"`
-    Description string               `json:"description,omitempty"`
-    IsEnabled   *bool                `json:"isEnabled,omitempty"`
-    Rules       []KeywordRuleRequest `json:"rules,omitempty" validate:"omitempty,dive"`
-}
+## Structs
 
-// api.UpdateKeywordSetRequest
-type UpdateKeywordSetRequest struct {
-    Name        *string              `json:"name,omitempty" validate:"omitempty,min=1,max=255"`
-    Description *string              `json:"description,omitempty"`
-    IsEnabled   *bool                `json:"isEnabled,omitempty"`
-    Rules       []KeywordRuleRequest `json:"rules,omitempty" validate:"omitempty,dive"`
-}
-```
+### `models.LoginRequest`
 
-### Campaign Models (`models.Campaign`, `services.CreateDomainGenerationCampaignRequest`, etc.)
+| Field        | Go Type | JSON Tag         | Validation Tag        | Nullability |
+|--------------|---------|------------------|-----------------------|-------------|
+| Email        | `string`  | `json:"email"`     | `binding:"required,email"` | Not nullable |
+| Password     | `string`  | `json:"password"`  | `binding:"required,min=12"` | Not nullable |
+| RememberMe   | `bool`    | `json:"rememberMe"`|                       | Not nullable |
+| CaptchaToken | `string`  | `json:"captchaToken"`|                     | Not nullable |
 
-```go
-// models.Campaign
-type Campaign struct {
-    ID                          uuid.UUID                       `db:"id" json:"id"`
-    Name                        string                          `db:"name" json:"name" validate:"required"`
-    CampaignType                CampaignTypeEnum                `db:"campaign_type" json:"campaignType" validate:"required"`
-    Status                      CampaignStatusEnum              `db:"status" json:"status" validate:"required"`
-    UserID                      *uuid.UUID                      `db:"user_id" json:"userId,omitempty"`
-    CreatedAt                   time.Time                       `db:"created_at" json:"createdAt"`
-    UpdatedAt                   time.Time                       `db:"updated_at" json:"updatedAt"`
-    StartedAt                   *time.Time                      `db:"started_at" json:"startedAt,omitempty"`
-    CompletedAt                 *time.Time                      `db:"completed_at" json:"completedAt,omitempty"`
-    ProgressPercentage          *float64                        `db:"progress_percentage" json:"progressPercentage,omitempty" validate:"omitempty,gte=0,lte=100"`
-    TotalItems                  *int64                          `db:"total_items" json:"totalItems,omitempty" validate:"omitempty,gte=0"`
-    ProcessedItems              *int64                          `db:"processed_items" json:"processedItems,omitempty" validate:"omitempty,gte=0"`
-    ErrorMessage                *string                         `db:"error_message" json:"errorMessage,omitempty"`
-    SuccessfulItems             *int64                          `db:"successful_items" json:"successfulItems,omitempty"`
-    FailedItems                 *int64                          `db:"failed_items" json:"failedItems,omitempty"`
-    Metadata                    *json.RawMessage                `db:"metadata" json:"metadata,omitempty"`
-    DomainGenerationParams      *DomainGenerationCampaignParams `json:"domainGenerationParams,omitempty"`
-    DNSValidationParams         *DNSValidationCampaignParams    `json:"dnsValidationParams,omitempty"`
-    HTTPKeywordValidationParams *HTTPKeywordCampaignParams      `json:"httpKeywordValidationParams,omitempty"`
-}
-```
+### `models.ChangePasswordRequest`
 
-## 4. Authentication and Authorization
+| Field           | Go Type | JSON Tag              | Validation Tag      | Nullability |
+|-----------------|---------|-----------------------|---------------------|-------------|
+| CurrentPassword | `string`  | `json:"currentPassword"`| `binding:"required"`  | Not nullable |
+| NewPassword     | `string`  | `json:"newPassword"`    | `binding:"required,min=12"` | Not nullable |
 
-The API uses session-based authentication. After a successful login, a session cookie (`domainflow_session`) is set in the client's browser. This cookie is used to authenticate subsequent requests.
+### `services.CreateCampaignRequest`
 
-Authorization is handled through a permission-based system. The `authMiddleware.RequirePermission()` middleware is used to protect endpoints, ensuring that only users with the required permissions can access them.
+| Field                  | Go Type                                | JSON Tag                         | Validation Tag | Nullability |
+|------------------------|----------------------------------------|----------------------------------|----------------|-------------|
+| Name                   | `string`                                 | `json:"name"`                      | `validate:"required"` | Not nullable |
+| CampaignType           | `string`                                 | `json:"campaignType"`              | `validate:"required,oneof=domain_generation dns_validation http_keyword_validation"` | Not nullable |
+| UserID                 | `*uuid.UUID`                           | `json:"userId,omitempty"`          |                | Nullable    |
+| DomainGenerationParams | `*DomainGenerationCampaignParams`      | `json:"domainGenerationParams,omitempty"` | `validate:"omitempty"` | Nullable    |
+| DnsValidationParams    | `*DNSValidationCampaignParams`         | `json:"dnsValidationParams,omitempty"`    | `validate:"omitempty"` | Nullable    |
+| HttpKeywordParams      | `*HTTPKeywordCampaignParams`           | `json:"httpKeywordParams,omitempty"`      | `validate:"omitempty"` | Nullable    |
 
-## 5. Error Response Structure
+### `models.Campaign`
 
-The API uses a standardized error response structure:
+| Field                       | Go Type                                | JSON Tag                              | Validation Tag                 | Nullability |
+|-----------------------------|----------------------------------------|---------------------------------------|--------------------------------|-------------|
+| ID                          | `uuid.UUID`                            | `json:"id"`                             |                                | Not nullable |
+| Name                        | `string`                                 | `json:"name"`                           | `validate:"required"`            | Not nullable |
+| CampaignType                | `CampaignTypeEnum`                     | `json:"campaignType"`                   | `validate:"required"`            | Not nullable |
+| Status                      | `CampaignStatusEnum`                   | `json:"status"`                         | `validate:"required"`            | Not nullable |
+| UserID                      | `*uuid.UUID`                           | `json:"userId,omitempty"`               |                                | Nullable    |
+| CreatedAt                   | `time.Time`                            | `json:"createdAt"`                      |                                | Not nullable |
+| UpdatedAt                   | `time.Time`                            | `json:"updatedAt"`                      |                                | Not nullable |
+| StartedAt                   | `*time.Time`                           | `json:"startedAt,omitempty"`            |                                | Nullable    |
+| CompletedAt                 | `*time.Time`                           | `json:"completedAt,omitempty"`          |                                | Nullable    |
+| ProgressPercentage          | `*float64`                             | `json:"progressPercentage,omitempty"`   | `validate:"omitempty,gte=0,lte=100"` | Nullable    |
+| TotalItems                  | `*int64`                               | `json:"totalItems,omitempty"`           | `validate:"omitempty,gte=0"`     | Nullable    |
+| ProcessedItems              | `*int64`                               | `json:"processedItems,omitempty"`       | `validate:"omitempty,gte=0"`     | Nullable    |
+| ErrorMessage                | `*string`                              | `json:"errorMessage,omitempty"`         |                                | Nullable    |
+| SuccessfulItems             | `*int64`                               | `json:"successfulItems,omitempty"`      |                                | Nullable    |
+| FailedItems                 | `*int64`                               | `json:"failedItems,omitempty"`          |                                | Nullable    |
+| Metadata                    | `*json.RawMessage`                     | `json:"metadata,omitempty"`             |                                | Nullable    |
+| DomainGenerationParams      | `*DomainGenerationCampaignParams`      | `json:"domainGenerationParams,omitempty"` |                                | Nullable    |
+| DNSValidationParams         | `*DNSValidationCampaignParams`         | `json:"dnsValidationParams,omitempty"`    |                                | Nullable    |
+| HTTPKeywordValidationParams | `*HTTPKeywordCampaignParams`           | `json:"httpKeywordValidationParams,omitempty"` |                                | Nullable    |
 
-```json
-{
-  "error": "Error message",
-  "code": "ERROR_CODE"
-}
-```
+## WebSockets
 
-For validation errors, a more detailed structure is used:
+### Endpoint
 
-```json
-{
-  "error": "Validation failed",
-  "details": [
-    {
-      "field": "fieldName",
-      "code": "ErrorCodeValidation",
-      "message": "Validation error message"
-    }
-  ]
-}
-```
+-   `GET /api/v2/ws`: Establishes a WebSocket connection.
+    -   Handler: `webSocketAPIHandler.HandleConnections`
 
-## 6. Database Entity Mappings
+### WebSocket Messages
 
-The Go `struct`s in the `backend/internal/models/` directory map directly to database tables. The `db` tag in each struct field corresponds to a column in the database. For example, the `models.Campaign` struct maps to the `campaigns` table.
+#### `websocket.WebSocketMessage` (Server -> Client)
 
-## 7. Pagination, Filtering, and Sorting
+| Field                  | Go Type       | JSON Tag                       | Description                               |
+|------------------------|---------------|--------------------------------|-------------------------------------------|
+| ID                     | `string`        | `json:"id"`                      | Unique message ID                         |
+| Timestamp              | `string`        | `json:"timestamp"`               | Message timestamp                         |
+| Type                   | `string`        | `json:"type"`                    | Message type                              |
+| SequenceNumber         | `int64`         | `json:"sequenceNumber"`          | Message sequence number                   |
+| Data                   | `interface{}` | `json:"data,omitempty"`          | Generic data payload                      |
+| Payload                | `interface{}` | `json:"payload,omitempty"`       | Generic payload                           |
+| Message                | `string`        | `json:"message,omitempty"`       | Message content                           |
+| CampaignID             | `string`        | `json:"campaignId,omitempty"`    | Campaign ID                               |
+| Phase                  | `string`        | `json:"phase,omitempty"`         | Campaign phase                            |
+| Status                 | `string`        | `json:"status,omitempty"`        | Status                                    |
+| Progress               | `float64`       | `json:"progress,omitempty"`      | Progress percentage                       |
+| ErrorMessage           | `string`        | `json:"error,omitempty"`         | Error message                             |
+| ProxyID                | `string`        | `json:"proxyId,omitempty"`       | Proxy ID                                  |
+| ProxyStatus            | `string`        | `json:"proxyStatus,omitempty"`   | Proxy status                              |
+| PersonaID              | `string`        | `json:"personaId,omitempty"`     | Persona ID                                |
+| PersonaStatus          | `string`        | `json:"personaStatus,omitempty"` | Persona status                            |
+| ValidationsProcessed   | `int64`         | `json:"validationsProcessed,omitempty"` | Number of validations processed |
+| DomainsGenerated       | `int64`         | `json:"domainsGenerated,omitempty"` | Number of domains generated       |
+| EstimatedTimeRemaining | `string`        | `json:"estimatedTimeRemaining,omitempty"` | Estimated time remaining          |
 
-List endpoints (e.g., `/campaigns`, `/personas/dns`) support pagination through `limit` and `offset` query parameters. Filtering is also supported via query parameters like `status`, `type`, and `isEnabled`. Sorting is not explicitly implemented in the handlers but can be added to the store layer.
-`
+#### `websocket.ClientMessage` (Client -> Server)
+
+| Field              | Go Type | JSON Tag                         | Description                               |
+|--------------------|---------|----------------------------------|-------------------------------------------|
+| Type               | `string`  | `json:"type"`                      | Message type                              |
+| CampaignID         | `string`  | `json:"campaignId,omitempty"`    | Campaign ID for subscription              |
+| LastSequenceNumber | `int64`   | `json:"lastSequenceNumber,omitempty"` | Last received sequence number for resync |
+
+## Enums
+
+-   **`CampaignTypeEnum`**: `domain_generation`, `dns_validation`, `http_keyword_validation`
+-   **`CampaignStatusEnum`**: `pending`, `queued`, `running`, `pausing`, `paused`, `completed`, `failed`, `archived`, `cancelled`
+-   **`PersonaTypeEnum`**: `dns`, `http`
+-   **`ProxyProtocolEnum`**: `http`, `https`, `socks5`, `socks4`
+-   **`KeywordRuleTypeEnum`**: `string`, `regex`
+-   **`CampaignJobStatusEnum`**: `pending`, `queued`, `running`, `processing`, `completed`, `failed`, `retry`
+-   **`ValidationStatusEnum`**: `pending`, `valid`, `invalid`, `error`, `skipped`
+-   **`DNSValidationStatusEnum`**: `resolved`, `unresolved`, `timeout`, `error`
+-   **`HTTPValidationStatusEnum`**: `success`, `failed`, `timeout`, `error`

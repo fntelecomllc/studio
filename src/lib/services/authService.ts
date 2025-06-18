@@ -434,6 +434,62 @@ class AuthService {
     }
   }
 
+  // Refresh session
+  async refreshSession(): Promise<{ success: boolean; error?: string }> {
+    logAuth.success('Session refresh starting');
+    
+    // Use centralized loading state
+    const loadingStore = useLoadingStore.getState();
+    loadingStore.startLoading(LOADING_OPERATIONS.SESSION_REFRESH, 'Refreshing session...');
+
+    try {
+      const baseUrl = await getApiBaseUrl();
+      const response = await fetch(`${baseUrl}/api/v2/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.success && data.expiresAt) {
+          // Update session expiry
+          const sessionExpiry = new Date(data.expiresAt).getTime();
+          this.authState.sessionExpiry = sessionExpiry;
+          
+          // Set session expiry in API client for proactive refresh
+          const apiClient = ProductionApiClient.getInstance();
+          apiClient.setSessionExpiry(data.expiresAt);
+          
+          this.notifyListeners();
+          
+          logAuth.success('Session refreshed successfully');
+          loadingStore.stopLoading(LOADING_OPERATIONS.SESSION_REFRESH, 'succeeded');
+          return { success: true };
+        } else {
+          const errorMsg = data.message || 'Session refresh failed';
+          logAuth.warn('Session refresh failed', { error: errorMsg });
+          loadingStore.stopLoading(LOADING_OPERATIONS.SESSION_REFRESH, 'failed', errorMsg);
+          return { success: false, error: errorMsg };
+        }
+      } else {
+        const errorMsg = `Session refresh failed with status: ${response.status}`;
+        logAuth.warn('Session refresh failed', { status: response.status });
+        loadingStore.stopLoading(LOADING_OPERATIONS.SESSION_REFRESH, 'failed', errorMsg);
+        return { success: false, error: errorMsg };
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Network error';
+      logAuth.error('Session refresh error', { error: errorMsg });
+      loadingStore.stopLoading(LOADING_OPERATIONS.SESSION_REFRESH, 'failed', errorMsg);
+      return { success: false, error: errorMsg };
+    }
+  }
+
   // Make authenticated request helper
   private async makeAuthenticatedRequest(endpoint: string, options: RequestInit = {}): Promise<Response> {
     const baseUrl = await getApiBaseUrl();
