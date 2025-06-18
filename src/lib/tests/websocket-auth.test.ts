@@ -5,7 +5,7 @@
  * and handle session-based auth correctly.
  */
 
-import { websocketService } from '@/lib/services/websocketService.production';
+import { websocketService } from '@/lib/services/websocketService.simple';
 
 describe('WebSocket Authentication', () => {
   // Mock WebSocket

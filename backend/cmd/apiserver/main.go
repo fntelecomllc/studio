@@ -296,6 +296,7 @@ func main() {
 
 		// Current user routes (authenticated users)
 		apiV2.GET("/me", authHandler.Me)
+		apiV2.GET("/auth/permissions", authHandler.GetPermissions)  // New permissions endpoint
 		apiV2.POST("/change-password", authHandler.ChangePassword)
 
 		// Persona routes with permission-based access control

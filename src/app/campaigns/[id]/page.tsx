@@ -18,7 +18,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { getCampaignById, startCampaign as startCampaignPhase, pauseCampaign, resumeCampaign, cancelCampaign as stopCampaign, getGeneratedDomains as getGeneratedDomainsForCampaign, getDNSValidationResults as getDnsCampaignDomains, getHTTPKeywordResults as getHttpCampaignItems } from '@/lib/services/campaignService.production';
-import websocketService from '@/lib/services/websocketService.production';
+import { websocketService } from '@/lib/services/websocketService.simple';
 import PhaseGateButton from '@/components/campaigns/PhaseGateButton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -43,25 +43,25 @@ const getDomainStatusFromItem = (itemStatus: CampaignStatus | string | undefined
     case 'lead_valid': // For HTTP/Keyword
     case 'http_valid_no_keywords': // For HTTP/Keyword
     case 'succeeded': // General completion from item
-      return 'Validated';
+      return 'validated';
     case 'scanned': // Specific for LeadGen if leads were found
-        return 'Scanned';
+        return 'scanned';
     case 'no_leads': // Specific for LeadGen
-        return 'No Leads';
+        return 'no_leads';
     case 'unresolved': // For DNS
     case 'invalid_http_response_error': // For HTTP/Keyword
     case 'invalid_http_code': // For HTTP/Keyword
     case 'failed': // General failure
-      return 'Failed';
+      return 'failed';
     case 'not found': // DNS
-      return 'Not Validated';
+      return 'not_validated';
     case 'pending':
     case 'processing':
     case 'queued':
     case 'active':
-      return 'Pending';
+      return 'pending';
     default:
-      return 'N/A';
+      return 'n_a';
   }
 };
 
@@ -69,25 +69,25 @@ const getDomainStatusFromItem = (itemStatus: CampaignStatus | string | undefined
 const StatusBadge: React.FC<{ status: DomainActivityStatus; score?: number }> = ({ status, score }) => {
   let IconCmp;
   let variant: 'default' | 'secondary' | 'destructive' | 'outline' = 'outline';
-  let text = status;
+  let displayText: string = status;
 
   switch (status) {
-    case 'Validated': IconCmp = CheckCircle; variant = 'default'; break;
-    case 'Generating': IconCmp = Dna; variant = 'secondary'; text="Generating"; break;
-    case 'Scanned': IconCmp = Search; variant = 'default'; break;
-    case 'Not Validated': IconCmp = XCircle; variant = 'destructive'; break;
-    case 'Failed': IconCmp = AlertCircle; variant = 'destructive'; break;
-    case 'No Leads': IconCmp = ShieldQuestion; variant = 'secondary'; text = "No Leads"; break;
-    case 'Pending': IconCmp = Clock; variant = 'secondary'; break;
-    case 'N/A': IconCmp = HelpCircle; variant = 'outline'; break;
-    default: IconCmp = HelpCircle;
+    case 'validated': IconCmp = CheckCircle; variant = 'default'; displayText = 'Validated'; break;
+    case 'generating': IconCmp = Dna; variant = 'secondary'; displayText = 'Generating'; break;
+    case 'scanned': IconCmp = Search; variant = 'default'; displayText = 'Scanned'; break;
+    case 'not_validated': IconCmp = XCircle; variant = 'destructive'; displayText = 'Not Validated'; break;
+    case 'failed': IconCmp = AlertCircle; variant = 'destructive'; displayText = 'Failed'; break;
+    case 'no_leads': IconCmp = ShieldQuestion; variant = 'secondary'; displayText = 'No Leads'; break;
+    case 'pending': IconCmp = Clock; variant = 'secondary'; displayText = 'Pending'; break;
+    case 'n_a': IconCmp = HelpCircle; variant = 'outline'; displayText = 'N/A'; break;
+    default: IconCmp = HelpCircle; displayText = 'Unknown';
   }
 
   return (
     <Badge variant={variant} className="text-xs whitespace-nowrap">
       <IconCmp className="mr-1 h-3.5 w-3.5" />
-      {text}
-      {score !== undefined && status === 'Scanned' && (
+      {displayText}
+      {score !== undefined && status === 'scanned' && (
         <span className="ml-1.5 flex items-center">
             <Percent className="h-3 w-3 mr-0.5"/> {score}%
         </span>
@@ -122,26 +122,42 @@ export default function CampaignDashboardPage() {
   // Helper functions - moved to top for proper hoisting
   const getGlobalLeadStatusAndScore = (domainName: string, campaign: Campaign): { status: DomainActivityStatus; score?: number } => {
         if (!campaign) {
-            return { status: 'N/A' };
+            return { status: 'n_a' };
         }
 
 
-        return { status: 'N/A' };
+        return { status: 'n_a' };
   };
 
   const getGlobalDomainStatusForPhase = (domainName: string, phase: 'dns_validation' | 'http_keyword_validation', campaign: Campaign): DomainActivityStatus => {
         if (!campaign) {
-            return 'N/A';
+            return 'n_a';
         }
 
         if (phase === 'dns_validation' && dnsCampaignItems.find(item => item.domainName === domainName)?.validationStatus === 'valid') {
-            return 'Validated';
+            return 'validated';
         }
         if (phase === 'http_keyword_validation' && httpCampaignItems.find(item => item.domainName === domainName)?.validationStatus === 'valid') {
-            return 'Validated';
+            return 'validated';
         }
-        return 'Not Validated';
+        return 'not_validated';
     };
+
+  // Helper to convert response headers from Record<string, unknown> to Record<string, string[]>
+  const convertResponseHeaders = (headers?: Record<string, unknown>): Record<string, string[]> | undefined => {
+    if (!headers) return undefined;
+    const converted: Record<string, string[]> = {};
+    for (const [key, value] of Object.entries(headers)) {
+      if (Array.isArray(value)) {
+        converted[key] = value.map(v => String(v));
+      } else if (typeof value === 'string') {
+        converted[key] = [value];
+      } else if (value != null) {
+        converted[key] = [String(value)];
+      }
+    }
+    return converted;
+  };
 
 
 
@@ -247,20 +263,25 @@ export default function CampaignDashboardPage() {
     };
     
     // Fetch items if the campaign phase relevant to item display is active or completed
-    // And also if the campaign itself is of the type that would have these items.
+    // Use campaignType to determine which campaign type we have, status for execution state
     const selectedType = campaign.campaignType;
-    const currentPhase = campaign.status;
+    const executionStatus = campaign.status; // pending, running, completed, failed, etc.
     
-    const phasesForType = CAMPAIGN_PHASES_ORDERED[selectedType];
-    const isDNSPhaseActiveOrPast = selectedType === 'dns_validation' && currentPhase && phasesForType && (currentPhase === 'dns_validation' || phasesForType.indexOf(currentPhase) > phasesForType.indexOf('dns_validation') || currentPhase === 'completed');
-    const isHTTPPhaseActiveOrPast = selectedType === 'http_keyword_validation' && currentPhase && phasesForType && (currentPhase === 'http_keyword_validation' || phasesForType.indexOf(currentPhase) > phasesForType.indexOf('http_keyword_validation') || currentPhase === 'completed');
-    const isDomainGenPhaseNotStreaming = campaign.campaignType === 'domain_generation' && campaign.status !== 'running';
+    // For determining which phases/items to show, we use the campaign type and status
+    // Not comparing status with campaign type values - that's the bug we're fixing
+    const isDNSCampaign = selectedType === 'dns_validation';
+    const isHTTPCampaign = selectedType === 'http_keyword_validation';
+    const isDomainGenCampaign = selectedType === 'domain_generation';
+    
+    // Show items if the campaign type matches and it's not just pending
+    const shouldShowItems = (isDNSCampaign || isHTTPCampaign || isDomainGenCampaign) && executionStatus !== 'pending';
+    const isDomainGenPhaseNotStreaming = isDomainGenCampaign && executionStatus !== 'running';
 
 
-    if (isDNSPhaseActiveOrPast || isHTTPPhaseActiveOrPast || isDomainGenPhaseNotStreaming) {
+    if (shouldShowItems) {
       fetchItems();
-      // Simple poll for items if not domain gen streaming
-      if (!isDomainGenPhaseNotStreaming || campaign.status !== 'running') {
+      // Simple poll for items if campaign is still running
+      if (executionStatus === 'running') {
           const itemPollInterval = setInterval(fetchItems, 5000);
           return () => clearInterval(itemPollInterval);
       }
@@ -390,7 +411,7 @@ export default function CampaignDashboardPage() {
     }
   };
 
-  const handlePhaseActionTrigger = (phaseToStart: CampaignStatus) => {
+  const handlePhaseActionTrigger = (phaseToStart: CampaignType) => {
     if (!campaign || !campaign.campaignType || actionLoading[`phase-${phaseToStart}`]) return;
 
     // V2 API uses simple campaignId, not complex payload
@@ -398,10 +419,11 @@ export default function CampaignDashboardPage() {
     setActionLoading(prev => ({ ...prev, [actionKey]: true }));
 
     const payload: StartCampaignPhasePayload = {
+      campaignId: campaign.id,
       phaseToStart,
       // Note: V2 API /start endpoint just needs campaignId
       // Domain source and other configs are stored in campaign already
-      domainSource: campaign.dnsValidationParams?.sourceGenerationCampaignId,
+      domainSource: campaign.dnsValidationParams?.sourceGenerationCampaignId ? "campaign_output" : undefined,
       numberOfDomainsToProcess: campaign.totalItems
     };
     
@@ -485,7 +507,10 @@ export default function CampaignDashboardPage() {
 
     if (itemType === 'dns' || itemType === 'http') {
         return itemsToMap.map((item: GeneratedDomain | CampaignValidationItem | { domainName: string; id: string }): CampaignDomainDetail => {
-            const domainName = ('domainName' in item && item.domainName) || ('domainOrUrl' in item && item.domainOrUrl) || '';
+            const domainName = ('domainName' in item && typeof item.domainName === 'string' && item.domainName) || 
+                              ('domainOrUrl' in item && typeof item.domainOrUrl === 'string' && item.domainOrUrl) || 
+                              ('id' in item && typeof item.id === 'string' && item.id) || 
+                              'unknown-domain';
             const leadInfo = getGlobalLeadStatusAndScore(domainName, campaign);
             
             // Type guards for proper property access
@@ -493,7 +518,7 @@ export default function CampaignDashboardPage() {
             const isHttpItem = itemType === 'http' && 'validationStatus' in item;
             
             return {
-                id: ('id' in item && item.id) || domainName,
+                id: ('id' in item && typeof item.id === 'string' && item.id) || domainName,
                 domainName,
                 generatedDate: campaign.createdAt,
                 dnsStatus: isDnsItem ? getDomainStatusFromItem((item as CampaignValidationItem).validationStatus) : getGlobalDomainStatusForPhase(domainName, 'dns_validation', campaign),
@@ -504,7 +529,7 @@ export default function CampaignDashboardPage() {
                     domainName: domainName,
                     validationStatus: (item as CampaignValidationItem).validationStatus,
                     createdAt: (item as CampaignValidationItem).lastCheckedAt || new Date().toISOString(),
-                    attempts: (item as CampaignValidationItem).attempts,
+                    attempts: (item as CampaignValidationItem).attempts ?? null,
                 }} : undefined,
 
                 httpStatus: isHttpItem ? getDomainStatusFromItem((item as CampaignValidationItem).validationStatus) : getGlobalDomainStatusForPhase(domainName, 'http_keyword_validation', campaign),
@@ -513,7 +538,7 @@ export default function CampaignDashboardPage() {
                 httpFinalUrl: isHttpItem ? (item as CampaignValidationItem).finalUrl : undefined,
                 httpContentHash: isHttpItem ? (item as CampaignValidationItem).contentHash : undefined,
                 httpTitle: isHttpItem ? (item as CampaignValidationItem).extractedTitle : undefined,
-                httpResponseHeaders: isHttpItem ? (item as CampaignValidationItem).responseHeaders : undefined,
+                httpResponseHeaders: isHttpItem ? convertResponseHeaders((item as CampaignValidationItem).responseHeaders) : undefined,
                 
                 leadScanStatus: leadInfo.status,
                 leadDetails: undefined,
@@ -579,9 +604,9 @@ export default function CampaignDashboardPage() {
     : campaign.status ? phasesForSelectedType.indexOf(campaign.status) : -1;
 
   const renderPhaseButtons = () => {
-    if (campaign.status === "completed") return <p className="text-lg font-semibold text-green-500 flex items-center gap-2"><CheckCircle className="h-6 w-6"/>Campaign Completed!</p>;
+    if ((campaign as Campaign)?.status === "completed") return <p className="text-lg font-semibold text-green-500 flex items-center gap-2"><CheckCircle className="h-6 w-6"/>Campaign Completed!</p>;
     
-    if (campaign.status === "failed") {
+    if ((campaign as Campaign)?.status === "failed") {
        const failedPhaseName = campaign.campaignType ? (phaseDisplayNames[campaign.campaignType] || campaign.campaignType) : 'Unknown Phase';
        // Retry for failed phase should use the StartCampaignPhase logic
        return (
@@ -629,25 +654,19 @@ export default function CampaignDashboardPage() {
     }
     
     // This logic might be simplified if backend drives all phase transitions after /start
-    if (campaign.status === "completed" && campaign.status !== "failed") {
+    if ((campaign as Campaign)?.status === "completed") {
         const selectedType = campaign.campaignType;
-        if (selectedType && campaign.status) {
-          const nextPhaseToStart = getNextPhase(selectedType, campaign.status);
-          if (nextPhaseToStart) {
-            const phaseDisplayName = phaseDisplayNames[nextPhaseToStart as CampaignType] || nextPhaseToStart;
-            const phaseIcon = phaseIcons[nextPhaseToStart as CampaignType] || Play;
-            return <PhaseGateButton label={`Start Next Phase: ${phaseDisplayName}`} onClick={() => handlePhaseActionTrigger(nextPhaseToStart as CampaignType)} Icon={phaseIcon} isLoading={actionLoading[`phase-${nextPhaseToStart}`]} disabled={!!actionLoading[`phase-${nextPhaseToStart}`]} />;
-          } else {
-              const phasesForType = CAMPAIGN_PHASES_ORDERED[selectedType];
-              if (phasesForType && phasesForType.length === 1 && phasesForType[0] === campaign.status) {
-                 return <p className="text-lg font-semibold text-green-500 flex items-center gap-2"><CheckCircle className="h-6 w-6"/>Campaign Type Process Completed!</p>;
-            }
-             // If no next phase but not "Completed", it might mean the backend will auto-transition or campaign is done.
-            const currentPhaseName = campaign.campaignType ? (phaseDisplayNames[campaign.campaignType] || campaign.campaignType) : 'Unknown Phase';
-            return <p className="text-sm text-green-600 text-center">Phase {currentPhaseName} succeeded. Waiting for backend to transition or finalize...</p>;
-        }
+        if (selectedType) {
+          // For now, just show completion - proper phase tracking should come from backend
+          return <p className="text-lg font-semibold text-green-500 flex items-center gap-2"><CheckCircle className="h-6 w-6"/>Campaign Completed!</p>;
         }
     }
+    
+    // For failed campaigns
+    if ((campaign as Campaign)?.status === "failed") {
+        return <p className="text-lg font-semibold text-red-500 flex items-center gap-2"><XCircle className="h-6 w-6"/>Campaign Failed</p>;
+    }
+    
     return null;
   };
 
@@ -726,7 +745,7 @@ export default function CampaignDashboardPage() {
                                           <Badge variant={getSimilarityBadgeVariant(detail.leadDetails.similarityScore)} className="text-xs">
                                               <Percent className="mr-1 h-3 w-3"/> {detail.leadDetails.similarityScore}%
                                           </Badge>
-                                      ) : (detail.leadScanStatus !== 'Pending' && detail.leadScanStatus !== 'N/A') ? <span className="text-xs text-muted-foreground">-</span> : null}
+                                      ) : (detail.leadScanStatus !== 'pending' && detail.leadScanStatus !== 'n_a') ? <span className="text-xs text-muted-foreground">-</span> : null}
                                     </TableCell>
                                 </TableRow>
                             ))}

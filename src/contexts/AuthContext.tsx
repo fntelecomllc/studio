@@ -49,7 +49,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isAuthenticated: false,
     user: null,
     isLoading: true,
-    sessionExpiry: null
+    sessionExpiry: null,
+    availablePermissions: []
   });
   const [isInitialized, setIsInitialized] = useState(false);
 

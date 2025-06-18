@@ -6,14 +6,15 @@
   "scripts": {
     "dev": "next dev --turbo -p 3000",
     "dev:stable": "next dev --turbo -p 3000",
-    "build": "next build",
-    "build:turbo": "next build --turbo",
+    "build": "npm run generate:schemas && next build",
+    "build:turbo": "npm run generate:schemas && next build --turbo",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "generate:schemas": "node scripts/generate-zod-schemas.js",
     "perf:audit": "node scripts/performance-audit.mjs",
     "perf:budget": "node scripts/performance-budget.mjs",
     "size-limit": "size-limit"

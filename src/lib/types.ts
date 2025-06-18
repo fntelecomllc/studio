@@ -24,8 +24,79 @@ export type CampaignStatus =
 // Persona Type Enum - matches backend PersonaTypeEnum exactly (lowercase)
 export type PersonaType = "dns" | "http";
 
+// Persona Status Enum - frontend compatibility
+export type PersonaStatus = 
+  | "active" 
+  | "inactive" 
+  | "error"
+  | "Active"    // Legacy support
+  | "Disabled"  // Legacy support
+  | "Testing"   // Legacy support
+  | "Failed";   // Legacy support
+
+// Campaign validation item interface for UI
+export interface CampaignValidationItem {
+  id: string;
+  domain: string;
+  domainName: string; // alias for domain
+  status: ValidationStatus;
+  validationStatus: ValidationStatus; // alias for status
+  attempts?: number;
+  lastChecked?: string;
+  lastCheckedAt?: string; // alias for lastChecked
+  errorMessage?: string;
+  errorDetails?: string; // alias for errorMessage
+  
+  // Additional fields for validation results
+  httpStatusCode?: number;
+  finalUrl?: string;
+  contentHash?: string;
+  extractedTitle?: string;
+  responseHeaders?: Record<string, unknown>;
+}
+
 // Proxy Protocol Enum - matches backend ProxyProtocolEnum exactly
 export type ProxyProtocol = "http" | "https" | "socks5" | "socks4";
+
+// Proxy Status Enum - frontend compatibility
+export type ProxyStatus = 
+  | "enabled" 
+  | "disabled" 
+  | "error"
+  | "Active"    // Legacy support
+  | "Disabled"  // Legacy support
+  | "Testing"   // Legacy support
+  | "Failed";   // Legacy support
+
+// Campaign Selected Type - frontend compatibility alias for CampaignType
+export type CampaignSelectedType = CampaignType;
+
+// Campaign Phase - operational phase types for UI
+export type CampaignPhase = 
+  | "domain_generation"
+  | "dns_validation" 
+  | "http_keyword_validation"
+  | "lead_generation"
+  | "completed"
+  | "idle"
+  | "Idle"           // Legacy support  
+  | "Completed"      // Legacy support
+  | "LeadGeneration" // Legacy support
+  | "DNSValidation"  // Legacy support
+  | "HTTPValidation"; // Legacy support
+
+// Campaign Phase Status - phase execution status for UI
+export type CampaignPhaseStatus = 
+  | "pending"
+  | "in_progress"
+  | "succeeded"
+  | "failed"
+  | "paused"
+  | "InProgress"  // Legacy support
+  | "Succeeded"   // Legacy support
+  | "Failed"      // Legacy support
+  | "Paused"      // Legacy support
+  | "Pending";    // Legacy support
 
 // Keyword Rule Type Enum - matches backend KeywordRuleTypeEnum exactly
 export type KeywordRuleType = "string" | "regex";
@@ -250,6 +321,51 @@ export interface Campaign {
   dnsValidationParams?: DNSValidationCampaignParams;
   httpKeywordValidationParams?: HTTPKeywordCampaignParams;
   
+  // Frontend compatibility fields
+  description?: string;
+  selectedType?: CampaignSelectedType;
+  currentPhase?: CampaignPhase;
+  phaseStatus?: CampaignPhaseStatus;
+  progress?: number; // alias for progressPercentage
+  
+  // Domain and validation result caches for UI
+  domains?: string[];
+  dnsValidatedDomains?: string[];
+  httpValidatedDomains?: string[];
+  extractedContent?: any[];
+  leads?: any[];
+  
+  // UI configuration fields
+  domainSourceConfig?: {
+    type: string;
+    sourceCampaignId?: string;
+    sourcePhase?: string;
+    uploadedDomains?: string[];
+  };
+  domainGenerationConfig?: {
+    generationPattern?: string;
+    constantPart?: string;
+    allowedCharSet?: string;
+    tlds?: string[];
+    prefixVariableLength?: number;
+    suffixVariableLength?: number;
+    maxDomainsToGenerate?: number;
+  };
+  leadGenerationSpecificConfig?: {
+    targetKeywords?: string[];
+    scrapingRateLimit?: {
+      requests: number;
+      per: string;
+    };
+    requiresJavaScriptRendering?: boolean;
+  };
+  initialDomainsToProcessCount?: number;
+  assignedHttpPersonaId?: string;
+  assignedDnsPersonaId?: string;
+  proxyAssignment?: {
+    mode: string;
+    proxyId?: string;
+  };
 }
 
 // Generated Domain - matches backend GeneratedDomain exactly
@@ -556,7 +672,7 @@ export interface LatestDomainActivity {
   domainName: string;
   campaignId: string;
   campaignName: string;
-  phase: CampaignStatus;
+  phase: CampaignPhase; // Use CampaignPhase for workflow phase, not CampaignStatus
   status: DomainActivityStatus;
   timestamp: string;
   activity: string;
@@ -576,6 +692,20 @@ export type HttpPersonaConfig = HTTPConfigDetails;
 
 // DNS Resolver Strategy
 export type DnsResolverStrategy = 'random_rotation' | 'weighted_rotation' | 'sequential_failover';
+
+// Domain Activity Status for dashboard
+export type DomainActivityStatus = 
+  | "validated"
+  | "not_validated"  
+  | "pending"
+  | "in_progress"
+  | "failed"
+  | "generating"
+  | "scanned"
+  | "no_leads"
+  | "n_a"
+  | "error"
+  | "skipped";
 
 // ===== API RESPONSE TYPES =====
 
@@ -733,9 +863,22 @@ export interface AuthResponse<T = unknown> {
 
 // ===== MISSING COMPATIBILITY TYPES =====
 
+// Lead interface for campaign results
+export interface Lead {
+  id: string;
+  name?: string;
+  sourceUrl?: string;
+  email?: string;
+  phone?: string;
+  company?: string;
+  extractedAt: string;
+  metadata?: Record<string, unknown>;
+  similarityScore?: number; // For content similarity matching
+}
+
 // Start Campaign Phase Payload
 export interface StartCampaignPhasePayload {
-  phaseToStart: CampaignStatus;
+  phaseToStart: CampaignType; // Use CampaignType since this represents workflow phases
   domainSource?: DomainSource;
   numberOfDomainsToProcess?: number;
 }
@@ -763,106 +906,54 @@ export interface CampaignDomainDetail {
 export interface CampaignValidationItem {
   id: string;
   domain: string;
-  domainOrUrl?: string;
-  validationStatus: CampaignStatus;
-  lastCheckedAt?: string;
-  errorDetails?: string;
-  resultsByPersona?: Record<string, DNSValidationResult>;
-  mismatchDetected?: boolean;
-  httpStatusCode?: number;
-  finalUrl?: string;
-  contentHash?: string;
-  extractedTitle?: string;
-  extractedMetaDescription?: string;
-  responseHeaders?: Record<string, string[]>;
+  status: ValidationStatus;
+  attempts?: number;
+  lastChecked?: string;
+  errorMessage?: string;
 }
 
-// Domain Source Types
-export type DomainSourceType = 'upload' | 'campaign_output' | 'current_campaign_output' | 'none';
+// Domain Source Types - frontend domain input sources
+export type DomainSource = "manual" | "upload" | "campaign_output" | "generation";
 
-export interface DomainSource {
-  type: DomainSourceType;
-  fileName?: string;
-  uploadedDomains?: string[];
-  sourceCampaignId?: string;
-  sourceCampaignName?: string;
-  sourcePhase?: CampaignStatus;
+// Domain Generation Pattern - matches backend DomainGenerationPattern
+export type DomainGenerationPattern = 
+  | "prefix_variable"
+  | "suffix_variable" 
+  | "both_variable"
+  | "constant_only";
+
+// Start Campaign Phase Payload for UI
+export interface StartCampaignPhasePayload {
+  campaignId: string;
+  phaseToStart: CampaignType;
+  domainSource?: DomainSource;
+  metadata?: Record<string, unknown>;
 }
 
-// Domain Generation Configuration
-export type DomainGenerationPattern = "prefix_variable" | "suffix_variable" | "both_variable";
+// Missing types for frontend compatibility
 
+// Domain Generation Config interface
 export interface DomainGenerationConfig {
-  generationPattern: DomainGenerationPattern;
-  constantPart: string;
-  allowedCharSet: string;
-  tlds: string[];
+  generationPattern?: DomainGenerationPattern;
+  constantPart?: string;
+  allowedCharSet?: string;
+  tlds?: string[];
   prefixVariableLength?: number;
   suffixVariableLength?: number;
   maxDomainsToGenerate?: number;
 }
 
-// Lead Generation Configuration
-export interface LeadGenerationSpecificConfig {
-  scrapingRateLimit?: { requests: number; per: 'second' | 'minute' };
-  requiresJavaScriptRendering?: boolean;
-  targetKeywords?: string[];
-}
-
-// Extracted Content Item
+// Extracted Content Item interface
 export interface ExtractedContentItem {
   id: string;
-  sourceUrl: string;
   text: string;
-  similarityScore: number;
-  previousCampaignId?: string;
-  advancedAnalysis?: AnalyzeContentOutput;
+  url?: string;
+  extractedAt: string;
+  metadata?: Record<string, unknown>;
 }
 
-// Lead interface
-export interface Lead {
-  id: string;
-  name?: string;
-  email?: string;
-  company?: string;
-  similarityScore: number;
-  sourceUrl: string;
-  extractedKeywords?: string[];
-  previousCampaignId?: string;
-}
-
-// Analyze Content Types
+// Analyze Content Input interface
 export interface AnalyzeContentInput {
-  textContent: string;
-  existingKeywords?: string[];
-  campaignContext?: string;
+  content: string;
+  keywords?: string[];
 }
-
-export interface AnalyzeContentOutput {
-  advancedKeywords: string[];
-  categories?: string[];
-  summary?: string;
-  sentiment?: 'Positive' | 'Negative' | 'Neutral' | 'N/A';
-}
-
-// Proxy Assignment
-export interface ProxyAssignment {
-  mode: 'none' | 'single' | 'rotate_active';
-  proxyId?: string;
-}
-
-// Upload Event
-export interface UploadEvent {
-  filename: string;
-  fileId?: string;
-  uploadedAt: string;
-  uploadedBy?: string;
-}
-
-// ===== UTILITY TYPES =====
-
-// Optional select value for forms
-export type OptionalSelectValue = string | undefined;
-
-// Domain activity status for UI
-export type DomainActivityStatus = 'Validated' | 'Not Validated' | 'Pending' | 'N/A' | 'Scanned' | 'No Leads' | 'Generating' | 'Failed';

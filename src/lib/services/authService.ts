@@ -38,6 +38,7 @@ export interface AuthState {
   user: AuthUser | null;
   isLoading: boolean;
   sessionExpiry: number | null;
+  availablePermissions: string[];  // Add this field
 }
 
 class AuthService {
@@ -46,7 +47,8 @@ class AuthService {
     isAuthenticated: false,
     user: null,
     isLoading: false,
-    sessionExpiry: null
+    sessionExpiry: null,
+    availablePermissions: [] // Initialize the new field
   };
   
   private listeners: ((state: AuthState) => void)[] = [];
@@ -84,6 +86,10 @@ class AuthService {
       
       if (response.ok) {
         const userData = await response.json();
+        
+        // Fetch available permissions from backend
+        const availablePermissions = await this.fetchAvailablePermissions();
+        
         // Convert User to AuthUser format
         const authUser: AuthUser = {
           id: userData.id,
@@ -98,7 +104,8 @@ class AuthService {
           failedLoginAttempts: 0,
           lockedUntil: userData.isLocked ? 'locked' : undefined
         };
-        this.updateAuthState(authUser, null);
+        
+        this.updateAuthState(authUser, null, availablePermissions);
         logAuth.init('Session restored successfully', { userId: userData.id });
       } else {
         logAuth.init('No active session found');
@@ -141,6 +148,9 @@ class AuthService {
       const data: LoginResponse = await response.json();
 
       if (response.ok && data.success && data.user) {
+        // Fetch available permissions from backend  
+        const availablePermissions = await this.fetchAvailablePermissions();
+        
         // Convert User to AuthUser format
         const authUser: AuthUser = {
           id: data.user.id,
@@ -158,7 +168,7 @@ class AuthService {
         
         // Convert expiresAt to timestamp if provided
         const sessionExpiry = data.expiresAt ? new Date(data.expiresAt).getTime() : null;
-        this.updateAuthState(authUser, sessionExpiry);
+        this.updateAuthState(authUser, sessionExpiry, availablePermissions);
         
         logAuth.success('Login successful', { userId: data.user.id });
         return { success: true };
@@ -202,9 +212,39 @@ class AuthService {
     }
   }
 
-  // Check if user has specific permission
+  // Fetch available permissions from backend
+  private async fetchAvailablePermissions(): Promise<string[]> {
+    try {
+      const response = await this.makeAuthenticatedRequest('/api/v2/auth/permissions');
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data.permissions || [];
+      } else {
+        logAuth.warn('Failed to fetch available permissions', { status: response.status });
+        return [];
+      }
+    } catch (error) {
+      logAuth.error('Error fetching available permissions', error);
+      return [];
+    }
+  }
+
+  // Check if user has specific permission using authoritative list
   hasPermission(permission: string): boolean {
-    return this.authState.user?.permissions.includes(permission) ?? false;
+    if (!this.authState.isAuthenticated || !this.authState.user) {
+      return false;
+    }
+    
+    // Ensure the permission string is valid by checking against available permissions
+    if (!this.authState.availablePermissions.includes(permission)) {
+      logAuth.warn(`Unknown permission string: ${permission}`, {
+        availablePermissions: this.authState.availablePermissions
+      });
+      return false;
+    }
+    
+    return this.authState.user.permissions.includes(permission);
   }
 
   // Check if user has specific role
@@ -236,6 +276,11 @@ class AuthService {
   // Get current user
   getCurrentUser(): AuthUser | null {
     return this.authState.user;
+  }
+
+  // Get available permissions list
+  getAvailablePermissions(): string[] {
+    return [...this.authState.availablePermissions];
   }
 
   // Update password
@@ -386,10 +431,11 @@ class AuthService {
   }
 
   // Private helper methods
-  private updateAuthState(user: AuthUser, sessionExpiry: number | null): void {
+  private updateAuthState(user: AuthUser, sessionExpiry: number | null, availablePermissions?: string[]): void {
     this.authState.isAuthenticated = true;
     this.authState.user = user;
     this.authState.sessionExpiry = sessionExpiry;
+    this.authState.availablePermissions = availablePermissions || this.authState.availablePermissions;
     this.notifyListeners();
   }
 
@@ -397,6 +443,7 @@ class AuthService {
     this.authState.isAuthenticated = false;
     this.authState.user = null;
     this.authState.sessionExpiry = null;
+    this.authState.availablePermissions = []; // Clear availablePermissions
     this.notifyListeners();
   }
 

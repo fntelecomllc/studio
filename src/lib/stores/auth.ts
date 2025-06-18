@@ -8,7 +8,8 @@ class AuthStore {
     isAuthenticated: false,
     user: null,
     isLoading: false,
-    sessionExpiry: null
+    sessionExpiry: null,
+    availablePermissions: []
   };
   
   private listeners: Set<(state: AuthState) => void> = new Set();

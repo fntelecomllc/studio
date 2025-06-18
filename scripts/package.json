@@ -1,0 +1,11 @@
+{
+  "name": "generate-schemas",
+  "version": "1.0.0",
+  "scripts": {
+    "generate": "node scripts/generate-zod-schemas.js",
+    "watch": "nodemon --watch backend/internal --ext go --exec 'npm run generate'"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  }
+}
