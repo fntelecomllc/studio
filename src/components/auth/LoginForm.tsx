@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Eye, EyeOff, AlertCircle, Shield, Clock, Lock } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Shield, Clock, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { z } from 'zod';
 import { FormFieldError, FormErrorSummary } from '@/components/ui/form-field-error';

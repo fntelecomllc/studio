@@ -11,9 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Campaign, CampaignStatus, StartCampaignPhasePayload, CampaignDomainDetail, DomainActivityStatus, CampaignValidationItem, GeneratedDomain, CampaignType } from '@/lib/types';
-import { CAMPAIGN_PHASES_ORDERED, getNextPhase, getFirstPhase } from '@/lib/constants';
+import { CAMPAIGN_PHASES_ORDERED, getFirstPhase } from '@/lib/constants';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, Briefcase, Dna, Network, Globe, Users2, Play, RefreshCw, CheckCircle, Download, PauseCircle, PlayCircle, StopCircle, HelpCircle, Search, ShieldQuestion, ExternalLink, XCircle, Clock, Loader2, ChevronLeft, ChevronRight, Percent } from 'lucide-react';
+import { AlertCircle, Briefcase, Dna, Network, Globe, Play, RefreshCw, CheckCircle, Download, PauseCircle, PlayCircle, StopCircle, HelpCircle, Search, ShieldQuestion, ExternalLink, XCircle, Clock, Loader2, ChevronLeft, ChevronRight, Percent } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';

@@ -53,7 +53,7 @@ export function useCampaignWebSocket(
   const handleError = useCallback((error: Event | Error) => {
     const errorObj = error instanceof Error ? error : new Error('WebSocket error');
     setState(prev => ({ ...prev, error: errorObj }));
-    onError?.(error);
+    onError?.(errorObj);
   }, [onError]);
 
   // Connect/disconnect effect
@@ -107,7 +107,7 @@ export function useCampaignWebSocket(
   // Send message function
   const sendMessage = useCallback((message: object) => {
     if (campaignId) {
-      websocketService.sendMessage(campaignId, message);
+      websocketService.sendMessage(campaignId, message as any);
     }
   }, [campaignId]);
 
@@ -148,7 +148,7 @@ export function useGlobalWebSocket(
   const handleError = useCallback((error: Event | Error) => {
     const errorObj = error instanceof Error ? error : new Error('WebSocket error');
     setState(prev => ({ ...prev, error: errorObj }));
-    onError?.(error);
+    onError?.(errorObj);
   }, [onError]);
 
   // Connect/disconnect effect
@@ -213,7 +213,11 @@ export function useWebSocketStatus() {
 
   useEffect(() => {
     const updateStatus = () => {
-      const newStatus = websocketService.getConnectionStatus();
+      const statusArray = websocketService.getConnectionStatus();
+      const newStatus = statusArray.reduce((acc, status) => {
+        acc[status.campaignId] = status.connected;
+        return acc;
+      }, {} as Record<string, boolean>);
       setStatus(newStatus);
       setIsAnyConnected(Object.values(newStatus).some(Boolean));
     };

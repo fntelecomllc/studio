@@ -20,7 +20,7 @@ import { Target, Loader2 } from 'lucide-react';
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { CAMPAIGN_SELECTED_TYPES } from "@/lib/constants";
-import type { Campaign, CampaignSelectedType, CreateCampaignPayload } from '@/lib/types';
+import type { Campaign, CampaignSelectedType, CreateCampaignPayload, CampaignPhase, DomainGenerationPattern } from '@/lib/types';
 import { createCampaign } from "@/lib/services/campaignService.production";
 import { 
   campaignFormSchema, 
@@ -32,7 +32,7 @@ import {
 } from "@/lib/schemas/campaignFormSchema";
 import React, { useCallback, useMemo, useState } from "react";
 import { FormErrorSummary } from '@/components/ui/form-field-error';
-import { extractFieldErrors, extractMainError, createUserFriendlyError, type FormErrorState } from '@/lib/utils/errorHandling';
+import { extractFieldErrors, createUserFriendlyError, type FormErrorState } from '@/lib/utils/errorHandling';
 
 // Performance-optimized hooks
 import { useDomainCalculation } from "@/lib/hooks/useDomainCalculation";
@@ -86,15 +86,15 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
       description: isEditing && campaignToEdit ? (campaignToEdit.description || "") : "",
       selectedType: isEditing && campaignToEdit ? campaignToEdit.selectedType : (preselectedType && Object.values(CAMPAIGN_SELECTED_TYPES).includes(preselectedType) ? preselectedType : undefined),
       domainSourceSelectionMode: isEditing && campaignToEdit ? 
-        (campaignToEdit.domainSourceConfig?.type === 'current_campaign_output' ? 'campaign_output' : (campaignToEdit.domainSourceConfig?.type || getDefaultSourceMode(campaignToEdit.selectedType))) : 
+        (campaignToEdit.domainSourceConfig?.type === 'current_campaign_output' ? 'campaign_output' as const : (campaignToEdit.domainSourceConfig?.type as any || getDefaultSourceMode(campaignToEdit.selectedType))) : 
         getDefaultSourceMode(preselectedType),
       sourceCampaignId: isEditing && campaignToEdit ? (campaignToEdit.domainSourceConfig?.sourceCampaignId || CampaignFormConstants.NONE_VALUE_PLACEHOLDER) : CampaignFormConstants.NONE_VALUE_PLACEHOLDER,
-      sourcePhase: isEditing && campaignToEdit ? campaignToEdit.domainSourceConfig?.sourcePhase : undefined,
+      sourcePhase: isEditing && campaignToEdit ? (campaignToEdit.domainSourceConfig?.sourcePhase as CampaignPhase) : undefined,
       uploadedDomainsFile: null,
       uploadedDomainsContentCache: isEditing && campaignToEdit ? (campaignToEdit.domainSourceConfig?.type === 'upload' ? campaignToEdit.domainSourceConfig.uploadedDomains : []) : [],
       initialDomainsToProcessCount: isEditing && campaignToEdit ? campaignToEdit.initialDomainsToProcessCount : 100,
       
-      generationPattern: isEditing && campaignToEdit ? (campaignToEdit.domainGenerationConfig?.generationPattern || "prefix_variable") : "prefix_variable",
+      generationPattern: isEditing && campaignToEdit ? (campaignToEdit.domainGenerationConfig?.generationPattern as DomainGenerationPattern || "prefix_variable") : "prefix_variable",
       constantPart: isEditing && campaignToEdit ? (campaignToEdit.domainGenerationConfig?.constantPart || "") : "business",
       allowedCharSet: isEditing && campaignToEdit ? (campaignToEdit.domainGenerationConfig?.allowedCharSet || "abcdefghijklmnopqrstuvwxyz0123456789") : "abcdefghijklmnopqrstuvwxyz0123456789",
       tldsInput: isEditing && campaignToEdit ? (campaignToEdit.domainGenerationConfig?.tlds?.join(', ') || ".com") : ".com",
@@ -104,18 +104,19 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
       
       targetKeywordsInput: isEditing && campaignToEdit ? (campaignToEdit.leadGenerationSpecificConfig?.targetKeywords?.join(', ') || "") : "telecom, voip, saas",
       scrapingRateLimitRequests: isEditing && campaignToEdit ? campaignToEdit.leadGenerationSpecificConfig?.scrapingRateLimit?.requests : 1,
-      scrapingRateLimitPer: isEditing && campaignToEdit ? campaignToEdit.leadGenerationSpecificConfig?.scrapingRateLimit?.per : 'second',
+      scrapingRateLimitPer: isEditing && campaignToEdit ? (campaignToEdit.leadGenerationSpecificConfig?.scrapingRateLimit?.per as "second" | "minute" || 'second') : 'second',
       requiresJavaScriptRendering: isEditing && campaignToEdit ? (campaignToEdit.leadGenerationSpecificConfig?.requiresJavaScriptRendering || false) : false,
       
       assignedHttpPersonaId: isEditing && campaignToEdit ? (campaignToEdit.assignedHttpPersonaId || CampaignFormConstants.NONE_VALUE_PLACEHOLDER) : CampaignFormConstants.NONE_VALUE_PLACEHOLDER,
       assignedDnsPersonaId: isEditing && campaignToEdit ? (campaignToEdit.assignedDnsPersonaId || CampaignFormConstants.NONE_VALUE_PLACEHOLDER) : CampaignFormConstants.NONE_VALUE_PLACEHOLDER,
-      proxyAssignmentMode: isEditing && campaignToEdit ? (campaignToEdit.proxyAssignment?.mode || 'none') : 'none',
+      proxyAssignmentMode: isEditing && campaignToEdit ? (campaignToEdit.proxyAssignment?.mode as "none" | "single" | "rotate_active" || 'none') : 'none',
       assignedProxyId: isEditing && campaignToEdit ? ((campaignToEdit.proxyAssignment?.mode === 'single' && campaignToEdit.proxyAssignment.proxyId) ? campaignToEdit.proxyAssignment.proxyId : CampaignFormConstants.NONE_VALUE_PLACEHOLDER) : CampaignFormConstants.NONE_VALUE_PLACEHOLDER,
     },
     mode: "onChange"
   });
 
   const { control, formState: { isSubmitting }, watch, setValue } = form;
+  const typedControl = control as any; // Workaround for TypeScript inference issue
   const selectedCampaignType = watch("selectedType");
 
   // Performance-optimized domain calculation with debouncing and safeguards
@@ -417,7 +418,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
               />
               
               {/* Basic Campaign Information */}
-              <FormField control={control} name="name" render={({ field }) => (
+              <FormField control={typedControl} name="name" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Campaign Name</FormLabel>
                   <FormControl>
@@ -427,7 +428,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
                 </FormItem>
               )} />
               
-              <FormField control={control} name="description" render={({ field }) => (
+              <FormField control={typedControl} name="description" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Description (Optional)</FormLabel>
                   <FormControl>
@@ -437,7 +438,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
                 </FormItem>
               )} />
               
-              <FormField control={control} name="selectedType" render={({ field }) => (
+              <FormField control={typedControl} name="selectedType" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Campaign Type</FormLabel>
                   <Select onValueChange={(value) => {
@@ -462,7 +463,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
               {/* Performance-optimized Domain Generation Configuration */}
               {selectedCampaignType === 'domain_generation' && (
                 <DomainGenerationConfig
-                  control={control}
+                  control={typedControl}
                   totalPossible={domainCalculation.total}
                   calculationDetails={domainCalculation.details}
                   calculationWarning={domainCalculation.warning}
@@ -473,7 +474,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
               {/* Optimized Domain Source Configuration */}
               {(selectedCampaignType === 'dns_validation' || selectedCampaignType === 'http_keyword_validation') && (
                 <DomainSourceConfig
-                  control={control}
+                  control={typedControl}
                   watch={watch}
                   sourceCampaigns={sourceCampaigns}
                   isLoading={loadingSelectData}
@@ -482,13 +483,13 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
 
               {/* Optimized Keyword Configuration */}
               {selectedCampaignType === 'http_keyword_validation' && (
-                <KeywordConfig control={control} />
+                <KeywordConfig control={typedControl} />
               )}
 
               {/* Optimized Operational Assignments */}
               {(needsHttp || needsDns) && (
                 <OperationalAssignments
-                  control={control}
+                  control={typedControl}
                   needsHttp={needsHttp}
                   needsDns={needsDns}
                   httpPersonas={httpPersonas}

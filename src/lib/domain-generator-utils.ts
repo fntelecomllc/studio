@@ -19,8 +19,8 @@ export function getDomainGenerationConfigHash(config: DomainGenerationConfig): s
   const normalizedConfig = {
     gp: config.generationPattern,
     cp: config.constantPart,
-    acs: Array.from(new Set(config.allowedCharSet.split(''))).sort().join(''),
-    tlds: [...config.tlds].sort(),
+    acs: Array.from(new Set((config.allowedCharSet || '').split(''))).sort().join(''),
+    tlds: [...(config.tlds || [])].sort(),
     pvl: config.prefixVariableLength || 0,
     svl: config.suffixVariableLength || 0,
     mdtg: config.maxDomainsToGenerate // This affects campaign target, not the sequence itself.
@@ -107,7 +107,7 @@ export function generateCharsForNth(n: number, length: number, charSet: string[]
  */
 export function domainFromIndex(index: number, config: DomainGenerationConfig, tld: string): string | null {
     const { generationPattern, constantPart, allowedCharSet, prefixVariableLength, suffixVariableLength } = config;
-    const charSet = allowedCharSet.split('');
+    const charSet = (allowedCharSet || '').split('');
     
     let sld = '';
     
@@ -116,18 +116,18 @@ export function domainFromIndex(index: number, config: DomainGenerationConfig, t
         if (prefixLen > 0) {
             const prefix = generateCharsForNth(index, prefixLen, charSet);
             if (prefix === null) return null;
-            sld = prefix + constantPart;
+            sld = prefix + (constantPart || '');
         } else {
-            sld = constantPart;
+            sld = constantPart || '';
         }
     } else if (generationPattern === 'suffix_variable') {
         const suffixLen = suffixVariableLength || 0;
         if (suffixLen > 0) {
             const suffix = generateCharsForNth(index, suffixLen, charSet);
             if (suffix === null) return null;
-            sld = constantPart + suffix;
+            sld = (constantPart || '') + suffix;
         } else {
-            sld = constantPart;
+            sld = constantPart || '';
         }
     } else if (generationPattern === 'both_variable') {
         const prefixLength = prefixVariableLength || 0;
@@ -152,9 +152,9 @@ export function domainFromIndex(index: number, config: DomainGenerationConfig, t
             suffix = suffixResult;
         }
         
-        sld = prefix + constantPart + suffix;
+        sld = prefix + (constantPart || '') + suffix;
     } else {
-        sld = constantPart;
+        sld = constantPart || '';
     }
     
     // Validate the SLD

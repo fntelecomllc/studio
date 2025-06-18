@@ -11,8 +11,7 @@ import type {
   PasswordRequirements,
   CreateUserRequest,
   UpdateUserRequest,
-  UserListResponse,
-  ApiResponse
+  UserListResponse
 } from '@/lib/types';
 
 export interface AuthUser {
