@@ -20,7 +20,11 @@ import type {
 } from '@/lib/types';
 
 interface AuthContextType extends AuthState {
-  login: (credentials: LoginCredentials) => Promise<{ success: boolean; error?: string }>;
+  login: (credentials: LoginCredentials) => Promise<{ 
+    success: boolean; 
+    error?: string; 
+    fieldErrors?: { [key: string]: string }; 
+  }>;
   logout: () => Promise<void>;
   refreshSession: () => Promise<boolean>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<AuthResponse<void>>;

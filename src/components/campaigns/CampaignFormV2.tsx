@@ -30,7 +30,9 @@ import {
   needsHttpPersona, 
   needsDnsPersona 
 } from "@/lib/schemas/campaignFormSchema";
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
+import { FormErrorSummary } from '@/components/ui/form-field-error';
+import { extractFieldErrors, extractMainError, createUserFriendlyError, type FormErrorState } from '@/lib/utils/errorHandling';
 
 // Performance-optimized hooks
 import { useDomainCalculation } from "@/lib/hooks/useDomainCalculation";
@@ -61,6 +63,10 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
   const router = useRouter();
   const { toast } = useToast();
   const searchParams = useSearchParams();
+
+  // Enhanced error handling state
+  const [formFieldErrors, setFormFieldErrors] = useState<FormErrorState>({});
+  const [formMainError, setFormMainError] = useState<string | null>(null);
 
   // Optimized data loading with improved error handling and caching
   const {
@@ -264,12 +270,37 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
           router.refresh();
         } else {
           console.error('[CampaignForm] Campaign creation failed:', response);
-          const errorMessage = response.message || "Failed to create campaign. Please check your inputs and try again.";
-          toast({
-            title: "Error Creating Campaign",
-            description: errorMessage,
-            variant: "destructive"
-          });
+          
+          // Handle API response errors with field details
+          if (response.status === 'error') {
+            const fieldErrors = extractFieldErrors(response);
+            const mainError = createUserFriendlyError(response);
+            
+            if (Object.keys(fieldErrors).length > 0) {
+              setFormFieldErrors(fieldErrors);
+              setFormMainError('Please correct the highlighted fields.');
+            } else {
+              setFormFieldErrors({});
+              setFormMainError(mainError);
+            }
+            
+            // Still show toast for immediate feedback
+            toast({
+              title: "Error Creating Campaign",
+              description: mainError,
+              variant: "destructive"
+            });
+          } else {
+            const errorMessage = response.message || "Failed to create campaign. Please check your inputs and try again.";
+            setFormMainError(errorMessage);
+            setFormFieldErrors({});
+            
+            toast({
+              title: "Error Creating Campaign",
+              description: errorMessage,
+              variant: "destructive"
+            });
+          }
         }
       }
     } catch (error: unknown) {
@@ -306,6 +337,22 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
       }
     }
   }, [toast, router, isEditing, campaignToEdit]);
+
+  // Clear errors when form values change
+  const clearFormErrors = useCallback(() => {
+    if (Object.keys(formFieldErrors).length > 0 || formMainError) {
+      setFormFieldErrors({});
+      setFormMainError(null);
+    }
+  }, [formFieldErrors, formMainError]);
+
+  // Watch for form changes to clear errors
+  React.useEffect(() => {
+    const subscription = form.watch(() => {
+      clearFormErrors();
+    });
+    return () => subscription.unsubscribe();
+  }, [form, clearFormErrors]);
 
   // Memoized persona requirements to prevent unnecessary recalculations
   const needsHttp = useMemo(() => needsHttpPersona(selectedCampaignType), [selectedCampaignType]);
@@ -362,6 +409,13 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              {/* Form Error Summary */}
+              <FormErrorSummary 
+                errors={formFieldErrors}
+                mainError={formMainError}
+                className="mb-6"
+              />
+              
               {/* Basic Campaign Information */}
               <FormField control={control} name="name" render={({ field }) => (
                 <FormItem>

@@ -14,6 +14,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Eye, EyeOff, AlertCircle, Shield, Clock, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { z } from 'zod';
+import { FormFieldError, FormErrorSummary } from '@/components/ui/form-field-error';
+import { FormErrorManager, type FormErrorState } from '@/lib/utils/errorHandling';
 
 // Enhanced validation schema with security considerations
 const loginSchema = z.object({
@@ -64,10 +66,13 @@ export function LoginForm({
     rememberMe: false
   });
   
-  const [errors, setErrors] = useState<Partial<Record<keyof LoginFormData, string>>>({});
+  const [fieldErrors, setFieldErrors] = useState<FormErrorState>({});
   const [isMainLoginLoading, setIsMainLoginLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  
+  // Enhanced error handling
+  const errorManager = new FormErrorManager(setFieldErrors, setLoginError);
   
   // Enhanced security state
   const [securityState, setSecurityState] = useState<SecurityState>({
@@ -169,8 +174,8 @@ export function LoginForm({
     setFormData(prev => ({ ...prev, [field]: value }));
     
     // Clear field error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
+    if (fieldErrors[field]) {
+      errorManager.clearFieldError(field);
     }
     
     // Clear login error
@@ -183,17 +188,11 @@ export function LoginForm({
   const validateForm = (): boolean => {
     try {
       loginSchema.parse(formData);
-      setErrors({});
+      errorManager.clearErrors();
       return true;
     } catch (error) {
       if (error instanceof z.ZodError) {
-        const fieldErrors: Partial<Record<keyof LoginFormData, string>> = {};
-        error.errors.forEach(err => {
-          if (err.path[0]) {
-            fieldErrors[err.path[0] as keyof LoginFormData] = err.message;
-          }
-        });
-        setErrors(fieldErrors);
+        errorManager.handleValidationError(error);
       }
       return false;
     }
@@ -231,20 +230,26 @@ export function LoginForm({
         // Handle failed login with security measures
         handleSecurityLockout(securityState.failedAttempts);
         
-        // Parse specific error messages
-        const errorMessage = result.error || 'Login failed. Please try again.';
-        if (errorMessage.includes('locked')) {
-          setLoginError('Account is temporarily locked due to security reasons. Please try again later or contact support.');
-        } else if (errorMessage.includes('rate limit')) {
-          setLoginError('Too many login attempts. Please wait a moment before trying again.');
-        } else if (errorMessage.includes('Invalid credentials')) {
-          setLoginError('Invalid email or password. Please check your credentials and try again.');
-        } else if (errorMessage.includes('Network error')) {
-          setLoginError('Network error. Please check your connection and ensure the backend is running.');
+        // Handle field-specific errors from backend
+        if (result.fieldErrors && Object.keys(result.fieldErrors).length > 0) {
+          setFieldErrors(result.fieldErrors);
+          setLoginError('Please correct the highlighted fields.');
         } else {
-          // Don't show the specific error from handleSecurityLockout if we already set a custom message
-          if (!loginError) {
-            setLoginError(errorMessage);
+          // Parse specific error messages
+          const errorMessage = result.error || 'Login failed. Please try again.';
+          if (errorMessage.includes('locked')) {
+            setLoginError('Account is temporarily locked due to security reasons. Please try again later or contact support.');
+          } else if (errorMessage.includes('rate limit')) {
+            setLoginError('Too many login attempts. Please wait a moment before trying again.');
+          } else if (errorMessage.includes('Invalid credentials')) {
+            setLoginError('Invalid email or password. Please check your credentials and try again.');
+          } else if (errorMessage.includes('Network error')) {
+            setLoginError('Network error. Please check your connection and ensure the backend is running.');
+          } else {
+            // Don't show the specific error from handleSecurityLockout if we already set a custom message
+            if (!loginError) {
+              setLoginError(errorMessage);
+            }
           }
         }
       }
@@ -287,11 +292,9 @@ export function LoginForm({
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   disabled={isMainLoginLoading}
-                  className={errors.email ? 'border-destructive' : ''}
+                  className={fieldErrors.email ? 'border-destructive' : ''}
                 />
-              {errors.email && (
-                <p className="text-sm text-destructive">{errors.email}</p>
-              )}
+              <FormFieldError error={fieldErrors.email} />
             </div>
 
             {/* Password Field */}
@@ -305,7 +308,7 @@ export function LoginForm({
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
                   disabled={isMainLoginLoading}
-                  className={errors.password ? 'border-destructive pr-10' : 'pr-10'}
+                  className={fieldErrors.password ? 'border-destructive pr-10' : 'pr-10'}
                 />
                 <Button
                   type="button"
@@ -322,9 +325,7 @@ export function LoginForm({
                   )}
                 </Button>
               </div>
-              {errors.password && (
-                <p className="text-sm text-destructive">{errors.password}</p>
-              )}
+              <FormFieldError error={fieldErrors.password} />
             </div>
 
             {/* Remember Me */}
@@ -369,6 +370,13 @@ export function LoginForm({
               </Alert>
             )}
 
+            {/* Form Error Summary */}
+            <FormErrorSummary 
+              errors={fieldErrors}
+              mainError={loginError}
+              className="mb-4"
+            />
+
             {/* CAPTCHA Placeholder */}
             {securityState.showCaptcha && enableCaptcha && (
               <Alert>
@@ -376,14 +384,6 @@ export function LoginForm({
                 <AlertDescription>
                   Security verification required. CAPTCHA integration coming soon.
                 </AlertDescription>
-              </Alert>
-            )}
-
-            {/* Login Error */}
-            {loginError && !securityState.isLocked && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{loginError}</AlertDescription>
               </Alert>
             )}
 

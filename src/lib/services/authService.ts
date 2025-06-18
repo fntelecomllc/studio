@@ -2,6 +2,7 @@
 // Simple session-based authentication service
 import { getApiBaseUrl } from '@/lib/config';
 import { logAuth } from '@/lib/utils/logger';
+import { apiClient } from '@/lib/api/client';
 import type {
   User,
   LoginResponse,
@@ -10,7 +11,8 @@ import type {
   PasswordRequirements,
   CreateUserRequest,
   UpdateUserRequest,
-  UserListResponse
+  UserListResponse,
+  ApiResponse
 } from '@/lib/types';
 
 export interface AuthUser {
@@ -124,58 +126,66 @@ class AuthService {
   }
 
   // Login with credentials
-  async login(credentials: LoginCredentials): Promise<{ success: boolean; error?: string }> {
+  async login(credentials: LoginCredentials): Promise<{
+    success: boolean;
+    error?: string;
+    fieldErrors?: { [key: string]: string };
+  }> {
     logAuth.success('Login attempt starting', { email: credentials.email });
     this.setLoading(true);
     
     try {
-      const baseUrl = await getApiBaseUrl();
-      const url = `${baseUrl}/api/v2/auth/login`;
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Include session cookie
-        body: JSON.stringify({
-          email: credentials.email,
-          password: credentials.password,
-          rememberMe: credentials.rememberMe
-        }),
+      const loginResponse = await apiClient.post<LoginResponse>('/api/v2/auth/login', {
+        email: credentials.email,
+        password: credentials.password,
+        rememberMe: credentials.rememberMe
       });
 
-      const data: LoginResponse = await response.json();
-
-      if (response.ok && data.success && data.user) {
+      if (loginResponse.status === 'success' && loginResponse.data?.success && loginResponse.data.user) {
         // Fetch available permissions from backend  
         const availablePermissions = await this.fetchAvailablePermissions();
         
         // Convert User to AuthUser format
         const authUser: AuthUser = {
-          id: data.user.id,
-          email: data.user.email,
-          name: data.user.name || `${data.user.firstName} ${data.user.lastName}`,
-          role: data.user.roles?.[0]?.name || 'user',
-          permissions: data.user.permissions?.map((p: { name: string }) => p.name) || [],
-          avatarUrl: data.user.avatarUrl,
-          isActive: data.user.isActive,
-          mustChangePassword: data.user.mustChangePassword,
-          lastLoginAt: data.user.lastLoginAt,
+          id: loginResponse.data.user.id,
+          email: loginResponse.data.user.email,
+          name: loginResponse.data.user.name || `${loginResponse.data.user.firstName} ${loginResponse.data.user.lastName}`,
+          role: loginResponse.data.user.roles?.[0]?.name || 'user',
+          permissions: loginResponse.data.user.permissions?.map((p: { name: string }) => p.name) || [],
+          avatarUrl: loginResponse.data.user.avatarUrl,
+          isActive: loginResponse.data.user.isActive,
+          mustChangePassword: loginResponse.data.user.mustChangePassword,
+          lastLoginAt: loginResponse.data.user.lastLoginAt,
           failedLoginAttempts: 0,
-          lockedUntil: data.user.isLocked ? 'locked' : undefined
+          lockedUntil: loginResponse.data.user.isLocked ? 'locked' : undefined
         };
         
         // Convert expiresAt to timestamp if provided
-        const sessionExpiry = data.expiresAt ? new Date(data.expiresAt).getTime() : null;
+        const sessionExpiry = loginResponse.data.expiresAt ? new Date(loginResponse.data.expiresAt).getTime() : null;
         this.updateAuthState(authUser, sessionExpiry, availablePermissions);
         
-        logAuth.success('Login successful', { userId: data.user.id });
+        logAuth.success('Login successful', { userId: loginResponse.data.user.id });
         return { success: true };
       } else {
-        const errorMsg = data.error || 'Login failed';
-        logAuth.warn('Login failed', { error: errorMsg, statusCode: response.status });
-        return { success: false, error: errorMsg };
+        // Handle API response errors with field details
+        const errorMsg = loginResponse.message || loginResponse.data?.error || 'Login failed';
+        const fieldErrors: { [key: string]: string } = {};
+        
+        // Extract field-specific errors if available
+        if (loginResponse.errors) {
+          loginResponse.errors.forEach(error => {
+            if (error.field) {
+              fieldErrors[error.field] = error.message;
+            }
+          });
+        }
+        
+        logAuth.warn('Login failed', { error: errorMsg, fieldErrors });
+        return { 
+          success: false, 
+          error: errorMsg,
+          fieldErrors: Object.keys(fieldErrors).length > 0 ? fieldErrors : undefined
+        };
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Network error';
