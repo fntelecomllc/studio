@@ -3,6 +3,7 @@
 import { getApiBaseUrl } from '@/lib/config';
 import { logAuth } from '@/lib/utils/logger';
 import { apiClient } from '@/lib/api/client';
+import { ProductionApiClient } from '@/lib/services/apiClient.production';
 import type {
   User,
   LoginResponse,
@@ -161,6 +162,13 @@ class AuthService {
         
         // Convert expiresAt to timestamp if provided
         const sessionExpiry = loginResponse.data.expiresAt ? new Date(loginResponse.data.expiresAt).getTime() : null;
+        
+        // Set session expiry in API client for proactive refresh
+        if (loginResponse.data.expiresAt) {
+          const apiClient = ProductionApiClient.getInstance();
+          apiClient.setSessionExpiry(loginResponse.data.expiresAt);
+        }
+        
         this.updateAuthState(authUser, sessionExpiry, availablePermissions);
         
         logAuth.success('Login successful', { userId: loginResponse.data.user.id });

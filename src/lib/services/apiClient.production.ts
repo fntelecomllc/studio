@@ -60,9 +60,29 @@ export interface RequestOptions extends Omit<RequestInit, 'body'> {
   skipAuth?: boolean;
 }
 
+interface SessionRefreshState {
+  isRefreshing: boolean;
+  refreshPromise: Promise<boolean> | null;
+  sessionExpiresAt: Date | null;
+  lastRefreshCheck: Date | null;
+}
+
 class ProductionApiClient {
   private baseUrl: string;
   private static instance: ProductionApiClient;
+  private sessionState: SessionRefreshState = {
+    isRefreshing: false,
+    refreshPromise: null,
+    sessionExpiresAt: null,
+    lastRefreshCheck: null,
+  };
+
+  // Queue for requests waiting for refresh
+  private requestQueue: Array<{
+    resolve: (response: any) => void;
+    reject: (error: any) => void;
+    requestFn: () => Promise<any>;
+  }> = [];
 
   constructor(baseUrl: string = '') {
     this.baseUrl = baseUrl;
@@ -75,11 +95,152 @@ class ProductionApiClient {
     return ProductionApiClient.instance;
   }
 
+  /**
+   * Set session expiration time (called after login/refresh)
+   */
+  setSessionExpiry(expiresAt: string | Date): void {
+    this.sessionState.sessionExpiresAt = typeof expiresAt === 'string' ? new Date(expiresAt) : expiresAt;
+    this.sessionState.lastRefreshCheck = new Date();
+  }
+
+  /**
+   * Check if session is close to expiring (within 5 minutes)
+   */
+  private isSessionNearExpiry(): boolean {
+    if (!this.sessionState.sessionExpiresAt) {
+      return false; // No session info, let the server handle it
+    }
+
+    const now = new Date();
+    const timeUntilExpiry = this.sessionState.sessionExpiresAt.getTime() - now.getTime();
+    const fiveMinutesInMs = 5 * 60 * 1000; // 5 minutes
+
+    return timeUntilExpiry <= fiveMinutesInMs;
+  }
+
+  /**
+   * Refresh session proactively
+   */
+  private async refreshSession(): Promise<boolean> {
+    if (this.sessionState.isRefreshing) {
+      // Return existing refresh promise
+      return this.sessionState.refreshPromise || Promise.resolve(false);
+    }
+
+    this.sessionState.isRefreshing = true;
+    
+    this.sessionState.refreshPromise = (async () => {
+      try {
+        const response = await fetch(`${this.baseUrl || window.location.origin}/auth/refresh`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.expiresAt) {
+            this.setSessionExpiry(data.expiresAt);
+            console.log('Session refreshed successfully');
+            return true;
+          }
+        }
+
+        console.warn('Session refresh failed:', response.status);
+        return false;
+      } catch (error) {
+        console.error('Session refresh error:', error);
+        return false;
+      } finally {
+        this.sessionState.isRefreshing = false;
+        this.sessionState.refreshPromise = null;
+      }
+    })();
+
+    return this.sessionState.refreshPromise;
+  }
+
+  /**
+   * Process queued requests after successful refresh
+   */
+  private async processQueuedRequests(): Promise<void> {
+    const queue = [...this.requestQueue];
+    this.requestQueue = [];
+
+    for (const { resolve, reject, requestFn } of queue) {
+      try {
+        const result = await requestFn();
+        resolve(result);
+      } catch (error) {
+        reject(error);
+      }
+    }
+  }
+
+  /**
+   * Session-aware request interceptor
+   */
+  private async interceptRequest<T>(
+    requestFn: () => Promise<ApiResponse<T>>,
+    isRetry: boolean = false
+  ): Promise<ApiResponse<T>> {
+    // Skip refresh logic for auth endpoints and retries
+    if (isRetry) {
+      return requestFn();
+    }
+
+    // Check if session needs refresh
+    if (this.isSessionNearExpiry()) {
+      // If already refreshing, queue this request
+      if (this.sessionState.isRefreshing) {
+        return new Promise((resolve, reject) => {
+          this.requestQueue.push({
+            resolve,
+            reject,
+            requestFn: () => this.interceptRequest(requestFn, true),
+          });
+        });
+      }
+
+      // Attempt to refresh session
+      const refreshSuccessful = await this.refreshSession();
+      
+      if (refreshSuccessful) {
+        // Process any queued requests
+        await this.processQueuedRequests();
+      } else {
+        // Refresh failed, clear session state and let request proceed
+        // (it will likely get a 401 and redirect to login)
+        this.sessionState.sessionExpiresAt = null;
+      }
+    }
+
+    // Execute the original request
+    return requestFn();
+  }
 
   /**
    * Generic request method with retry logic and security
    */
   async request<T>(endpoint: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
+    // Skip interceptor for auth endpoints to avoid infinite loops
+    const isAuthEndpoint = endpoint.includes('/auth/') || endpoint.includes('/login');
+    
+    if (isAuthEndpoint || options.skipAuth) {
+      return this._performRequest<T>(endpoint, options);
+    }
+
+    // Use interceptor for regular requests
+    return this.interceptRequest(() => this._performRequest<T>(endpoint, options));
+  }
+
+  /**
+   * Internal request method that performs the actual HTTP request
+   */
+  private async _performRequest<T>(endpoint: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
     const {
       params,
       body,
@@ -349,16 +510,19 @@ export const apiClient = {
   
 };
 
-export default apiClient;
+// Export the ProductionApiClient class for direct access
+export { ProductionApiClient };
 
-export type DiagnosticApiClientMethods = {
+// API client interface for convenience methods
+interface ApiClientMethods {
   get<T>(endpoint: string, options?: RequestOptions): Promise<ApiResponse<T>>;
   post<T>(endpoint: string, body?: RequestOptions['body'], options?: RequestOptions): Promise<ApiResponse<T>>;
   put<T>(endpoint: string, body?: RequestOptions['body'], options?: RequestOptions): Promise<ApiResponse<T>>;
   delete<T>(endpoint: string, options?: RequestOptions): Promise<ApiResponse<T>>;
-};
+}
 
-export const diagnosticApiClient: DiagnosticApiClientMethods = {
+// Default instance for convenience
+export const diagnosticApiClient: ApiClientMethods = {
   async get<T>(endpoint: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
     const apiConfig = getApiConfig();
     return ProductionApiClient.getInstance(apiConfig.baseUrl).request<T>(endpoint, { ...options, method: 'GET' });
@@ -376,3 +540,6 @@ export const diagnosticApiClient: DiagnosticApiClientMethods = {
     return ProductionApiClient.getInstance(apiConfig.baseUrl).request<T>(endpoint, { ...options, method: 'DELETE' });
   },
 };
+
+// Default export for backward compatibility
+export default diagnosticApiClient;

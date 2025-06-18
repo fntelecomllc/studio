@@ -275,8 +275,6 @@ export default function CampaignDashboardPage() {
     
     // Show items if the campaign type matches and it's not just pending
     const shouldShowItems = (isDNSCampaign || isHTTPCampaign || isDomainGenCampaign) && executionStatus !== 'pending';
-    const isDomainGenPhaseNotStreaming = isDomainGenCampaign && executionStatus !== 'running';
-
 
     if (shouldShowItems) {
       fetchItems();
