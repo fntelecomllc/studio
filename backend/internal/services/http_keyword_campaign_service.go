@@ -19,6 +19,7 @@ import (
 	"github.com/fntelecomllc/studio/backend/internal/models"
 	"github.com/fntelecomllc/studio/backend/internal/proxymanager"
 	"github.com/fntelecomllc/studio/backend/internal/store"
+	"github.com/fntelecomllc/studio/backend/internal/websocket"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
@@ -911,6 +912,20 @@ func (s *httpKeywordCampaignServiceImpl) ProcessHTTPKeywordCampaignBatch(ctx con
 			log.Printf("ProcessHTTPKeywordCampaignBatch: Also failed to update campaign %s: %v (original opErr: %v)", campaignID, currentErr, opErr)
 		}
 		return false, processedInThisBatch, opErr
+	}
+
+	// Broadcast HTTP validation progress via WebSocket
+	if campaign.ProgressPercentage != nil && campaign.ProcessedItems != nil && campaign.TotalItems != nil {
+		processedCount := *campaign.ProcessedItems
+		totalCount := *campaign.TotalItems
+		
+		if done {
+			// Campaign completed
+			websocket.BroadcastCampaignProgress(campaignID.String(), 100.0, "completed", "http_keyword_validation")
+		} else {
+			// Progress update
+			websocket.BroadcastValidationProgress(campaignID.String(), processedCount, totalCount, "http_keyword_validation")
+		}
 	}
 
 	processedItemsVal := int64(0)

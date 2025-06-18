@@ -557,7 +557,7 @@ export default function CampaignDashboardPage() {
             };
         }).sort((a,b) => a.domainName.localeCompare(b.domainName));
     }
-  }, [campaign, campaignId, generatedDomains, dnsCampaignItems, httpCampaignItems]);
+  }, [campaign, campaignId, generatedDomains, dnsCampaignItems, httpCampaignItems, getGlobalDomainStatusForPhase]);
 
   // Pagination logic for campaignDomainDetails
   const totalDomains = campaignDomainDetails.length;

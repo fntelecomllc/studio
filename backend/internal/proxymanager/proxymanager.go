@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/fntelecomllc/studio/backend/internal/config"
+	"github.com/fntelecomllc/studio/backend/internal/websocket"
 )
 
 // Constants, ProxyTestResult, TestProxy, ProxyStatus, ProxyManager struct, NewProxyManager,
@@ -288,6 +289,13 @@ func (pm *ProxyManager) ReportProxyHealth(proxyID string, wasSuccessful bool, fa
 	if statusChanged {
 		pm.allProxies[foundIndex] = foundProxy
 		pm.updateActiveProxies()
+		
+		// Broadcast proxy status change via WebSocket
+		status := "unhealthy"
+		if foundProxy.IsHealthy {
+			status = "healthy"
+		}
+		websocket.BroadcastProxyStatus(foundProxy.ID, status, "")
 	} else if foundIndex != -1 {
 		pm.allProxies[foundIndex] = foundProxy
 	}
@@ -443,6 +451,9 @@ func (pm *ProxyManager) ForceCheckProxiesAsync(idsToCheck []string) {
 					if !healthBeforeThisCheck {
 						overallStatusChangedSinceStartOfAsyncOp = true
 						log.Printf("ProxyManager: ForceCheckProxiesAsync - Proxy ID '%s' (%s) PASSED check and is now HEALTHY.", proxyStatus.ProxyConfigEntry.ID, proxyStatus.ProxyConfigEntry.Address)
+						
+						// Broadcast proxy status change via WebSocket
+						websocket.BroadcastProxyStatus(proxyStatus.ProxyConfigEntry.ID, "healthy", "")
 					}
 				} else {
 					proxyStatus.IsHealthy = false
@@ -451,6 +462,9 @@ func (pm *ProxyManager) ForceCheckProxiesAsync(idsToCheck []string) {
 						overallStatusChangedSinceStartOfAsyncOp = true
 						log.Printf("ProxyManager: ForceCheckProxiesAsync - Proxy ID '%s' (%s) FAILED check: %s. Marking UNHEALTHY.", proxyStatus.ProxyConfigEntry.ID, proxyStatus.ProxyConfigEntry.Address, checkResult.Error)
 						proxyStatus.ConsecutiveFailures = 1
+						
+						// Broadcast proxy status change via WebSocket
+						websocket.BroadcastProxyStatus(proxyStatus.ProxyConfigEntry.ID, "unhealthy", "")
 					} else {
 						log.Printf("ProxyManager: ForceCheckProxiesAsync - Proxy ID '%s' (%s) FAILED check again: %s.", proxyStatus.ProxyConfigEntry.ID, proxyStatus.ProxyConfigEntry.Address, checkResult.Error)
 						if proxyStatus.ConsecutiveFailures == 0 {

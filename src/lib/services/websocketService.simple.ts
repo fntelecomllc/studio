@@ -1,22 +1,32 @@
-// Simple WebSocket Service - stub implementation for frontend compatibility
-// This replaces the complex websocket infrastructure with a simple implementation
+// Enhanced WebSocket Service - Real-time updates implementation
+// Handles campaign progress, proxy status, and system notifications
 
 export interface WebSocketMessage {
   id?: string;
   timestamp?: string;
   type: string;
-  data: any;
-  payload?: any;
+  data: Record<string, unknown>;
+  payload?: Record<string, unknown>;
   message?: string;
   campaignId?: string;
   phase?: string;
   status?: string;
   progress?: number;
   sequenceNumber?: number;
+  
+  // Real-time update specific fields
+  proxyId?: string;
+  proxyStatus?: string;
+  personaId?: string;
+  personaStatus?: string;
+  validationsProcessed?: number;
+  domainsGenerated?: number;
+  estimatedTimeRemaining?: string;
+  error?: string;
 }
 
 export interface CampaignProgressMessage extends WebSocketMessage {
-  type: 'campaign_progress' | 'progress' | 'domain_generated' | 'phase_complete' | 'error' | 'subscription_confirmed' | 'validation_complete' | 'system_notification';
+  type: 'campaign_progress' | 'progress' | 'domain_generated' | 'domain_generation_progress' | 'validation_progress' | 'phase_complete' | 'error' | 'subscription_confirmed' | 'validation_complete' | 'system_notification';
   campaignId?: string;
   data: {
     campaignId?: string;
@@ -24,10 +34,25 @@ export interface CampaignProgressMessage extends WebSocketMessage {
     phase?: string;
     status?: string;
     domains?: string[];
-    validationResults?: any[];
+    validationResults?: Record<string, unknown>[];
     error?: string;
-    [key: string]: any;
+    domainsGenerated?: number;
+    validationsProcessed?: number;
+    [key: string]: unknown;
   };
+}
+
+export interface ProxyStatusMessage extends WebSocketMessage {
+  type: 'proxy_status_update';
+  proxyId: string;
+  proxyStatus: string;
+  campaignId?: string;
+}
+
+export interface SystemNotificationMessage extends WebSocketMessage {
+  type: 'system_notification';
+  message: string;
+  status: 'info' | 'warning' | 'error' | 'success';
 }
 
 export type MessageHandler = (message: WebSocketMessage) => void;
@@ -41,20 +66,127 @@ export interface ConnectionStatus {
 }
 
 export class WebSocketService {
+  private ws: WebSocket | null = null;
   private connected = false;
   private messageHandlers: MessageHandler[] = [];
   private errorHandlers: ErrorHandler[] = [];
   private campaignConnections: Map<string, boolean> = new Map();
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+  private reconnectInterval = 3000;
+  private url = '';
+
+  constructor() {
+    // Initialize WebSocket URL based on environment
+    if (typeof window !== 'undefined') {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host;
+      this.url = `${protocol}//${host}/api/v2/ws`;
+    }
+  }
 
   connect(): Promise<void> {
-    // Stub implementation - always resolve immediately
-    this.connected = true;
-    return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      try {
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+          resolve();
+          return;
+        }
+
+        this.ws = new WebSocket(this.url);
+
+        this.ws.onopen = () => {
+          console.log('[WebSocket] Connected to server');
+          this.connected = true;
+          this.reconnectAttempts = 0;
+          
+          // Send connection initialization
+          this.sendConnectionInit();
+          
+          resolve();
+        };
+
+        this.ws.onmessage = (event) => {
+          try {
+            const message: WebSocketMessage = JSON.parse(event.data);
+            this.handleMessage(message);
+          } catch (error) {
+            console.error('[WebSocket] Failed to parse message:', error);
+          }
+        };
+
+        this.ws.onclose = () => {
+          console.log('[WebSocket] Connection closed');
+          this.connected = false;
+          this.attemptReconnect();
+        };
+
+        this.ws.onerror = (error) => {
+          console.error('[WebSocket] Connection error:', error);
+          this.connected = false;
+          this.errorHandlers.forEach(handler => {
+            try {
+              handler(new Error('WebSocket connection error'));
+            } catch (err) {
+              console.error('[WebSocket] Error in error handler:', err);
+            }
+          });
+          reject(error);
+        };
+
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  private sendConnectionInit(): void {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      const initMessage = {
+        type: 'connection_init',
+        lastSequenceNumber: 0
+      };
+      this.ws.send(JSON.stringify(initMessage));
+    }
+  }
+
+  private handleMessage(message: WebSocketMessage): void {
+    console.log('[WebSocket] Received message:', message);
+    
+    // Call all registered message handlers
+    this.messageHandlers.forEach(handler => {
+      try {
+        handler(message);
+      } catch (error) {
+        console.error('[WebSocket] Error in message handler:', error);
+      }
+    });
+  }
+
+  private attemptReconnect(): void {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.error('[WebSocket] Max reconnection attempts reached');
+      return;
+    }
+
+    this.reconnectAttempts++;
+    console.log(`[WebSocket] Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+
+    setTimeout(() => {
+      this.connect().catch(error => {
+        console.error('[WebSocket] Reconnection failed:', error);
+      });
+    }, this.reconnectInterval);
   }
 
   disconnect(): void {
     this.connected = false;
     this.campaignConnections.clear();
+    
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
   }
 
   disconnectAll(): void {
@@ -74,7 +206,26 @@ export class WebSocketService {
     onMessage?: MessageHandler,
     onError?: ErrorHandler
   ): () => void {
-    this.campaignConnections.set(campaignId, true);
+    // First ensure WebSocket connection is established
+    this.connect().then(() => {
+      // Send campaign subscription message
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        const subscribeMessage = {
+          type: 'subscribe_campaign',
+          campaignId: campaignId,
+          lastSequenceNumber: 0
+        };
+        this.ws.send(JSON.stringify(subscribeMessage));
+        
+        this.campaignConnections.set(campaignId, true);
+        console.log(`[WebSocket] Subscribed to campaign: ${campaignId}`);
+      }
+    }).catch(error => {
+      console.error('[WebSocket] Failed to connect for campaign subscription:', error);
+      if (onError) {
+        onError(error);
+      }
+    });
     
     if (onMessage) {
       this.subscribe(onMessage);
@@ -86,7 +237,17 @@ export class WebSocketService {
 
     // Return cleanup function
     return () => {
+      // Send unsubscribe message
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        const unsubscribeMessage = {
+          type: 'unsubscribe_campaign',
+          campaignId: campaignId
+        };
+        this.ws.send(JSON.stringify(unsubscribeMessage));
+      }
+      
       this.campaignConnections.delete(campaignId);
+      console.log(`[WebSocket] Unsubscribed from campaign: ${campaignId}`);
     };
   }
 
@@ -126,13 +287,34 @@ export class WebSocketService {
   }
 
   send(message: WebSocketMessage): void {
-    // Stub implementation - no-op
-    console.log('WebSocket send (stub):', message);
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      try {
+        this.ws.send(JSON.stringify(message));
+        console.log('[WebSocket] Sent message:', message);
+      } catch (error) {
+        console.error('[WebSocket] Failed to send message:', error);
+      }
+    } else {
+      console.warn('[WebSocket] Cannot send message - not connected');
+    }
   }
 
   // Send message to specific campaign
   sendMessage(campaignId: string, message: WebSocketMessage): void {
-    console.log(`WebSocket send to campaign ${campaignId} (stub):`, message);
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      try {
+        const messageWithCampaign = {
+          ...message,
+          campaignId: campaignId
+        };
+        this.ws.send(JSON.stringify(messageWithCampaign));
+        console.log(`[WebSocket] Sent message to campaign ${campaignId}:`, messageWithCampaign);
+      } catch (error) {
+        console.error('[WebSocket] Failed to send message to campaign:', error);
+      }
+    } else {
+      console.warn('[WebSocket] Cannot send message - not connected');
+    }
   }
 
   // Get connection status for all campaigns

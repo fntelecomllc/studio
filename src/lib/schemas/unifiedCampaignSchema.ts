@@ -3,14 +3,14 @@
 
 import { z } from 'zod';
 import { 
-  createCampaignRequestSchema,
+  createCampaignRequestSchema as _createCampaignRequestSchema,
   domainGenerationParamsSchema,
   dnsValidationParamsSchema,
   httpKeywordParamsSchema,
-  type CreateCampaignRequest as GeneratedCreateCampaignRequest,
-  type DomainGenerationParams as GeneratedDomainGenerationParams,
-  type DnsValidationParams as GeneratedDnsValidationParams,
-  type HttpKeywordParams as GeneratedHttpKeywordParams
+  type CreateCampaignRequest as _GeneratedCreateCampaignRequest,
+  type DomainGenerationParams as _GeneratedDomainGenerationParams,
+  type DnsValidationParams as _GeneratedDnsValidationParams,
+  type HttpKeywordParams as _GeneratedHttpKeywordParams
 } from './generated/validationSchemas';
 
 // Enhanced Domain Generation Parameters (missing fields from generator)
@@ -121,51 +121,51 @@ export type EnhancedHttpKeywordParams = z.infer<typeof enhancedHttpKeywordParams
 
 // Utility functions for form handling
 export const createUnifiedCampaignPayload = (
-  formData: any, 
+  formData: Record<string, unknown>, 
   campaignType: "domain_generation" | "dns_validation" | "http_keyword_validation"
 ): UnifiedCreateCampaignRequest => {
   const basePayload: UnifiedCreateCampaignRequest = {
     campaignType,
-    name: formData.name,
-    description: formData.description,
+    name: formData.name as string,
+    description: formData.description as string | undefined,
   };
 
   switch (campaignType) {
     case "domain_generation":
       basePayload.domainGenerationParams = {
-        patternType: formData.patternType,
-        variableLength: formData.variableLength,
-        characterSet: formData.characterSet,
-        constantString: formData.constantString,
-        tld: formData.tld,
-        numDomainsToGenerate: formData.numDomainsToGenerate,
+        patternType: formData.patternType as "prefix" | "suffix" | "both",
+        variableLength: formData.variableLength as number,
+        characterSet: formData.characterSet as string,
+        constantString: formData.constantString as string,
+        tld: formData.tld as string,
+        numDomainsToGenerate: formData.numDomainsToGenerate as number | undefined,
       };
       break;
       
     case "dns_validation":
       basePayload.dnsValidationParams = {
-        sourceCampaignId: formData.sourceCampaignId,
-        personaIds: formData.personaIds,
-        rotationIntervalSeconds: formData.rotationIntervalSeconds,
-        processingSpeedPerMinute: formData.processingSpeedPerMinute,
-        batchSize: formData.batchSize,
-        retryAttempts: formData.retryAttempts,
+        sourceCampaignId: formData.sourceCampaignId as string,
+        personaIds: formData.personaIds as string[],
+        rotationIntervalSeconds: formData.rotationIntervalSeconds as number | undefined,
+        processingSpeedPerMinute: formData.processingSpeedPerMinute as number | undefined,
+        batchSize: formData.batchSize as number | undefined,
+        retryAttempts: formData.retryAttempts as number | undefined,
       };
       break;
       
     case "http_keyword_validation":
       basePayload.httpKeywordParams = {
-        sourceCampaignId: formData.sourceCampaignId,
-        keywordSetIds: formData.keywordSetIds,
-        adHocKeywords: formData.adHocKeywords,
-        personaIds: formData.personaIds,
-        proxyPoolId: formData.proxyPoolId,
-        proxySelectionStrategy: formData.proxySelectionStrategy,
-        rotationIntervalSeconds: formData.rotationIntervalSeconds,
-        processingSpeedPerMinute: formData.processingSpeedPerMinute,
-        batchSize: formData.batchSize,
-        retryAttempts: formData.retryAttempts,
-        targetHttpPorts: formData.targetHttpPorts,
+        sourceCampaignId: formData.sourceCampaignId as string,
+        keywordSetIds: formData.keywordSetIds as string[] | undefined,
+        adHocKeywords: formData.adHocKeywords as string[] | undefined,
+        personaIds: formData.personaIds as string[],
+        proxyPoolId: formData.proxyPoolId as string | undefined,
+        proxySelectionStrategy: formData.proxySelectionStrategy as string | undefined,
+        rotationIntervalSeconds: formData.rotationIntervalSeconds as number | undefined,
+        processingSpeedPerMinute: formData.processingSpeedPerMinute as number | undefined,
+        batchSize: formData.batchSize as number | undefined,
+        retryAttempts: formData.retryAttempts as number | undefined,
+        targetHttpPorts: formData.targetHttpPorts as number[] | undefined,
       };
       break;
   }

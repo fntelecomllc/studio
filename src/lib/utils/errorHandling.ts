@@ -24,6 +24,7 @@ export interface FormErrorState {
  * @param apiResponse - API response from our SessionApiClient
  * @returns Object mapping field names to error messages
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function extractFieldErrors(apiResponse: any): FormErrorState {
   const fieldErrors: FormErrorState = {};
   
@@ -44,6 +45,7 @@ export function extractFieldErrors(apiResponse: any): FormErrorState {
  * @param apiResponse - API response from our SessionApiClient
  * @returns Main error message string
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function extractMainError(apiResponse: any): string {
   if (apiResponse?.message) {
     return apiResponse.message;
@@ -61,6 +63,7 @@ export function extractMainError(apiResponse: any): string {
  * @param apiResponse - API response from our SessionApiClient
  * @returns True if the response contains field errors
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function hasFieldErrors(apiResponse: any): boolean {
   return apiResponse?.errors && Array.isArray(apiResponse.errors) && apiResponse.errors.length > 0;
 }
@@ -71,11 +74,13 @@ export function hasFieldErrors(apiResponse: any): boolean {
  * @param apiFieldErrors - Field errors from API response
  * @returns Combined error state
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function combineValidationErrors(zodError?: any, apiFieldErrors?: FormErrorState): FormErrorState {
   const combined: FormErrorState = {};
   
   // Add Zod validation errors
   if (zodError?.errors) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     zodError.errors.forEach((error: any) => {
       if (error.path && error.path.length > 0) {
         const fieldName = error.path[0];
@@ -97,6 +102,7 @@ export function combineValidationErrors(zodError?: any, apiFieldErrors?: FormErr
  * @param apiResponse - API response from our SessionApiClient
  * @returns User-friendly error message
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createUserFriendlyError(apiResponse: any): string {
   const mainError = extractMainError(apiResponse);
   
@@ -145,6 +151,7 @@ export class FormErrorManager {
   /**
    * Processes an API response and updates error state
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handleApiResponse(apiResponse: any): void {
     if (apiResponse.status === 'error') {
       const fieldErrors = extractFieldErrors(apiResponse);
@@ -162,6 +169,7 @@ export class FormErrorManager {
   /**
    * Processes Zod validation errors
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handleValidationError(zodError: any): void {
     const fieldErrors = combineValidationErrors(zodError);
     this.setFieldErrors(fieldErrors);

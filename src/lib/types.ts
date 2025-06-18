@@ -332,8 +332,8 @@ export interface Campaign {
   domains?: string[];
   dnsValidatedDomains?: string[];
   httpValidatedDomains?: string[];
-  extractedContent?: any[];
-  leads?: any[];
+  extractedContent?: Record<string, unknown>[];
+  leads?: Record<string, unknown>[];
   
   // UI configuration fields
   domainSourceConfig?: {

@@ -48,6 +48,16 @@ type WebSocketMessage struct {
 	Phase          string      `json:"phase,omitempty"`
 	Status         string      `json:"status,omitempty"`
 	Progress       float64     `json:"progress,omitempty"`
+	ErrorMessage   string      `json:"error,omitempty"`
+	
+	// Real-time update specific fields
+	ProxyID        string      `json:"proxyId,omitempty"`
+	ProxyStatus    string      `json:"proxyStatus,omitempty"`
+	PersonaID      string      `json:"personaId,omitempty"`
+	PersonaStatus  string      `json:"personaStatus,omitempty"`
+	ValidationsProcessed int64 `json:"validationsProcessed,omitempty"`
+	DomainsGenerated     int64 `json:"domainsGenerated,omitempty"`
+	EstimatedTimeRemaining string `json:"estimatedTimeRemaining,omitempty"`
 }
 
 // ClientMessage represents messages received from the client
@@ -323,4 +333,125 @@ func NewClientWithSecurity(hub Broadcaster, conn *websocket.Conn, securityContex
 // GetSecurityContext returns the client's security context
 func (c *Client) GetSecurityContext() *SecurityContext {
 	return c.securityContext
+}
+
+// CreateCampaignProgressMessage creates a standardized campaign progress message
+func CreateCampaignProgressMessage(campaignID string, progress float64, status string, phase string) WebSocketMessage {
+	return WebSocketMessage{
+		ID:             uuid.New().String(),
+		Timestamp:      time.Now().UTC().Format(time.RFC3339),
+		Type:           "campaign_progress",
+		SequenceNumber: atomic.AddInt64(&globalSequenceCounter, 1),
+		CampaignID:     campaignID,
+		Status:         status,
+		Phase:          phase,
+		Progress:       progress,
+	}
+}
+
+// CreateProxyStatusMessage creates a standardized proxy status update message
+func CreateProxyStatusMessage(proxyID, status string, campaignID string) WebSocketMessage {
+	return WebSocketMessage{
+		ID:             uuid.New().String(),
+		Timestamp:      time.Now().UTC().Format(time.RFC3339),
+		Type:           "proxy_status_update",
+		SequenceNumber: atomic.AddInt64(&globalSequenceCounter, 1),
+		CampaignID:     campaignID,
+		ProxyID:        proxyID,
+		ProxyStatus:    status,
+	}
+}
+
+// CreateDomainGenerationMessage creates a message for domain generation progress
+func CreateDomainGenerationMessage(campaignID string, domainsGenerated int64, totalDomains int64) WebSocketMessage {
+	progress := 0.0
+	if totalDomains > 0 {
+		progress = float64(domainsGenerated) / float64(totalDomains) * 100
+	}
+	
+	return WebSocketMessage{
+		ID:               uuid.New().String(),
+		Timestamp:        time.Now().UTC().Format(time.RFC3339),
+		Type:             "domain_generation_progress",
+		SequenceNumber:   atomic.AddInt64(&globalSequenceCounter, 1),
+		CampaignID:       campaignID,
+		DomainsGenerated: domainsGenerated,
+		Progress:         progress,
+		Status:           "generating",
+		Phase:            "domain_generation",
+	}
+}
+
+// CreateValidationProgressMessage creates a message for validation progress
+func CreateValidationProgressMessage(campaignID string, validationsProcessed int64, totalValidations int64, validationType string) WebSocketMessage {
+	progress := 0.0
+	if totalValidations > 0 {
+		progress = float64(validationsProcessed) / float64(totalValidations) * 100
+	}
+	
+	return WebSocketMessage{
+		ID:                   uuid.New().String(),
+		Timestamp:            time.Now().UTC().Format(time.RFC3339),
+		Type:                 "validation_progress",
+		SequenceNumber:       atomic.AddInt64(&globalSequenceCounter, 1),
+		CampaignID:           campaignID,
+		ValidationsProcessed: validationsProcessed,
+		Progress:             progress,
+		Status:               "validating",
+		Phase:                validationType,
+	}
+}
+
+// CreateSystemNotificationMessage creates a system-wide notification message
+func CreateSystemNotificationMessage(message string, level string) WebSocketMessage {
+	return WebSocketMessage{
+		ID:             uuid.New().String(),
+		Timestamp:      time.Now().UTC().Format(time.RFC3339),
+		Type:           "system_notification",
+		SequenceNumber: atomic.AddInt64(&globalSequenceCounter, 1),
+		Message:        message,
+		Status:         level, // info, warning, error, success
+	}
+}
+
+// BroadcastCampaignProgress broadcasts campaign progress to subscribed clients
+func BroadcastCampaignProgress(campaignID string, progress float64, status string, phase string) {
+	if broadcaster := GetBroadcaster(); broadcaster != nil {
+		message := CreateCampaignProgressMessage(campaignID, progress, status, phase)
+		broadcaster.BroadcastToCampaign(campaignID, message)
+	}
+}
+
+// BroadcastProxyStatus broadcasts proxy status updates to subscribed clients
+func BroadcastProxyStatus(proxyID, status string, campaignID string) {
+	if broadcaster := GetBroadcaster(); broadcaster != nil {
+		message := CreateProxyStatusMessage(proxyID, status, campaignID)
+		broadcaster.BroadcastToCampaign(campaignID, message)
+	}
+}
+
+// BroadcastDomainGeneration broadcasts domain generation progress
+func BroadcastDomainGeneration(campaignID string, domainsGenerated int64, totalDomains int64) {
+	if broadcaster := GetBroadcaster(); broadcaster != nil {
+		message := CreateDomainGenerationMessage(campaignID, domainsGenerated, totalDomains)
+		broadcaster.BroadcastToCampaign(campaignID, message)
+	}
+}
+
+// BroadcastValidationProgress broadcasts validation progress
+func BroadcastValidationProgress(campaignID string, validationsProcessed int64, totalValidations int64, validationType string) {
+	if broadcaster := GetBroadcaster(); broadcaster != nil {
+		message := CreateValidationProgressMessage(campaignID, validationsProcessed, totalValidations, validationType)
+		broadcaster.BroadcastToCampaign(campaignID, message)
+	}
+}
+
+// BroadcastSystemNotification broadcasts system-wide notifications
+func BroadcastSystemNotification(message string, level string) {
+	if broadcaster := GetBroadcaster(); broadcaster != nil {
+		notification := CreateSystemNotificationMessage(message, level)
+		if data, err := json.Marshal(notification); err == nil {
+			broadcaster.BroadcastMessage(data)
+		}
+	}
 }

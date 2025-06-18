@@ -78,6 +78,7 @@ class ProductionApiClient {
   };
 
   // Queue for requests waiting for refresh
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private requestQueue: Array<{
     resolve: (response: any) => void;
     reject: (error: any) => void;

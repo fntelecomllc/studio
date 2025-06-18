@@ -20,11 +20,10 @@ import { Target, Loader2 } from 'lucide-react';
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { CAMPAIGN_SELECTED_TYPES } from "@/lib/constants";
-import type { Campaign, CampaignSelectedType, CreateCampaignPayload, CampaignPhase, DomainGenerationPattern } from '@/lib/types';
-import { createCampaign, createCampaignUnified } from "@/lib/services/campaignService.production";
+import type { Campaign, CampaignSelectedType, CampaignPhase, DomainGenerationPattern, DomainSourceSelectionMode } from '@/lib/types';
+import { createCampaignUnified } from "@/lib/services/campaignService.production";
 import { 
-  type UnifiedCreateCampaignRequest,
-  createUnifiedCampaignPayload 
+  type UnifiedCreateCampaignRequest
 } from '@/lib/schemas/unifiedCampaignSchema';
 import { 
   campaignFormSchema, 
@@ -90,7 +89,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
       description: isEditing && campaignToEdit ? (campaignToEdit.description || "") : "",
       selectedType: isEditing && campaignToEdit ? campaignToEdit.selectedType : (preselectedType && Object.values(CAMPAIGN_SELECTED_TYPES).includes(preselectedType) ? preselectedType : undefined),
       domainSourceSelectionMode: isEditing && campaignToEdit ? 
-        (campaignToEdit.domainSourceConfig?.type === 'current_campaign_output' ? 'campaign_output' as const : (campaignToEdit.domainSourceConfig?.type as any || getDefaultSourceMode(campaignToEdit.selectedType))) : 
+        (campaignToEdit.domainSourceConfig?.type === 'current_campaign_output' ? 'campaign_output' as const : (campaignToEdit.domainSourceConfig?.type as DomainSourceSelectionMode || getDefaultSourceMode(campaignToEdit.selectedType))) : 
         getDefaultSourceMode(preselectedType),
       sourceCampaignId: isEditing && campaignToEdit ? (campaignToEdit.domainSourceConfig?.sourceCampaignId || CampaignFormConstants.NONE_VALUE_PLACEHOLDER) : CampaignFormConstants.NONE_VALUE_PLACEHOLDER,
       sourcePhase: isEditing && campaignToEdit ? (campaignToEdit.domainSourceConfig?.sourcePhase as CampaignPhase) : undefined,
@@ -120,6 +119,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
   });
 
   const { control, formState: { isSubmitting }, watch, setValue } = form;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const typedControl = control as any; // Workaround for TypeScript inference issue
   const selectedCampaignType = watch("selectedType");
 

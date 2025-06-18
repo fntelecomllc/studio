@@ -12,6 +12,7 @@ import (
 	"github.com/fntelecomllc/studio/backend/internal/domainexpert"
 	"github.com/fntelecomllc/studio/backend/internal/models"
 	"github.com/fntelecomllc/studio/backend/internal/store"
+	"github.com/fntelecomllc/studio/backend/internal/websocket"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
@@ -410,6 +411,9 @@ func (s *domainGenerationServiceImpl) ProcessGenerationCampaignBatch(ctx context
 			return false, 0, opErr
 		}
 		log.Printf("ProcessGenerationCampaignBatch: Campaign %s marked as Running (was %s).", campaignID, originalStatus)
+		
+		// Broadcast campaign status change via WebSocket
+		websocket.BroadcastCampaignProgress(campaignID.String(), 0.0, "running", "domain_generation")
 	} else if campaign.Status != models.CampaignStatusRunning {
 		// If it's some other non-runnable, non-terminal state (e.g., Paused, Pausing)
 		log.Printf("ProcessGenerationCampaignBatch: Campaign %s is not in a runnable state (status: %s). Skipping job.", campaignID, campaign.Status)
@@ -596,6 +600,14 @@ func (s *domainGenerationServiceImpl) ProcessGenerationCampaignBatch(ctx context
 		}
 		processedInThisBatch = len(generatedDomainsToStore)
 		log.Printf("ProcessGenerationCampaignBatch: Saved %d domains for campaign %s.", processedInThisBatch, campaignID)
+		
+		// Broadcast domain generation progress via WebSocket
+		newProcessedItems := processedItems + int64(processedInThisBatch)
+		targetDomains := int64(genParams.NumDomainsToGenerate)
+		if targetDomains == 0 {
+			targetDomains = genParams.TotalPossibleCombinations
+		}
+		websocket.BroadcastDomainGeneration(campaignID.String(), newProcessedItems, targetDomains)
 	}
 
 	if errUpdateOffset := s.campaignStore.UpdateDomainGenerationParamsOffset(ctx, querier, campaignID, nextGeneratorOffsetAbsolute); errUpdateOffset != nil {
@@ -665,8 +677,18 @@ func (s *domainGenerationServiceImpl) ProcessGenerationCampaignBatch(ctx context
 		done = true
 		log.Printf("ProcessGenerationCampaignBatch: Campaign %s completed. Processed: %d. Target: %d. Global Offset: %d. Total Possible: %d",
 			campaignID, campaign.ProcessedItems, genParams.NumDomainsToGenerate, genParams.CurrentOffset, genParams.TotalPossibleCombinations)
+		
+		// Broadcast campaign completion via WebSocket
+		websocket.BroadcastCampaignProgress(campaignID.String(), 100.0, "completed", "domain_generation")
 	} else {
 		done = false
+		
+		// Broadcast campaign progress update via WebSocket
+		progressPercent := 0.0
+		if campaign.ProgressPercentage != nil {
+			progressPercent = *campaign.ProgressPercentage
+		}
+		websocket.BroadcastCampaignProgress(campaignID.String(), progressPercent, "running", "domain_generation")
 	}
 
 	if errUpdateCampaign := s.campaignStore.UpdateCampaign(ctx, querier, campaign); errUpdateCampaign != nil {

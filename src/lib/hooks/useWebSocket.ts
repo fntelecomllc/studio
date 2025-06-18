@@ -107,7 +107,7 @@ export function useCampaignWebSocket(
   // Send message function
   const sendMessage = useCallback((message: object) => {
     if (campaignId) {
-      websocketService.sendMessage(campaignId, message as any);
+      websocketService.sendMessage(campaignId, message as WebSocketMessage);
     }
   }, [campaignId]);
 

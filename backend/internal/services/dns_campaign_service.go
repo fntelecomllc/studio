@@ -14,6 +14,7 @@ import (
 	"github.com/fntelecomllc/studio/backend/internal/dnsvalidator"
 	"github.com/fntelecomllc/studio/backend/internal/models"
 	"github.com/fntelecomllc/studio/backend/internal/store"
+	"github.com/fntelecomllc/studio/backend/internal/websocket"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
@@ -645,6 +646,20 @@ func (s *dnsCampaignServiceImpl) ProcessDNSValidationCampaignBatch(ctx context.C
 		// If opErr was from context cancellation or result saving, this return includes processed count.
 		// If opErr is newly set here, processedInThisBatch might be from a successful save.
 		return false, processedInThisBatch, opErr
+	}
+
+	// Broadcast DNS validation progress via WebSocket
+	if campaign.ProgressPercentage != nil && campaign.ProcessedItems != nil && campaign.TotalItems != nil {
+		processedCount := *campaign.ProcessedItems
+		totalCount := *campaign.TotalItems
+		
+		if done {
+			// Campaign completed
+			websocket.BroadcastCampaignProgress(campaignID.String(), 100.0, "completed", "dns_validation")
+		} else {
+			// Progress update
+			websocket.BroadcastValidationProgress(campaignID.String(), processedCount, totalCount, "dns_validation")
+		}
 	}
 
 	processedItemsVal := int64(0)
