@@ -105,15 +105,15 @@ class CampaignService {
     }
   }
 
-  // Campaign Lifecycle - FIXED ENDPOINTS to match backend /api/v2/campaigns
+  // Campaign Control Operations
   async startCampaign(campaignId: string): Promise<CampaignOperationResponse> {
     try {
       console.log('[CampaignService] Starting campaign:', campaignId);
-      const response = await apiClient.post<Partial<Campaign>>(`/api/v2/campaigns/${campaignId}/start`);
+      const response = await apiClient.post<Campaign>(`/api/v2/campaigns/${campaignId}/start`);
       console.log('[CampaignService] Start campaign response:', response);
-      return response as CampaignOperationResponse;
+      return response;
     } catch (error) {
-      console.error('[CampaignService] Failed to start campaign:', error);
+      console.error('[CampaignService] Start campaign error:', error);
       throw error;
     }
   }
@@ -121,11 +121,11 @@ class CampaignService {
   async pauseCampaign(campaignId: string): Promise<CampaignOperationResponse> {
     try {
       console.log('[CampaignService] Pausing campaign:', campaignId);
-      const response = await apiClient.post<Partial<Campaign>>(`/api/v2/campaigns/${campaignId}/pause`);
+      const response = await apiClient.post<Campaign>(`/api/v2/campaigns/${campaignId}/pause`);
       console.log('[CampaignService] Pause campaign response:', response);
-      return response as CampaignOperationResponse;
+      return response;
     } catch (error) {
-      console.error('[CampaignService] Failed to pause campaign:', error);
+      console.error('[CampaignService] Pause campaign error:', error);
       throw error;
     }
   }
@@ -133,11 +133,11 @@ class CampaignService {
   async resumeCampaign(campaignId: string): Promise<CampaignOperationResponse> {
     try {
       console.log('[CampaignService] Resuming campaign:', campaignId);
-      const response = await apiClient.post<Partial<Campaign>>(`/api/v2/campaigns/${campaignId}/resume`);
+      const response = await apiClient.post<Campaign>(`/api/v2/campaigns/${campaignId}/resume`);
       console.log('[CampaignService] Resume campaign response:', response);
-      return response as CampaignOperationResponse;
+      return response;
     } catch (error) {
-      console.error('[CampaignService] Failed to resume campaign:', error);
+      console.error('[CampaignService] Resume campaign error:', error);
       throw error;
     }
   }
@@ -145,11 +145,11 @@ class CampaignService {
   async cancelCampaign(campaignId: string): Promise<CampaignOperationResponse> {
     try {
       console.log('[CampaignService] Cancelling campaign:', campaignId);
-      const response = await apiClient.post<Partial<Campaign>>(`/api/v2/campaigns/${campaignId}/cancel`);
+      const response = await apiClient.post<Campaign>(`/api/v2/campaigns/${campaignId}/cancel`);
       console.log('[CampaignService] Cancel campaign response:', response);
-      return response as CampaignOperationResponse;
+      return response;
     } catch (error) {
-      console.error('[CampaignService] Failed to cancel campaign:', error);
+      console.error('[CampaignService] Cancel campaign error:', error);
       throw error;
     }
   }
