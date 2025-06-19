@@ -36,7 +36,7 @@ export function MonitoringProvider({
     }
 
     // Initialize performance monitor with config
-    const monitor = performanceMonitor;
+    const _monitor = performanceMonitor;
     
     // Set up monitoring hooks
     const hooks: MonitoringHooks = {

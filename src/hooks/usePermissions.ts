@@ -174,7 +174,7 @@ export function usePermissions(options: UsePermissionsOptions = {}) {
   const checkAccess = useCallback((
     permissions: string[] = [],
     roles: string[] = [],
-    requireAll: boolean = false
+    _requireAll: boolean = false
   ): PermissionResult => {
     if (!isAuthenticated) {
       return {

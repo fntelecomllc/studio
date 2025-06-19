@@ -81,7 +81,7 @@ class ProductionApiClient {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private requestQueue: Array<{
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolve: (response: any) => void;
+    resolve: (response: unknown) => void;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     reject: (error: any) => void;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -200,9 +200,9 @@ class ProductionApiClient {
     if (this.isSessionNearExpiry()) {
       // If already refreshing, queue this request
       if (this.sessionState.isRefreshing) {
-        return new Promise((resolve, reject) => {
+        return new Promise<ApiResponse<T>>((resolve, reject) => {
           this.requestQueue.push({
-            resolve,
+            resolve: (response: unknown) => resolve(response as ApiResponse<T>),
             reject,
             requestFn: () => this.interceptRequest(requestFn, true),
           });

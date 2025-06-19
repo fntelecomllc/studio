@@ -9,7 +9,7 @@ import {
   Configuration,
   type ModelsLoginRequest,
   type ModelsUserAPI,
-  type ModelsCampaignAPI
+  type ServicesCreateCampaignRequest,
 } from '@/lib/api-client';
 
 // Configure the API client
@@ -88,9 +88,10 @@ export class CampaignService {
   /**
    * Create a new campaign
    */
-  static async createCampaign(campaignData: any) {
+  static async createCampaign(campaignData: unknown) {
     try {
-      const response = await campaignsApi.campaignsPost(campaignData);
+      // Type assertion for API compatibility - validation should be done before this call
+      const response = await campaignsApi.campaignsPost(campaignData as ServicesCreateCampaignRequest);
       return response.data;
     } catch (error) {
       console.error('Failed to create campaign:', error);
@@ -102,8 +103,16 @@ export class CampaignService {
 /**
  * Type-safe error handling helper
  */
-export function isApiError(error: any): error is { response: { data: { message: string; code: number } } } {
-  return error?.response?.data?.message !== undefined;
+export function isApiError(error: unknown): error is { response: { data: { message: string; code: number } } } {
+  return typeof error === 'object' && 
+         error !== null && 
+         'response' in error && 
+         typeof (error as Record<string, unknown>).response === 'object' &&
+         (error as Record<string, unknown>).response !== null &&
+         'data' in ((error as Record<string, unknown>).response as Record<string, unknown>) &&
+         typeof ((error as Record<string, unknown>).response as Record<string, unknown>).data === 'object' &&
+         ((error as Record<string, unknown>).response as Record<string, unknown>).data !== null &&
+         'message' in (((error as Record<string, unknown>).response as Record<string, unknown>).data as Record<string, unknown>);
 }
 
 /**
@@ -134,7 +143,7 @@ export function useAuth() {
     try {
       const userData = await AuthService.getCurrentUser();
       setUser(userData);
-    } catch (error) {
+    } catch (_error) {
       setUser(null);
     } finally {
       setIsLoading(false);

@@ -61,7 +61,8 @@
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.25.57",
-    "zustand": "^5.0.5"
+    "zustand": "^5.0.5",
+    "pdf-lib": "^1.17.1"
   },
   "devDependencies": {
     "@lhci/cli": "^0.14.0",

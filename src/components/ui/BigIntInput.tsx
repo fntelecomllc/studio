@@ -134,6 +134,7 @@ export function BigIntInput({
     if (newStringValue !== stringValue) {
       setStringValue(newStringValue);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]); // Don't include stringValue to avoid loops
 
   // Validation

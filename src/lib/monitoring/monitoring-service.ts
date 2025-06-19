@@ -178,12 +178,15 @@ class MonitoringService {
 
   // Memory and Performance Monitoring
   public recordMemoryUsage(): void {
-    if (typeof window !== 'undefined' && 'performance' in window && 'memory' in (window.performance as any)) {
-      const memory = (window.performance as any).memory;
+    if (typeof window !== 'undefined' && 'performance' in window) {
+      const performance = window.performance as Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } };
+      if (performance.memory) {
+        const memory = performance.memory;
       
       performanceMonitor.recordCustomMetric('memory_used', memory.usedJSHeapSize, 'bytes');
       performanceMonitor.recordCustomMetric('memory_total', memory.totalJSHeapSize, 'bytes');
       performanceMonitor.recordCustomMetric('memory_limit', memory.jsHeapSizeLimit, 'bytes');
+      }
     }
   }
 
@@ -248,19 +251,19 @@ class MonitoringService {
   }
 
   // React Component Wrapper for Performance Monitoring
-  public wrapComponent<T extends React.ComponentType<any>>(
+  public wrapComponent<T extends React.ComponentType<Record<string, unknown>>>(
     Component: T,
     componentName?: string
   ): T {
     const name = componentName || Component.displayName || Component.name || 'Unknown';
     
-    const WrappedComponent = (props: any) => {
+    const WrappedComponent = (props: Record<string, unknown>) => {
       const mountTimer = this.createTimer();
       
       React.useEffect(() => {
         const mountTime = mountTimer.end();
         this.recordComponentMount(name, mountTime);
-      }, []);
+      }, [mountTimer]); // Include mountTimer dependency
       
       const renderTimer = this.createTimer();
       const result = React.createElement(Component, props);

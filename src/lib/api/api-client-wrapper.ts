@@ -11,7 +11,7 @@ import { ValidationError, Validator, deepValidate } from '../utils/runtime-valid
 export class ApiValidationError extends Error {
   constructor(
     message: string,
-    public originalResponse?: any,
+    public originalResponse?: unknown,
     public validationErrors?: string[]
   ) {
     super(message);
@@ -23,7 +23,7 @@ export class ApiValidationError extends Error {
  * Validates API response data against a validator
  */
 export function validateApiResponse<T>(
-  response: AxiosResponse<any>,
+  response: AxiosResponse<unknown>,
   validator: Validator<T>,
   errorContext?: string
 ): T {
@@ -43,8 +43,8 @@ export function validateApiResponse<T>(
  * Validates API response using deep validation schema
  */
 export function validateApiResponseDeep<T>(
-  response: AxiosResponse<any>,
-  schema: Record<string, any>,
+  response: AxiosResponse<unknown>,
+  schema: Record<string, unknown>,
   errorContext?: string
 ): T {
   const { data } = response;
@@ -58,7 +58,7 @@ export function validateApiResponseDeep<T>(
     );
   }
   
-  return data;
+  return data as T;
 }
 
 /**
@@ -84,7 +84,7 @@ export function validateApiRequest<T>(
  * Wraps an API call with request and response validation
  */
 export async function validateApiCall<TRequest, TResponse>(
-  apiCall: (data: TRequest) => Promise<AxiosResponse<any>>,
+  apiCall: (data: TRequest) => Promise<AxiosResponse<unknown>>,
   requestData: TRequest,
   requestValidator: Validator<TRequest>,
   responseValidator: Validator<TResponse>,
@@ -113,7 +113,7 @@ export async function validateApiCall<TRequest, TResponse>(
  * Creates a validated wrapper for an API service method
  */
 export function createValidatedApiMethod<TRequest, TResponse>(
-  apiMethod: (data: TRequest) => Promise<AxiosResponse<any>>,
+  apiMethod: (data: TRequest) => Promise<AxiosResponse<unknown>>,
   requestValidator: Validator<TRequest>,
   responseValidator: Validator<TResponse>,
   methodName?: string
@@ -197,7 +197,7 @@ export function transformAndValidate<TInput, TOutput>(
  * Batch validation for array responses
  */
 export function validateArrayResponse<T>(
-  response: AxiosResponse<any>,
+  response: AxiosResponse<unknown>,
   itemValidator: Validator<T>,
   errorContext?: string
 ): T[] {

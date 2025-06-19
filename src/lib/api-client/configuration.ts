@@ -20,8 +20,8 @@ export interface ConfigurationParameters {
     accessToken?: string | Promise<string> | ((name?: string, scopes?: string[]) => string) | ((name?: string, scopes?: string[]) => Promise<string>);
     basePath?: string;
     serverIndex?: number;
-    baseOptions?: any;
-    formDataCtor?: new () => any;
+    baseOptions?: unknown;
+    formDataCtor?: new () => unknown;
 }
 
 export class Configuration {
@@ -72,7 +72,7 @@ export class Configuration {
      * @type {any}
      * @memberof Configuration
      */
-    baseOptions?: any;
+    baseOptions?: unknown;
     /**
      * The FormData constructor that will be used to create multipart form data
      * requests. You can inject this here so that execution environments that
@@ -80,7 +80,7 @@ export class Configuration {
      *
      * @type {new () => FormData}
      */
-    formDataCtor?: new () => any;
+    formDataCtor?: new () => unknown;
 
     constructor(param: ConfigurationParameters = {}) {
         this.apiKey = param.apiKey;
@@ -90,9 +90,9 @@ export class Configuration {
         this.basePath = param.basePath;
         this.serverIndex = param.serverIndex;
         this.baseOptions = {
-            ...param.baseOptions,
+            ...(param.baseOptions as Record<string, unknown> || {}),
             headers: {
-                ...param.baseOptions?.headers,
+                ...((param.baseOptions as Record<string, unknown>)?.headers as Record<string, unknown> || {}),
             },
         };
         this.formDataCtor = param.formDataCtor;

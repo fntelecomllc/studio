@@ -3,8 +3,6 @@ package websocket
 import (
 	"encoding/json"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // StandardizedWebSocketMessage represents the new unified message structure
@@ -16,14 +14,14 @@ type StandardizedWebSocketMessage struct {
 
 // CampaignProgressPayload represents campaign progress update data
 type CampaignProgressPayload struct {
-	CampaignID       string  `json:"campaignId"`
-	TotalItems       int64   `json:"totalItems"`
-	ProcessedItems   int64   `json:"processedItems"`
-	SuccessfulItems  int64   `json:"successfulItems"`
-	FailedItems      int64   `json:"failedItems"`
-	ProgressPercent  float64 `json:"progressPercent"`
-	Phase            string  `json:"phase"`
-	Status           string  `json:"status"`
+	CampaignID      string  `json:"campaignId"`
+	TotalItems      int64   `json:"totalItems"`
+	ProcessedItems  int64   `json:"processedItems"`
+	SuccessfulItems int64   `json:"successfulItems"`
+	FailedItems     int64   `json:"failedItems"`
+	ProgressPercent float64 `json:"progressPercent"`
+	Phase           string  `json:"phase"`
+	Status          string  `json:"status"`
 }
 
 // CampaignStatusPayload represents campaign status changes
@@ -37,24 +35,24 @@ type CampaignStatusPayload struct {
 
 // DomainGenerationPayload represents domain generation events
 type DomainGenerationPayload struct {
-	CampaignID    string `json:"campaignId"`
-	DomainID      string `json:"domainId"`
-	Domain        string `json:"domain"`
-	Offset        int64  `json:"offset"`
-	BatchSize     int    `json:"batchSize"`
-	TotalGenerated int64 `json:"totalGenerated"`
+	CampaignID     string `json:"campaignId"`
+	DomainID       string `json:"domainId"`
+	Domain         string `json:"domain"`
+	Offset         int64  `json:"offset"`
+	BatchSize      int    `json:"batchSize"`
+	TotalGenerated int64  `json:"totalGenerated"`
 }
 
 // DNSValidationPayload represents DNS validation results
 type DNSValidationPayload struct {
-	CampaignID         string                 `json:"campaignId"`
-	DomainID           string                 `json:"domainId"`
-	Domain             string                 `json:"domain"`
-	ValidationStatus   string                 `json:"validationStatus"`
-	DNSRecords         map[string]interface{} `json:"dnsRecords,omitempty"`
-	Attempts           int                    `json:"attempts"`
-	ProcessingTime     int64                  `json:"processingTime"` // milliseconds
-	TotalValidated     int64                  `json:"totalValidated"`
+	CampaignID       string                 `json:"campaignId"`
+	DomainID         string                 `json:"domainId"`
+	Domain           string                 `json:"domain"`
+	ValidationStatus string                 `json:"validationStatus"`
+	DNSRecords       map[string]interface{} `json:"dnsRecords,omitempty"`
+	Attempts         int                    `json:"attempts"`
+	ProcessingTime   int64                  `json:"processingTime"` // milliseconds
+	TotalValidated   int64                  `json:"totalValidated"`
 }
 
 // HTTPValidationPayload represents HTTP validation results
@@ -73,7 +71,7 @@ type HTTPValidationPayload struct {
 
 // SystemNotificationPayload represents system-wide notifications
 type SystemNotificationPayload struct {
-	Level      string `json:"level"`      // info, warning, error
+	Level      string `json:"level"` // info, warning, error
 	Message    string `json:"message"`
 	Category   string `json:"category,omitempty"`   // campaign, system, user
 	Actionable bool   `json:"actionable,omitempty"` // requires user action
@@ -81,11 +79,11 @@ type SystemNotificationPayload struct {
 
 // ProxyStatusPayload represents proxy status updates
 type ProxyStatusPayload struct {
-	ProxyID    string `json:"proxyId"`
-	Status     string `json:"status"`
-	CampaignID string `json:"campaignId,omitempty"`
-	Health     string `json:"health,omitempty"`
-	ResponseTime int64 `json:"responseTime,omitempty"` // milliseconds
+	ProxyID      string `json:"proxyId"`
+	Status       string `json:"status"`
+	CampaignID   string `json:"campaignId,omitempty"`
+	Health       string `json:"health,omitempty"`
+	ResponseTime int64  `json:"responseTime,omitempty"` // milliseconds
 }
 
 // Helper functions to create standardized messages

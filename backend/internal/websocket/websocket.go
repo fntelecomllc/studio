@@ -1,6 +1,9 @@
 package websocket
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"sync"
+)
 
 // Broadcaster defines an interface for broadcasting messages to WebSocket clients.
 type Broadcaster interface {
@@ -16,6 +19,9 @@ type Broadcaster interface {
 // WebSocketManager manages WebSocket connections and message broadcasting.
 // It will implement the Broadcaster interface.
 type WebSocketManager struct {
+	// mutex protects access to clients map
+	mutex sync.RWMutex
+
 	// clients is a map of connected clients.
 	// The key is the client pointer and the value is a boolean (true if client is active).
 	clients map[*Client]bool

@@ -52,7 +52,7 @@ export const CampaignsApiAxiosParamCreator = function (configuration?: Configura
                 baseOptions = configuration.baseOptions;
             }
 
-            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarRequestOptions = { method: 'GET', ...(baseOptions as Record<string, unknown> || {}), ...(options || {})};
             const localVarHeaderParameter = {} as any;
             const localVarQueryParameter = {} as any;
 
@@ -77,8 +77,8 @@ export const CampaignsApiAxiosParamCreator = function (configuration?: Configura
 
     
             setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            let headersFromBaseOptions = (baseOptions && (baseOptions as Record<string, unknown>).headers ? (baseOptions as Record<string, unknown>).headers : {}) as Record<string, unknown>;
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...((options as Record<string, unknown>)?.headers as Record<string, unknown> || {})};
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -103,7 +103,7 @@ export const CampaignsApiAxiosParamCreator = function (configuration?: Configura
                 baseOptions = configuration.baseOptions;
             }
 
-            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarRequestOptions = { method: 'POST', ...(baseOptions as Record<string, unknown> || {}), ...(options || {})};
             const localVarHeaderParameter = {} as any;
             const localVarQueryParameter = {} as any;
 
@@ -114,8 +114,8 @@ export const CampaignsApiAxiosParamCreator = function (configuration?: Configura
             localVarHeaderParameter['Content-Type'] = 'application/json';
 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            let headersFromBaseOptions = (baseOptions && (baseOptions as Record<string, unknown>).headers ? (baseOptions as Record<string, unknown>).headers : {}) as Record<string, unknown>;
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...((options as Record<string, unknown>)?.headers as Record<string, unknown> || {})};
             localVarRequestOptions.data = serializeDataIfNeeded(servicesCreateCampaignRequest, localVarRequestOptions, configuration)
 
             return {

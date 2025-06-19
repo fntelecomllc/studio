@@ -15,7 +15,7 @@ export function validateUUID(value: string): value is UUID {
 /**
  * Validates that a value can be safely used as SafeBigInt
  */
-export function validateSafeBigInt(value: any): value is SafeBigInt {
+export function validateSafeBigInt(value: unknown): value is SafeBigInt {
   if (typeof value === 'bigint') {
     return true;
   }
@@ -102,7 +102,7 @@ export class ValidationError extends Error {
   constructor(
     message: string,
     public field?: string,
-    public value?: any
+    public value?: unknown
   ) {
     super(message);
     this.name = 'ValidationError';
@@ -118,14 +118,14 @@ export type Validator<T> = (value: unknown) => value is T;
  * Creates a validator for objects with specific shape
  */
 export function createObjectValidator<T>(
-  validators: Record<string, (value: any) => boolean>
+  validators: Record<string, (value: unknown) => boolean>
 ): Validator<T> {
   return (value: unknown): value is T => {
     if (typeof value !== 'object' || value === null) {
       return false;
     }
     
-    const obj = value as Record<string, any>;
+    const obj = value as Record<string, unknown>;
     
     for (const [key, validator] of Object.entries(validators)) {
       if (!validator(obj[key])) {
@@ -157,15 +157,15 @@ export function createArrayValidator<T>(
  */
 export function validatePartial<T>(
   value: unknown,
-  validators: Partial<Record<keyof T, (value: any) => boolean>>
+  validators: Partial<Record<keyof T, (value: unknown) => boolean>>
 ): value is Partial<T> {
   if (typeof value !== 'object' || value === null) {
     return false;
   }
   
-  const obj = value as Record<string, any>;
+  const obj = value as Record<string, unknown>;
   
-  for (const [key, validator] of Object.entries(validators) as [keyof T, Function][]) {
+  for (const [key, validator] of Object.entries(validators) as [keyof T, (value: unknown) => boolean][]) {
     if (key in obj && !validator(obj[key as string])) {
       return false;
     }
@@ -189,18 +189,18 @@ export function sanitizeString(input: string): string {
  */
 export function deepValidate(
   value: unknown,
-  schema: Record<string, any>
+  schema: Record<string, unknown>
 ): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
   
-  function validate(obj: any, schemaObj: any, path = ''): void {
+  function validate(obj: unknown, schemaObj: unknown, path = ''): void {
     if (typeof schemaObj !== 'object' || schemaObj === null) {
       return;
     }
     
     for (const [key, validator] of Object.entries(schemaObj)) {
       const currentPath = path ? `${path}.${key}` : key;
-      const value = obj?.[key];
+      const value = (obj as Record<string, unknown>)?.[key];
       
       if (typeof validator === 'function') {
         if (!validator(value)) {

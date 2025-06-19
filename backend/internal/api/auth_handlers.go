@@ -98,13 +98,13 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	c.SetCookie(
 		h.config.CookieName,
 		sessionData.ID,
-		int(sessionData.ExpiresAt.Sub(time.Now()).Seconds()),
+		int(time.Until(sessionData.ExpiresAt).Seconds()),
 		h.config.CookiePath,
 		h.config.CookieDomain,
 		h.config.CookieSecure,
 		h.config.CookieHttpOnly,
 	)
-	fmt.Printf("DEBUG: Cookie set with domain: %s, path: %s, secure: %v, httpOnly: %v\n", 
+	fmt.Printf("DEBUG: Cookie set with domain: %s, path: %s, secure: %v, httpOnly: %v\n",
 		h.config.CookieDomain, h.config.CookiePath, h.config.CookieSecure, h.config.CookieHttpOnly)
 
 	// Update last login information
@@ -193,7 +193,7 @@ func (h *AuthHandler) Me(c *gin.Context) {
 		       password_changed_at, must_change_password, created_at, updated_at
 		FROM auth.users
 		WHERE id = $1`
-	
+
 	err := h.db.Get(&user, query, ctx.UserID)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -265,7 +265,6 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	respondWithErrorGin(c, http.StatusNotImplemented, "Password change functionality not yet implemented in session-based system")
 }
 
-
 // RefreshSession refreshes the current session
 func (h *AuthHandler) RefreshSession(c *gin.Context) {
 	// Get session ID from cookie
@@ -308,7 +307,7 @@ func (h *AuthHandler) RefreshSession(c *gin.Context) {
 	c.SetCookie(
 		h.config.CookieName,
 		sessionID,
-		int(newExpiry.Sub(time.Now()).Seconds()),
+		int(time.Until(newExpiry).Seconds()),
 		h.config.CookiePath,
 		h.config.CookieDomain,
 		h.config.CookieSecure,
@@ -325,7 +324,7 @@ func (h *AuthHandler) RefreshSession(c *gin.Context) {
 // authenticateUser validates user credentials and returns user information
 func (h *AuthHandler) authenticateUser(email, password, ipAddress string) (*models.User, error) {
 	var user models.User
-	
+
 	// Query user by email (only fields that exist in the actual schema)
 	query := `
 		SELECT id, email, email_verified, password_hash, password_pepper_version,
@@ -334,7 +333,7 @@ func (h *AuthHandler) authenticateUser(email, password, ipAddress string) (*mode
 		       password_changed_at, must_change_password, created_at, updated_at
 		FROM auth.users
 		WHERE email = $1`
-	
+
 	err := h.db.Get(&user, query, email)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -507,32 +506,32 @@ func (h *AuthHandler) GetPermissions(c *gin.Context) {
 	permissions := []string{
 		// Persona permissions
 		"personas:create",
-		"personas:read", 
+		"personas:read",
 		"personas:update",
 		"personas:delete",
-		
+
 		// Proxy permissions
 		"proxies:create",
 		"proxies:read",
-		"proxies:update", 
+		"proxies:update",
 		"proxies:delete",
-		
+
 		// Campaign permissions
 		"campaigns:create",
 		"campaigns:read",
 		"campaigns:update",
 		"campaigns:delete",
 		"campaigns:execute",
-		
+
 		// System configuration permissions
 		"system:config",
-		
+
 		// Admin permissions
 		"admin:users",
 		"admin:roles",
 		"admin:system",
 	}
-	
+
 	respondWithJSONGin(c, http.StatusOK, map[string][]string{
 		"permissions": permissions,
 	})
@@ -545,21 +544,21 @@ func (h *AuthHandler) ListUsers(c *gin.Context) {
 	// Get pagination parameters
 	page := 1
 	limit := 10
-	
+
 	if pageStr := c.Query("page"); pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
 			page = p
 		}
 	}
-	
+
 	if limitStr := c.Query("limit"); limitStr != "" {
 		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
 			limit = l
 		}
 	}
-	
+
 	offset := (page - 1) * limit
-	
+
 	// Get users from database
 	query := `
 		SELECT u.id, u.email, u.first_name, u.last_name, u.is_active, u.is_locked, 
@@ -567,21 +566,21 @@ func (h *AuthHandler) ListUsers(c *gin.Context) {
 		FROM auth.users u
 		ORDER BY u.created_at DESC
 		LIMIT $1 OFFSET $2`
-	
+
 	rows, err := h.db.Query(query, limit, offset)
 	if err != nil {
 		respondWithErrorGin(c, http.StatusInternalServerError, "Failed to fetch users")
 		return
 	}
 	defer rows.Close()
-	
+
 	var users []models.User
 	for rows.Next() {
 		var user models.User
 		var lastLoginAt sql.NullTime
-		
+
 		err := rows.Scan(
-			&user.ID, &user.Email, &user.FirstName, &user.LastName, 
+			&user.ID, &user.Email, &user.FirstName, &user.LastName,
 			&user.IsActive, &user.IsLocked, &user.CreatedAt, &user.UpdatedAt,
 			&lastLoginAt, &user.FailedLoginAttempts, &user.MFAEnabled,
 		)
@@ -589,14 +588,14 @@ func (h *AuthHandler) ListUsers(c *gin.Context) {
 			respondWithErrorGin(c, http.StatusInternalServerError, "Failed to scan user data")
 			return
 		}
-		
+
 		if lastLoginAt.Valid {
 			user.LastLoginAt = &lastLoginAt.Time
 		}
-		
+
 		users = append(users, user)
 	}
-	
+
 	// Get total count
 	var totalCount int
 	err = h.db.Get(&totalCount, "SELECT COUNT(*) FROM auth.users")
@@ -604,7 +603,7 @@ func (h *AuthHandler) ListUsers(c *gin.Context) {
 		respondWithErrorGin(c, http.StatusInternalServerError, "Failed to get user count")
 		return
 	}
-	
+
 	response := map[string]interface{}{
 		"users": users,
 		"pagination": map[string]interface{}{
@@ -614,7 +613,7 @@ func (h *AuthHandler) ListUsers(c *gin.Context) {
 			"totalPages": (totalCount + limit - 1) / limit,
 		},
 	}
-	
+
 	respondWithJSONGin(c, http.StatusOK, response)
 }
 
@@ -625,21 +624,21 @@ func (h *AuthHandler) CreateUser(c *gin.Context) {
 		respondWithErrorGin(c, http.StatusBadRequest, "Invalid request format")
 		return
 	}
-	
+
 	// Hash the password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		respondWithErrorGin(c, http.StatusInternalServerError, "Failed to hash password")
 		return
 	}
-	
+
 	// Create user in database
 	userID := uuid.New()
 	query := `
 		INSERT INTO auth.users (id, email, first_name, last_name, password_hash, is_active, mfa_enabled)
 		VALUES ($1, $2, $3, $4, $5, true, false)
 		RETURNING created_at, updated_at`
-	
+
 	var createdAt, updatedAt time.Time
 	err = h.db.QueryRow(query, userID, req.Email, req.FirstName, req.LastName, string(hashedPassword)).
 		Scan(&createdAt, &updatedAt)
@@ -651,20 +650,20 @@ func (h *AuthHandler) CreateUser(c *gin.Context) {
 		respondWithErrorGin(c, http.StatusInternalServerError, "Failed to create user")
 		return
 	}
-	
+
 	// Return created user
 	user := models.User{
-		ID:        userID,
-		Email:     req.Email,
-		FirstName: req.FirstName,
-		LastName:  req.LastName,
-		IsActive:  true,
-		IsLocked:  false,
-		CreatedAt: createdAt,
-		UpdatedAt: updatedAt,
+		ID:         userID,
+		Email:      req.Email,
+		FirstName:  req.FirstName,
+		LastName:   req.LastName,
+		IsActive:   true,
+		IsLocked:   false,
+		CreatedAt:  createdAt,
+		UpdatedAt:  updatedAt,
 		MFAEnabled: false,
 	}
-	
+
 	respondWithJSONGin(c, http.StatusCreated, user)
 }
 
@@ -676,23 +675,23 @@ func (h *AuthHandler) GetUser(c *gin.Context) {
 		respondWithErrorGin(c, http.StatusBadRequest, "Invalid user ID")
 		return
 	}
-	
+
 	// Get user from database
 	query := `
 		SELECT u.id, u.email, u.first_name, u.last_name, u.is_active, u.is_locked,
 		       u.created_at, u.updated_at, u.last_login_at, u.failed_login_attempts, u.mfa_enabled
 		FROM auth.users u
 		WHERE u.id = $1`
-	
+
 	var user models.User
 	var lastLoginAt sql.NullTime
-	
+
 	err = h.db.QueryRow(query, userID).Scan(
 		&user.ID, &user.Email, &user.FirstName, &user.LastName,
 		&user.IsActive, &user.IsLocked, &user.CreatedAt, &user.UpdatedAt,
 		&lastLoginAt, &user.FailedLoginAttempts, &user.MFAEnabled,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			respondWithErrorGin(c, http.StatusNotFound, "User not found")
@@ -701,11 +700,11 @@ func (h *AuthHandler) GetUser(c *gin.Context) {
 		respondWithErrorGin(c, http.StatusInternalServerError, "Failed to fetch user")
 		return
 	}
-	
+
 	if lastLoginAt.Valid {
 		user.LastLoginAt = &lastLoginAt.Time
 	}
-	
+
 	respondWithJSONGin(c, http.StatusOK, user)
 }
 
@@ -717,49 +716,49 @@ func (h *AuthHandler) UpdateUser(c *gin.Context) {
 		respondWithErrorGin(c, http.StatusBadRequest, "Invalid user ID")
 		return
 	}
-	
+
 	var req models.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		respondWithErrorGin(c, http.StatusBadRequest, "Invalid request format")
 		return
 	}
-	
+
 	// Build dynamic update query
 	setParts := []string{}
 	args := []interface{}{}
 	argIndex := 1
-	
+
 	if req.FirstName != "" {
 		setParts = append(setParts, fmt.Sprintf("first_name = $%d", argIndex))
 		args = append(args, req.FirstName)
 		argIndex++
 	}
-	
+
 	if req.LastName != "" {
 		setParts = append(setParts, fmt.Sprintf("last_name = $%d", argIndex))
 		args = append(args, req.LastName)
 		argIndex++
 	}
-	
+
 	if req.IsActive != nil {
 		setParts = append(setParts, fmt.Sprintf("is_active = $%d", argIndex))
 		args = append(args, *req.IsActive)
 		argIndex++
 	}
-	
+
 	if len(setParts) == 0 {
 		respondWithErrorGin(c, http.StatusBadRequest, "No fields to update")
 		return
 	}
-	
+
 	// Add updated_at
 	setParts = append(setParts, fmt.Sprintf("updated_at = $%d", argIndex))
 	args = append(args, time.Now())
 	argIndex++
-	
+
 	// Add user ID for WHERE clause
 	args = append(args, userID)
-	
+
 	query := fmt.Sprintf(`
 		UPDATE auth.users 
 		SET %s
@@ -767,16 +766,16 @@ func (h *AuthHandler) UpdateUser(c *gin.Context) {
 		RETURNING id, email, first_name, last_name, is_active, is_locked,
 		          created_at, updated_at, last_login_at, failed_login_attempts, mfa_enabled`,
 		strings.Join(setParts, ", "), argIndex)
-	
+
 	var user models.User
 	var lastLoginAt sql.NullTime
-	
+
 	err = h.db.QueryRow(query, args...).Scan(
 		&user.ID, &user.Email, &user.FirstName, &user.LastName,
 		&user.IsActive, &user.IsLocked, &user.CreatedAt, &user.UpdatedAt,
 		&lastLoginAt, &user.FailedLoginAttempts, &user.MFAEnabled,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			respondWithErrorGin(c, http.StatusNotFound, "User not found")
@@ -785,11 +784,11 @@ func (h *AuthHandler) UpdateUser(c *gin.Context) {
 		respondWithErrorGin(c, http.StatusInternalServerError, "Failed to update user")
 		return
 	}
-	
+
 	if lastLoginAt.Valid {
 		user.LastLoginAt = &lastLoginAt.Time
 	}
-	
+
 	respondWithJSONGin(c, http.StatusOK, user)
 }
 
@@ -801,7 +800,7 @@ func (h *AuthHandler) DeleteUser(c *gin.Context) {
 		respondWithErrorGin(c, http.StatusBadRequest, "Invalid user ID")
 		return
 	}
-	
+
 	// Check if user exists first
 	var exists bool
 	err = h.db.Get(&exists, "SELECT EXISTS(SELECT 1 FROM auth.users WHERE id = $1)", userID)
@@ -809,19 +808,19 @@ func (h *AuthHandler) DeleteUser(c *gin.Context) {
 		respondWithErrorGin(c, http.StatusInternalServerError, "Failed to check user existence")
 		return
 	}
-	
+
 	if !exists {
 		respondWithErrorGin(c, http.StatusNotFound, "User not found")
 		return
 	}
-	
+
 	// Delete user
 	_, err = h.db.Exec("DELETE FROM auth.users WHERE id = $1", userID)
 	if err != nil {
 		respondWithErrorGin(c, http.StatusInternalServerError, "Failed to delete user")
 		return
 	}
-	
+
 	respondWithJSONGin(c, http.StatusOK, map[string]string{"message": "User deleted successfully"})
 }
 

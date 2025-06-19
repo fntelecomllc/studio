@@ -75,16 +75,19 @@ export function hasFieldErrors(apiResponse: any): boolean {
  * @returns Combined error state
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function combineValidationErrors(zodError?: any, apiFieldErrors?: FormErrorState): FormErrorState {
+export function combineValidationErrors(zodError?: unknown, apiFieldErrors?: FormErrorState): FormErrorState {
   const combined: FormErrorState = {};
   
   // Add Zod validation errors
-  if (zodError?.errors) {
+  if (zodError && typeof zodError === 'object' && 'errors' in zodError) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    zodError.errors.forEach((error: any) => {
-      if (error.path && error.path.length > 0) {
-        const fieldName = error.path[0];
-        combined[fieldName] = error.message;
+    (zodError as any).errors.forEach((error: unknown) => {
+      if (error && typeof error === 'object' && 'path' in error && 'message' in error) {
+        const errorObj = error as { path: unknown[]; message: string };
+        if (errorObj.path && errorObj.path.length > 0) {
+          const fieldName = errorObj.path[0];
+          combined[fieldName as string] = errorObj.message;
+        }
       }
     });
   }

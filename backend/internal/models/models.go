@@ -63,9 +63,9 @@ const (
 type CampaignJobStatusEnum string
 
 const (
-	JobStatusPending    CampaignJobStatusEnum = "pending"  // Updated to match database
+	JobStatusPending    CampaignJobStatusEnum = "pending" // Updated to match database
 	JobStatusQueued     CampaignJobStatusEnum = "queued"
-	JobStatusRunning    CampaignJobStatusEnum = "running"  // Updated to match database
+	JobStatusRunning    CampaignJobStatusEnum = "running" // Updated to match database
 	JobStatusProcessing CampaignJobStatusEnum = "processing"
 	JobStatusCompleted  CampaignJobStatusEnum = "completed"
 	JobStatusFailed     CampaignJobStatusEnum = "failed"
@@ -189,8 +189,8 @@ type Proxy struct {
 	UpdatedAt     time.Time          `db:"updated_at" json:"updatedAt"`
 
 	// Fields for input/logic, not direct DB columns if already covered by Address or PasswordHash
-	InputUsername sql.NullString `json:"username,omitempty"` // For API input, to be parsed from/into Address or used for PasswordHash
-	InputPassword sql.NullString `json:"password,omitempty"` // For API input, to be hashed into PasswordHash
+	InputUsername sql.NullString `json:"inputUsername,omitempty"` // For API input, to be parsed from/into Address or used for PasswordHash
+	InputPassword sql.NullString `json:"inputPassword,omitempty"` // For API input, to be hashed into PasswordHash
 }
 
 // KeywordSet represents a collection of keyword rules
@@ -201,7 +201,7 @@ type KeywordSet struct {
 	IsEnabled   bool           `db:"is_enabled" json:"isEnabled"`
 	CreatedAt   time.Time      `db:"created_at" json:"createdAt"`
 	UpdatedAt   time.Time      `db:"updated_at" json:"updatedAt"`
-	Rules       *[]KeywordRule `db:"rules" json:"rules,omitempty"`    // Populated from keyword_sets.rules JSONB
+	Rules       *[]KeywordRule `db:"rules" json:"rules,omitempty"` // Populated from keyword_sets.rules JSONB
 }
 
 // KeywordRule represents a specific rule within a KeywordSet
@@ -219,28 +219,28 @@ type KeywordRule struct {
 
 // Campaign represents a generic campaign
 type Campaign struct {
-	ID                          uuid.UUID                       `db:"id" json:"id"`
-	Name                        string                          `db:"name" json:"name" validate:"required"`
-	CampaignType                CampaignTypeEnum                `db:"campaign_type" json:"campaignType" validate:"required"`
-	Status                      CampaignStatusEnum              `db:"status" json:"status" validate:"required"`
-	UserID                      *uuid.UUID                      `db:"user_id" json:"userId,omitempty"`
-	CreatedAt                   time.Time                       `db:"created_at" json:"createdAt"`
-	UpdatedAt                   time.Time                       `db:"updated_at" json:"updatedAt"`
-	StartedAt                   *time.Time                      `db:"started_at" json:"startedAt,omitempty"`
-	CompletedAt                 *time.Time                      `db:"completed_at" json:"completedAt,omitempty"`
-	ProgressPercentage          *float64                        `db:"progress_percentage" json:"progressPercentage,omitempty" validate:"omitempty,gte=0,lte=100"`
-	TotalItems                  *int64                          `db:"total_items" json:"totalItems,omitempty" validate:"omitempty,gte=0"`
-	ProcessedItems              *int64                          `db:"processed_items" json:"processedItems,omitempty" validate:"omitempty,gte=0"`
-	ErrorMessage                *string                         `db:"error_message" json:"errorMessage,omitempty"`
-	SuccessfulItems             *int64                          `db:"successful_items" json:"successfulItems,omitempty"`
-	FailedItems                 *int64                          `db:"failed_items" json:"failedItems,omitempty"`
-	Metadata                    *json.RawMessage                `db:"metadata" json:"metadata,omitempty"`
-	
+	ID                 uuid.UUID          `db:"id" json:"id"`
+	Name               string             `db:"name" json:"name" validate:"required"`
+	CampaignType       CampaignTypeEnum   `db:"campaign_type" json:"campaignType" validate:"required"`
+	Status             CampaignStatusEnum `db:"status" json:"status" validate:"required"`
+	UserID             *uuid.UUID         `db:"user_id" json:"userId,omitempty"`
+	CreatedAt          time.Time          `db:"created_at" json:"createdAt"`
+	UpdatedAt          time.Time          `db:"updated_at" json:"updatedAt"`
+	StartedAt          *time.Time         `db:"started_at" json:"startedAt,omitempty"`
+	CompletedAt        *time.Time         `db:"completed_at" json:"completedAt,omitempty"`
+	ProgressPercentage *float64           `db:"progress_percentage" json:"progressPercentage,omitempty" validate:"omitempty,gte=0,lte=100"`
+	TotalItems         *int64             `db:"total_items" json:"totalItems,omitempty" validate:"omitempty,gte=0"`
+	ProcessedItems     *int64             `db:"processed_items" json:"processedItems,omitempty" validate:"omitempty,gte=0"`
+	ErrorMessage       *string            `db:"error_message" json:"errorMessage,omitempty"`
+	SuccessfulItems    *int64             `db:"successful_items" json:"successfulItems,omitempty"`
+	FailedItems        *int64             `db:"failed_items" json:"failedItems,omitempty"`
+	Metadata           *json.RawMessage   `db:"metadata" json:"metadata,omitempty"`
+
 	// Additional tracking fields
-	EstimatedCompletionAt       *time.Time                      `db:"estimated_completion_at" json:"estimatedCompletionAt,omitempty"`
-	AvgProcessingRate           *float64                        `db:"avg_processing_rate" json:"avgProcessingRate,omitempty"`
-	LastHeartbeatAt             *time.Time                      `db:"last_heartbeat_at" json:"lastHeartbeatAt,omitempty"`
-	
+	EstimatedCompletionAt *time.Time `db:"estimated_completion_at" json:"estimatedCompletionAt,omitempty"`
+	AvgProcessingRate     *float64   `db:"avg_processing_rate" json:"avgProcessingRate,omitempty"`
+	LastHeartbeatAt       *time.Time `db:"last_heartbeat_at" json:"lastHeartbeatAt,omitempty"`
+
 	DomainGenerationParams      *DomainGenerationCampaignParams `json:"domainGenerationParams,omitempty"`
 	DNSValidationParams         *DNSValidationCampaignParams    `json:"dnsValidationParams,omitempty"`
 	HTTPKeywordValidationParams *HTTPKeywordCampaignParams      `json:"httpKeywordValidationParams,omitempty"`
@@ -392,17 +392,17 @@ type CampaignJob struct {
 
 // ProxyPool represents a proxy pool configuration
 type ProxyPool struct {
-	ID                       uuid.UUID      `db:"id" json:"id"`
-	Name                     string         `db:"name" json:"name" validate:"required"`
-	Description              sql.NullString `db:"description" json:"description,omitempty"`
-	IsEnabled                bool           `db:"is_enabled" json:"isEnabled"`
-	PoolStrategy             sql.NullString `db:"pool_strategy" json:"poolStrategy,omitempty"` // round_robin, random, weighted, failover
-	HealthCheckEnabled       bool           `db:"health_check_enabled" json:"healthCheckEnabled"`
-	HealthCheckIntervalSeconds *int         `db:"health_check_interval_seconds" json:"healthCheckIntervalSeconds,omitempty"`
-	MaxRetries               *int           `db:"max_retries" json:"maxRetries,omitempty"`
-	TimeoutSeconds           *int           `db:"timeout_seconds" json:"timeoutSeconds,omitempty"`
-	CreatedAt                time.Time      `db:"created_at" json:"createdAt"`
-	UpdatedAt                time.Time      `db:"updated_at" json:"updatedAt"`
+	ID                         uuid.UUID      `db:"id" json:"id"`
+	Name                       string         `db:"name" json:"name" validate:"required"`
+	Description                sql.NullString `db:"description" json:"description,omitempty"`
+	IsEnabled                  bool           `db:"is_enabled" json:"isEnabled"`
+	PoolStrategy               sql.NullString `db:"pool_strategy" json:"poolStrategy,omitempty"` // round_robin, random, weighted, failover
+	HealthCheckEnabled         bool           `db:"health_check_enabled" json:"healthCheckEnabled"`
+	HealthCheckIntervalSeconds *int           `db:"health_check_interval_seconds" json:"healthCheckIntervalSeconds,omitempty"`
+	MaxRetries                 *int           `db:"max_retries" json:"maxRetries,omitempty"`
+	TimeoutSeconds             *int           `db:"timeout_seconds" json:"timeoutSeconds,omitempty"`
+	CreatedAt                  time.Time      `db:"created_at" json:"createdAt"`
+	UpdatedAt                  time.Time      `db:"updated_at" json:"updatedAt"`
 
 	// Computed fields (not stored in DB)
 	Proxies []Proxy `json:"proxies,omitempty" db:"-"`

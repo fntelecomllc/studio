@@ -129,7 +129,7 @@ class PerformanceMonitor {
           entries.forEach((entry) => {
             this.recordMetric({
               name: 'web_vitals_fid',
-              value: (entry as any).processingStart - entry.startTime,
+              value: (entry as PerformanceEntry & { processingStart: number }).processingStart - entry.startTime,
               unit: 'ms',
               timestamp: Date.now(),
               tags: { type: 'web_vitals' }
@@ -148,8 +148,9 @@ class PerformanceMonitor {
           let clsScore = 0;
           const entries = list.getEntries();
           entries.forEach((entry) => {
-            if (!(entry as any).hadRecentInput) {
-              clsScore += (entry as any).value;
+            const layoutShiftEntry = entry as PerformanceEntry & { hadRecentInput?: boolean; value: number };
+            if (!layoutShiftEntry.hadRecentInput) {
+              clsScore += layoutShiftEntry.value;
             }
           });
           this.recordMetric({
