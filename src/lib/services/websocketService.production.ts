@@ -1,4 +1,4 @@
-/**
+  /**
  * Simple WebSocket Service for DomainFlow
  * 
  * Focused, lightweight implementation that works directly with the Go backend.
@@ -12,7 +12,6 @@ export interface WebSocketMessage {
   type: string;
   sequenceNumber: number;
   data?: unknown;
-  payload?: unknown;
   message?: string;
   campaignId?: string;
   phase?: string;

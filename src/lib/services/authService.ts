@@ -272,7 +272,7 @@ class AuthService {
   // Update password
   async updatePassword(request: ChangePasswordRequest): Promise<{ success: boolean; error?: string }> {
     try {
-      const response = await this.makeAuthenticatedRequest('/api/v2/auth/change-password', {
+      const response = await this.makeAuthenticatedRequest('/api/v2/change-password', {
         method: 'POST',
         body: JSON.stringify(request),
       });

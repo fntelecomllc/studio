@@ -42,7 +42,6 @@ type WebSocketMessage struct {
 	Type           string      `json:"type"`
 	SequenceNumber int64       `json:"sequenceNumber"`
 	Data           interface{} `json:"data,omitempty"`
-	Payload        interface{} `json:"payload,omitempty"`
 	Message        string      `json:"message,omitempty"`
 	CampaignID     string      `json:"campaignId,omitempty"`
 	Phase          string      `json:"phase,omitempty"`

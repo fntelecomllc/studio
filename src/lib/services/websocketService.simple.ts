@@ -6,7 +6,6 @@ export interface WebSocketMessage {
   timestamp?: string;
   type: string;
   data: Record<string, unknown>;
-  payload?: Record<string, unknown>;
   message?: string;
   campaignId?: string;
   phase?: string;
