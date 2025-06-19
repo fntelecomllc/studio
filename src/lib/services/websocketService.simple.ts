@@ -1,22 +1,24 @@
 // Enhanced WebSocket Service - Real-time updates implementation
 // Handles campaign progress, proxy status, and system notifications
 
+import { UUID, ISODateString } from '@/lib/types/branded';
+
 export interface WebSocketMessage {
-  id?: string;
-  timestamp?: string;
+  id?: UUID;
+  timestamp?: ISODateString;
   type: string;
   data: Record<string, unknown>;
   message?: string;
-  campaignId?: string;
+  campaignId?: UUID;
   phase?: string;
   status?: string;
   progress?: number;
   sequenceNumber?: number;
   
   // Real-time update specific fields
-  proxyId?: string;
+  proxyId?: UUID;
   proxyStatus?: string;
-  personaId?: string;
+  personaId?: UUID;
   personaStatus?: string;
   validationsProcessed?: number;
   domainsGenerated?: number;
@@ -26,9 +28,9 @@ export interface WebSocketMessage {
 
 export interface CampaignProgressMessage extends WebSocketMessage {
   type: 'campaign_progress' | 'progress' | 'domain_generated' | 'domain_generation_progress' | 'validation_progress' | 'phase_complete' | 'error' | 'subscription_confirmed' | 'validation_complete' | 'system_notification';
-  campaignId?: string;
+  campaignId?: UUID;
   data: {
-    campaignId?: string;
+    campaignId?: UUID;
     progress?: number;
     phase?: string;
     status?: string;
@@ -43,9 +45,9 @@ export interface CampaignProgressMessage extends WebSocketMessage {
 
 export interface ProxyStatusMessage extends WebSocketMessage {
   type: 'proxy_status_update';
-  proxyId: string;
+  proxyId: UUID;
   proxyStatus: string;
-  campaignId?: string;
+  campaignId?: UUID;
 }
 
 export interface SystemNotificationMessage extends WebSocketMessage {

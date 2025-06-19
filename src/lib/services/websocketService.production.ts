@@ -5,22 +5,24 @@
  * Eliminates complexity while maintaining all necessary functionality.
  */
 
+import { UUID, ISODateString, createISODateString, createUUID, isValidUUID } from '@/lib/types/branded';
+
 // Simple message types that match backend expectations
 export interface WebSocketMessage {
-  id: string;
-  timestamp: string;
+  id: UUID;
+  timestamp: ISODateString;
   type: string;
   sequenceNumber: number;
   data?: unknown;
   message?: string;
-  campaignId?: string;
+  campaignId?: UUID;
   phase?: string;
   status?: string;
   progress?: number;
 }
 
 export interface CampaignMessage extends WebSocketMessage {
-  campaignId: string;
+  campaignId: UUID;
   type: 'campaign_progress' | 'domain_generated' | 'campaign_complete' | 'campaign_error';
   data: {
     progress?: number;
@@ -105,12 +107,15 @@ class SimpleWebSocketService {
 
     state.ws.onmessage = (event) => {
       try {
-        const message: WebSocketMessage = JSON.parse(event.data);
+        const rawMessage = JSON.parse(event.data);
         
-        // Add timestamp if not present
-        if (!message.timestamp) {
-          message.timestamp = new Date().toISOString();
-        }
+        // Transform to branded types
+        const message: WebSocketMessage = {
+          ...rawMessage,
+          id: isValidUUID(rawMessage.id) ? createUUID(rawMessage.id) : createUUID('00000000-0000-0000-0000-000000000000'),
+          timestamp: rawMessage.timestamp ? createISODateString(rawMessage.timestamp) : createISODateString(new Date().toISOString()),
+          campaignId: rawMessage.campaignId && isValidUUID(rawMessage.campaignId) ? createUUID(rawMessage.campaignId) : undefined,
+        };
         
         console.log(`[WebSocket] Message received:`, message);
         
@@ -392,7 +397,7 @@ export const websocketService = new SimpleWebSocketService();
 // Legacy compatibility type for backward compatibility
 export interface CampaignProgressMessage {
   type: string;
-  campaignId: string;
+  campaignId: UUID;
   data: {
     progress?: number;
     status?: string;
@@ -400,7 +405,7 @@ export interface CampaignProgressMessage {
     [key: string]: unknown;
   };
   message?: string;
-  timestamp?: string;
+  timestamp?: ISODateString;
 }
 
 // Default export

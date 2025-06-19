@@ -4,10 +4,10 @@
  */
 
 import { UUID, SafeBigInt, ISODateString, isValidUUID, createSafeBigInt, createISODateString } from './branded';
-import type { Campaign } from '../types';
+import type { Campaign, User } from '../types';
 
 // Raw API data types (before transformation)
-interface RawAPIData {
+export interface RawAPIData {
   [key: string]: unknown;
 }
 
@@ -46,8 +46,8 @@ export class TypeTransformer {
   /**
    * Transform a user object from API response to use branded types
    */
-  static transformUser(raw: RawAPIData): RawAPIData {
-    if (!raw) return raw;
+  static transformUser(raw: RawAPIData): User {
+    if (!raw) return raw as User;
     
     return {
       ...raw,
@@ -56,7 +56,7 @@ export class TypeTransformer {
       updatedAt: this.toISODateString(raw.updatedAt as string),
       lastLoginAt: this.toISODateString(raw.lastLoginAt as string),
       mfaLastUsedAt: this.toISODateString(raw.mfaLastUsedAt as string),
-    };
+    } as User;
   }
 
   /**
@@ -191,6 +191,37 @@ export class TypeTransformer {
   }
 
   /**
+   * Transform a persona object from API response to use branded types
+   */
+  static transformToPersona(raw: RawAPIData): RawAPIData {
+    if (!raw) return raw;
+
+    return {
+      ...raw,
+      id: this.toUUID(raw.id as string),
+      lastTested: this.toISODateString(raw.lastTested as string),
+      createdAt: this.toISODateString(raw.createdAt as string),
+      updatedAt: this.toISODateString(raw.updatedAt as string),
+    };
+  }
+
+  /**
+   * Transform a proxy object from API response to use branded types  
+   */
+  static transformToProxy(raw: RawAPIData): RawAPIData {
+    if (!raw) return raw;
+
+    return {
+      ...raw,
+      id: this.toUUID(raw.id as string),
+      port: raw.port !== undefined ? Number(raw.port) : undefined,
+      lastTested: this.toISODateString(raw.lastTested as string),
+      createdAt: this.toISODateString(raw.createdAt as string),
+      updatedAt: this.toISODateString(raw.updatedAt as string),
+    };
+  }
+
+  /**
    * Transform arrays of objects
    */
   static transformArray<T>(items: unknown[] | undefined, transformer: (item: RawAPIData) => T): T[] {
@@ -210,3 +241,5 @@ export const transformHTTPKeywordResult = TypeTransformer.transformHTTPKeywordRe
 export const transformCampaignJob = TypeTransformer.transformCampaignJob.bind(TypeTransformer);
 export const transformAuditLog = TypeTransformer.transformAuditLog.bind(TypeTransformer);
 export const transformSession = TypeTransformer.transformSession.bind(TypeTransformer);
+export const transformToPersona = TypeTransformer.transformToPersona.bind(TypeTransformer);
+export const transformToProxy = TypeTransformer.transformToProxy.bind(TypeTransformer);

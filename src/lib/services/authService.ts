@@ -5,6 +5,7 @@ import { logAuth } from '@/lib/utils/logger';
 import { apiClient } from '@/lib/api/client';
 import { ProductionApiClient } from '@/lib/services/apiClient.production';
 import { useLoadingStore, LOADING_OPERATIONS } from '@/lib/stores/loadingStore';
+import { TypeTransformer, type RawAPIData } from '@/lib/types/transform';
 import type {
   User, // Use unified User interface from types.ts
   LoginResponse,
@@ -132,10 +133,13 @@ class AuthService {
           apiClient.setSessionExpiry(loginResponse.data.expiresAt);
         }
         
-        // Use the user data directly as it already matches the User interface
-        this.updateAuthState(loginResponse.data.user, sessionExpiry, availablePermissions);
+        // Transform raw user data to use branded types  
+        const transformedUser = TypeTransformer.transformUser(loginResponse.data.user as unknown as RawAPIData);
         
-        logAuth.success('Login successful', { userId: loginResponse.data.user.id });
+        // Use the transformed user data
+        this.updateAuthState(transformedUser, sessionExpiry, availablePermissions);
+        
+        logAuth.success('Login successful', { userId: transformedUser.id });
         loadingStore.stopLoading(LOADING_OPERATIONS.LOGIN, 'succeeded');
         return { success: true };
       } else {
@@ -337,7 +341,8 @@ class AuthService {
       });
 
       const data = await response.json();
-      return { success: response.ok, user: data.user, error: data.message };
+      const transformedUser = data.user ? TypeTransformer.transformUser(data.user) : undefined;
+      return { success: response.ok, user: transformedUser, error: data.message };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Network error' };
     }
@@ -351,7 +356,8 @@ class AuthService {
       });
 
       const data = await response.json();
-      return { success: response.ok, user: data.user, error: data.message };
+      const transformedUser = data.user ? TypeTransformer.transformUser(data.user) : undefined;
+      return { success: response.ok, user: transformedUser, error: data.message };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Network error' };
     }
@@ -373,7 +379,14 @@ class AuthService {
   async getUsers(page: number = 1, limit: number = 10): Promise<UserListResponse> {
     try {
       const response = await this.makeAuthenticatedRequest(`/api/v2/admin/users?page=${page}&limit=${limit}`);
-      return await response.json();
+      const data = await response.json();
+      
+      // Transform the users array if present
+      if (data.data && Array.isArray(data.data)) {
+        data.data = TypeTransformer.transformArray(data.data, TypeTransformer.transformUser);
+      }
+      
+      return data;
     } catch (_error) {
       return {
         status: 'error',
@@ -388,7 +401,8 @@ class AuthService {
     try {
       const response = await this.makeAuthenticatedRequest(`/api/v2/admin/users/${userId}`);
       const data = await response.json();
-      return { user: data.user, error: data.message };
+      const transformedUser = data.user ? TypeTransformer.transformUser(data.user) : undefined;
+      return { user: transformedUser, error: data.message };
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'Network error' };
     }

@@ -1,5 +1,6 @@
 // src/lib/services/personaService.ts
 import apiClient from './apiClient.production';
+import { TypeTransformer } from '@/lib/types/transform';
 import {
   validateDnsPersonaConfig as _validateDnsPersonaConfig,
   validateHttpPersonaConfig as _validateHttpPersonaConfig,
@@ -9,6 +10,7 @@ import {
 import type {
   HttpPersona,
   DnsPersona,
+  Persona,
   CreateHttpPersonaPayload,
   CreateDnsPersonaPayload,
   UpdateHttpPersonaPayload,
@@ -22,6 +24,16 @@ import type {
   HttpPersonaConfig,
   DnsPersonaConfig
 } from '@/lib/types';
+
+// Helper functions for type-safe persona transformations
+const transformPersona = (rawData: Record<string, unknown>): Persona => {
+  const transformed = TypeTransformer.transformToPersona(rawData);
+  return transformed as unknown as Persona;
+};
+
+const transformPersonaArray = (rawArray: Record<string, unknown>[]): Persona[] => {
+  return rawArray.map(transformPersona);
+};
 
 // API Request Body Types
 interface _HttpPersonaRequestBody {
@@ -106,11 +118,19 @@ export async function createHttpPersona(payload: CreateHttpPersonaPayload): Prom
     isEnabled: payload.isEnabled ?? true
   };
 
-  return apiClient.post<HttpPersona>('/api/v2/personas/http', requestBody);
+  const response = await apiClient.post<HttpPersona>('/api/v2/personas/http', requestBody);
+  if (response.data) {
+    response.data = transformPersona(response.data as unknown as Record<string, unknown>) as HttpPersona;
+  }
+  return response;
 }
 
 export async function listHttpPersonas(filters?: { isEnabled?: boolean; limit?: number; offset?: number }): Promise<PersonasListResponse> {
-  return apiClient.get<HttpPersona[]>('/api/v2/personas/http', { params: filters });
+  const response = await apiClient.get<HttpPersona[]>('/api/v2/personas/http', { params: filters });
+  if (response.data && Array.isArray(response.data)) {
+    response.data = transformPersonaArray(response.data as unknown as Record<string, unknown>[]) as HttpPersona[];
+  }
+  return response;
 }
 
 // NOTE: Backend does not have individual GET persona endpoints
@@ -125,7 +145,11 @@ export async function getHttpPersonaById(personaId: string): Promise<PersonaDeta
   if (!persona) {
     throw new Error(`HTTP Persona with ID ${personaId} not found`);
   }
-  return { status: 'success', data: persona, message: 'HTTP persona retrieved successfully' };
+  return { 
+    status: 'success', 
+    data: transformPersona(persona as unknown as Record<string, unknown>) as HttpPersona, 
+    message: 'HTTP persona retrieved successfully' 
+  };
 }
 
 export async function updateHttpPersona(personaId: string, payload: UpdateHttpPersonaPayload): Promise<PersonaUpdateResponse> {

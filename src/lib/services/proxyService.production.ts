@@ -3,6 +3,7 @@
 // Replaces proxy logic scattered across multiple files
 
 import apiClient from './apiClient.production';
+import { TypeTransformer } from '@/lib/types/transform';
 import type {
   Proxy,
   CreateProxyPayload,
@@ -13,6 +14,16 @@ import type {
   ProxyDeleteResponse,
   ProxyActionResponse,
 } from '@/lib/types';
+
+// Helper functions for type-safe proxy transformations
+const transformProxy = (rawData: Record<string, unknown>): Proxy => {
+  const transformed = TypeTransformer.transformToProxy(rawData);
+  return transformed as unknown as Proxy;
+};
+
+const transformProxyArray = (rawArray: Record<string, unknown>[]): Proxy[] => {
+  return rawArray.map(transformProxy);
+};
 
 class ProxyService {
   private static instance: ProxyService;
@@ -25,7 +36,11 @@ class ProxyService {
   }
 
   async getProxies(): Promise<ProxiesListResponse> {
-    return apiClient.get<Proxy[]>('/api/v2/proxies');
+    const response = await apiClient.get<Proxy[]>('/api/v2/proxies');
+    if (response.data && Array.isArray(response.data)) {
+      response.data = transformProxyArray(response.data as unknown as Record<string, unknown>[]);
+    }
+    return response;
   }
 
   async getProxyById(proxyId: string): Promise<ProxyCreationResponse> {
@@ -39,17 +54,25 @@ class ProxyService {
     
     return {
       status: 'success',
-      data: proxy,
+      data: transformProxy(proxy as unknown as Record<string, unknown>),
       message: 'Proxy retrieved successfully'
     };
   }
 
   async createProxy(payload: CreateProxyPayload): Promise<ProxyCreationResponse> {
-    return apiClient.post<Proxy>('/api/v2/proxies', payload as unknown as Record<string, unknown>);
+    const response = await apiClient.post<Proxy>('/api/v2/proxies', payload as unknown as Record<string, unknown>);
+    if (response.data) {
+      response.data = transformProxy(response.data as unknown as Record<string, unknown>);
+    }
+    return response;
   }
 
   async updateProxy(proxyId: string, payload: UpdateProxyPayload): Promise<ProxyUpdateResponse> {
-    return apiClient.put<Proxy>(`/api/v2/proxies/${proxyId}`, payload as unknown as Record<string, unknown>);
+    const response = await apiClient.put<Proxy>(`/api/v2/proxies/${proxyId}`, payload as unknown as Record<string, unknown>);
+    if (response.data) {
+      response.data = transformProxy(response.data as unknown as Record<string, unknown>);
+    }
+    return response;
   }
 
   async deleteProxy(proxyId: string): Promise<ProxyDeleteResponse> {
