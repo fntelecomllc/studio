@@ -2,101 +2,244 @@
 
 ## Overview
 
-DomainFlow provides a comprehensive RESTful API for domain analysis and campaign management. The API is built with Go using the Gin framework and follows OpenAPI 3.0 standards.
+DomainFlow API v2 provides a comprehensive REST API for domain generation, validation, and campaign management. The API follows OpenAPI 3.0 specification and includes real-time WebSocket communication for live updates.
 
-**Base URL**: `http://localhost:8080` (development) / `https://your-domain.com` (production)
-
-**API Version**: v1 (with v2 extensions for campaigns)
-
-**Authentication**: Session-based with HTTP-only cookies and X-Requested-With header validation
-
----
+**Base URL**: `http://localhost:8080/api/v2`  
+**WebSocket URL**: `ws://localhost:8080/ws`  
+**API Version**: 2.0  
+**Authentication**: Session-based with HTTP-only cookies
 
 ## Authentication
 
 ### Session-Based Authentication
+All API endpoints (except public endpoints) require authentication via session cookies. The authentication flow uses HTTP-only cookies for security.
 
-DomainFlow uses secure session-based authentication with HTTP-only cookies:
-
-**Login Process:**
-```javascript
-// Login request
-POST /api/v2/auth/login
+#### Login
+```http
+POST /auth/login
 Content-Type: application/json
-X-Requested-With: XMLHttpRequest
 
-{
-  "username": "admin",
-  "password": "password"
-}
-
-// Response includes secure session cookie
-Set-Cookie: domainflow_session=...; HttpOnly; Secure; SameSite=Strict; Path=/
-```
-
-**API Requests:**
-All API requests require a valid session cookie and X-Requested-With header:
-
-```bash
-curl -X GET "http://localhost:8080/api/v2/campaigns" \
-  -H "X-Requested-With: XMLHttpRequest" \
-  -H "Content-Type: application/json" \
-  --cookie-jar cookies.txt \
-  --cookie cookies.txt
-```
-
-**WebSocket Authentication:**
-WebSocket connections authenticate using session cookies:
-
-```javascript
-// WebSocket connection uses session cookies automatically
-const ws = new WebSocket('ws://localhost:8080/api/v2/ws');
-```
-
----
-
-## Core Endpoints
-
-### Health Check
-
-**GET /ping**
-- Description: Server health check
-- Authentication: None required
-- Response: `{"message": "pong", "timestamp": "2025-06-14T10:30:00Z"}`
-
----
-
-## Authentication Endpoints
-
-### Login
-**POST /api/v2/auth/login**
-```json
 {
   "username": "string",
   "password": "string"
 }
 ```
 
-### Logout
-**POST /api/v2/auth/logout**
-- Clears session cookie and invalidates server-side session
-
-### Current User
-**GET /api/v2/me**
-- Returns current authenticated user information
-
----
-
-## User Management
-
-### List Users
-**GET /api/v2/users**
-- Admin only
-- Returns paginated list of users
-
-### Create User
-**POST /api/v2/users**
+**Response (200)**:
 ```json
+{
+  "status": "success",
+  "message": "Login successful",
+  "user": {
+    "id": "uuid",
+    "username": "string",
+    "email": "string",
+    "role": "admin|user",
+    "permissions": ["string"]
+  }
+}
+```
+
+#### Logout
+```http
+POST /auth/logout
+```
+
+#### Session Status
+```http
+GET /auth/status
+```
+
+**Response (200)**:
+```json
+{
+  "authenticated": true,
+  "user": {
+    "id": "uuid",
+    "username": "string",
+    "role": "string",
+    "permissions": ["string"]
+  }
+}
+```
+
+## Core API Endpoints
+
+### Campaigns
+
+#### List Campaigns
+```http
+GET /api/v2/campaigns
+```
+
+**Query Parameters**:
+- `page` (integer): Page number (default: 1)
+- `limit` (integer): Items per page (default: 20)
+- `status` (string): Filter by status
+- `type` (string): Filter by campaign type
+
+**Response (200)**:
+```json
+{
+  "campaigns": [
+    {
+      "id": "uuid",
+      "name": "string",
+      "description": "string",
+      "type": "domain_generation|dns_validation|http_keyword",
+      "status": "pending|running|completed|failed",
+      "createdAt": "2025-06-19T10:00:00Z",
+      "updatedAt": "2025-06-19T10:00:00Z",
+      "userId": "uuid",
+      "parameters": {
+        // Campaign-specific parameters
+      },
+      "progress": {
+        "totalItems": 1000,
+        "processedItems": 450,
+        "successCount": 425,
+        "errorCount": 25
+      }
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 150,
+    "totalPages": 8
+  }
+}
+```
+
+#### Create Campaign
+```http
+POST /api/v2/campaigns
+Content-Type: application/json
+
+{
+  "name": "string",
+  "description": "string",
+  "type": "domain_generation|dns_validation|http_keyword",
+  "parameters": {
+    // Type-specific parameters
+  }
+}
+```
+
+**Domain Generation Parameters**:
+```json
+{
+  "type": "domain_generation",
+  "parameters": {
+    "keywords": ["example", "test"],
+    "tlds": [".com", ".net"],
+    "maxLength": 20,
+    "includeDashes": true,
+    "includeNumbers": true
+  }
+}
+```
+
+**DNS Validation Parameters**:
+```json
+{
+  "type": "dns_validation",
+  "parameters": {
+    "domains": ["example.com", "test.net"],
+    "recordTypes": ["A", "AAAA", "MX"],
+    "timeout": 30
+  }
+}
+```
+
+**HTTP Keyword Parameters**:
+```json
+{
+  "type": "http_keyword",
+  "parameters": {
+    "urls": ["https://example.com"],
+    "keywords": ["product", "service"],
+    "timeout": 30,
+    "followRedirects": true
+  }
+}
+```
+
+#### Get Campaign
+```http
+GET /api/v2/campaigns/{id}
+```
+
+#### Update Campaign
+```http
+PUT /api/v2/campaigns/{id}
+Content-Type: application/json
+
+{
+  "name": "string",
+  "description": "string",
+  "parameters": {
+    // Updated parameters
+  }
+}
+```
+
+#### Delete Campaign
+```http
+DELETE /api/v2/campaigns/{id}
+```
+
+#### Start Campaign
+```http
+POST /api/v2/campaigns/{id}/start
+```
+
+#### Stop Campaign
+```http
+POST /api/v2/campaigns/{id}/stop
+```
+
+#### Get Campaign Results
+```http
+GET /api/v2/campaigns/{id}/results
+```
+
+**Query Parameters**:
+- `page` (integer): Page number
+- `limit` (integer): Items per page
+- `status` (string): Filter by result status
+
+### Admin Operations
+
+#### List Users
+```http
+GET /api/v2/admin/users
+```
+
+**Required Permission**: `admin:users:read`
+
+**Response (200)**:
+```json
+{
+  "users": [
+    {
+      "id": "uuid",
+      "username": "string",
+      "email": "string",
+      "role": "admin|user",
+      "isActive": true,
+      "createdAt": "2025-06-19T10:00:00Z",
+      "lastLogin": "2025-06-19T09:00:00Z"
+    }
+  ]
+}
+```
+
+#### Create User
+```http
+POST /api/v2/admin/users
+Content-Type: application/json
+
 {
   "username": "string",
   "email": "string",
@@ -105,9 +248,13 @@ const ws = new WebSocket('ws://localhost:8080/api/v2/ws');
 }
 ```
 
-### Update User
-**PUT /api/v2/users/:id**
-```json
+**Required Permission**: `admin:users:create`
+
+#### Update User
+```http
+PUT /api/v2/admin/users/{id}
+Content-Type: application/json
+
 {
   "username": "string",
   "email": "string",
@@ -116,326 +263,291 @@ const ws = new WebSocket('ws://localhost:8080/api/v2/ws');
 }
 ```
 
-### Delete User
-**DELETE /api/v2/users/:id**
-- Admin only
-- Soft delete with audit trail
+**Required Permission**: `admin:users:update`
 
----
-
-## Campaign Management (V2 API)
-
-### List Campaigns
-**GET /api/v2/campaigns**
-- Returns paginated list of campaigns for current user
-
-### Get Campaign Details
-**GET /api/v2/campaigns/:id**
-- Returns detailed campaign information including progress
-
-### Create Campaign
-**POST /api/v2/campaigns**
-```json
-{
-  "name": "string",
-  "keywords": ["keyword1", "keyword2"],
-  "selectedType": "dns|http",
-  "domainSource": {
-    "type": "generated|uploaded",
-    "domains": ["domain1.com", "domain2.com"] // for uploaded
-  },
-  "config": {
-    "maxDomains": 1000,
-    "timeout": 30,
-    "retries": 3
-  }
-}
+#### Delete User
+```http
+DELETE /api/v2/admin/users/{id}
 ```
 
-### Start Campaign Phase
-**POST /api/v2/campaigns/:id/start**
-- Starts the campaign execution
-- Returns updated campaign status
+**Required Permission**: `admin:users:delete`
 
-### Stop Campaign
-**POST /api/v2/campaigns/:id/stop**
-- Stops campaign execution gracefully
+### Keyword Sets
 
-### Delete Campaign
-**DELETE /api/v2/campaigns/:id**
-- Soft delete with audit trail
+#### List Keyword Sets
+```http
+GET /api/v2/keyword-sets
+```
 
----
+#### Create Keyword Set
+```http
+POST /api/v2/keyword-sets
+Content-Type: application/json
 
-## Persona Management
-
-### DNS Personas
-
-**GET /api/v2/personas/dns**
-- List all DNS personas
-
-**POST /api/v2/personas/dns**
-```json
 {
   "name": "string",
   "description": "string",
-  "configDetails": {
-    "resolvers": ["1.1.1.1:53", "8.8.8.8:53"],
-    "queryTimeoutSeconds": 5,
-    "retries": 3,
-    "queryTypes": ["A", "AAAA", "MX", "TXT"]
-  },
-  "isEnabled": true
+  "keywords": ["string"]
 }
 ```
 
-**PUT /api/v2/personas/dns/:id**
-- Update DNS persona configuration
+### Personas
 
-**DELETE /api/v2/personas/dns/:id**
-- Delete DNS persona
+#### List Personas
+```http
+GET /api/v2/personas
+```
 
-### HTTP Personas
+#### Create Persona
+```http
+POST /api/v2/personas
+Content-Type: application/json
 
-**GET /api/v2/personas/http**
-- List all HTTP personas
-
-**POST /api/v2/personas/http**
-```json
 {
   "name": "string",
   "description": "string",
-  "configDetails": {
-    "userAgent": "DomainFlow/1.0",
-    "headers": {
-      "Accept": "text/html,application/xhtml+xml",
-      "Accept-Language": "en-US,en;q=0.9"
-    },
-    "timeout": 30,
-    "followRedirects": true,
-    "maxRedirects": 5
-  },
-  "isEnabled": true
+  "userAgent": "string",
+  "acceptLanguage": "string",
+  "acceptEncoding": "string"
 }
 ```
 
----
+### Proxies
 
-## Proxy Management
+#### List Proxies
+```http
+GET /api/v2/proxies
+```
 
-### List Proxies
-**GET /api/v2/proxies**
-- Returns all configured proxies
+#### Create Proxy
+```http
+POST /api/v2/proxies
+Content-Type: application/json
 
-### Create Proxy
-**POST /api/v2/proxies**
-```json
 {
   "name": "string",
-  "url": "http://proxy.example.com:8080",
+  "description": "string",
+  "host": "string",
+  "port": 8080,
+  "protocol": "http|https|socks5",
   "username": "string",
-  "password": "string",
-  "isEnabled": true
+  "password": "string"
 }
 ```
-
-### Update Proxy
-**PUT /api/v2/proxies/:id**
-```json
-{
-  "name": "string",
-  "url": "string",
-  "username": "string",
-  "password": "string",
-  "isEnabled": true
-}
-```
-
-### Delete Proxy
-**DELETE /api/v2/proxies/:id**
-
-### Test Proxy
-**POST /api/v2/proxies/:id/test**
-- Tests proxy connectivity and returns status
-
----
 
 ## WebSocket API
 
-### General WebSocket Connection
-**GET /api/v2/ws** (WebSocket upgrade)
+### Connection
+```javascript
+const ws = new WebSocket('ws://localhost:8080/ws');
+```
 
-**Authentication**: Session cookies (automatically included by browser)
+### Message Format
+All WebSocket messages follow this standardized format:
 
-**Message Format**:
 ```json
 {
-  "event_type": "campaign_update|system_notification|error",
-  "payload": {
-    "campaignId": "uuid",
-    "status": "running|completed|failed",
-    "progressPercentage": 75.5,
-    "message": "Status message",
-    "timestamp": "2025-06-14T10:30:00Z"
+  "type": "string",
+  "timestamp": "2025-06-19T10:00:00Z",
+  "data": {
+    // Message-specific data
   }
 }
 ```
 
-**Client Commands**:
+### Message Types
+
+#### Campaign Progress
 ```json
 {
-  "action": "subscribe_campaign_updates",
-  "campaignId": "uuid"
+  "type": "campaign_progress",
+  "timestamp": "2025-06-19T10:00:00Z",
+  "data": {
+    "campaignId": "uuid",
+    "totalItems": 1000,
+    "processedItems": 450,
+    "successCount": 425,
+    "errorCount": 25,
+    "estimatedCompletion": "2025-06-19T10:30:00Z"
+  }
 }
 ```
 
----
+#### Campaign Complete
+```json
+{
+  "type": "campaign_complete",
+  "timestamp": "2025-06-19T10:00:00Z",
+  "data": {
+    "campaignId": "uuid",
+    "status": "completed|failed",
+    "totalItems": 1000,
+    "successCount": 950,
+    "errorCount": 50,
+    "duration": "00:30:15"
+  }
+}
+```
+
+#### System Notification
+```json
+{
+  "type": "system_notification",
+  "timestamp": "2025-06-19T10:00:00Z",
+  "data": {
+    "level": "info|warning|error",
+    "message": "string",
+    "details": {}
+  }
+}
+```
+
+## Error Responses
+
+### Standard Error Format
+```json
+{
+  "error": {
+    "code": "string",
+    "message": "string",
+    "details": {},
+    "timestamp": "2025-06-19T10:00:00Z"
+  }
+}
+```
+
+### Common Error Codes
+
+#### Authentication Errors
+- `401 Unauthorized`: Invalid or missing authentication
+- `403 Forbidden`: Insufficient permissions
+
+#### Validation Errors
+- `400 Bad Request`: Invalid request data
+- `422 Unprocessable Entity`: Validation failed
+
+#### Resource Errors
+- `404 Not Found`: Resource not found
+- `409 Conflict`: Resource conflict
+
+#### Server Errors
+- `500 Internal Server Error`: Server error
+- `503 Service Unavailable`: Service temporarily unavailable
+
+### Example Error Response
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid campaign parameters",
+    "details": {
+      "field": "keywords",
+      "reason": "Keywords array cannot be empty"
+    },
+    "timestamp": "2025-06-19T10:00:00Z"
+  }
+}
+```
 
 ## Data Models
 
-### Campaign
+### Campaign Model
 ```typescript
 interface Campaign {
   id: string;
   name: string;
-  status: 'draft' | 'running' | 'completed' | 'failed' | 'stopped';
-  selectedType: 'dns' | 'http';
-  keywords: string[];
-  domainSource: {
-    type: 'generated' | 'uploaded';
-    domains?: string[];
-  };
-  config: {
-    maxDomains: number;
-    timeout: number;
-    retries: number;
-  };
-  progress: {
-    percentage: number;
-    currentPhase: string;
-    phaseStatus: string;
-    processedDomains: number;
-    totalDomains: number;
-  };
+  description?: string;
+  type: 'domain_generation' | 'dns_validation' | 'http_keyword';
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  userId: string;
+  parameters: CampaignParameters;
+  progress?: CampaignProgress;
   createdAt: string;
   updatedAt: string;
-  userId: string;
 }
 ```
 
-### User
+### User Model
 ```typescript
 interface User {
   id: string;
   username: string;
   email: string;
   role: 'admin' | 'user';
+  permissions: string[];
   isActive: boolean;
   createdAt: string;
-  updatedAt: string;
-  lastLoginAt?: string;
+  lastLogin?: string;
 }
 ```
 
-### Persona
+### Campaign Progress Model
 ```typescript
-interface Persona {
-  id: string;
-  name: string;
-  personaType: 'dns' | 'http';
-  description: string;
-  configDetails: DNSConfigDetails | HTTPConfigDetails;
-  isEnabled: boolean;
-  createdAt: string;
-  updatedAt: string;
+interface CampaignProgress {
+  totalItems: number;
+  processedItems: number;
+  successCount: number;
+  errorCount: number;
+  estimatedCompletion?: string;
 }
 ```
-
-### Proxy
-```typescript
-interface Proxy {
-  id: string;
-  name: string;
-  url: string;
-  username?: string;
-  password?: string;
-  isEnabled: boolean;
-  lastTestAt?: string;
-  lastTestStatus?: 'success' | 'failure';
-  createdAt: string;
-  updatedAt: string;
-}
-```
-
----
-
-## Error Handling
-
-### Standard Error Response
-```json
-{
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Human-readable error message",
-    "details": {
-      "field": "username",
-      "issue": "Username already exists"
-    }
-  },
-  "timestamp": "2025-06-14T10:30:00Z",
-  "requestId": "uuid"
-}
-```
-
-### HTTP Status Codes
-
-- **200 OK**: Successful request
-- **201 Created**: Resource created successfully
-- **400 Bad Request**: Invalid request data
-- **401 Unauthorized**: Authentication required
-- **403 Forbidden**: Insufficient permissions
-- **404 Not Found**: Resource not found
-- **409 Conflict**: Resource conflict (e.g., duplicate username)
-- **422 Unprocessable Entity**: Validation error
-- **500 Internal Server Error**: Server error
-
----
 
 ## Rate Limiting
 
-- **General API**: 100 requests per minute per IP
-- **Authentication**: 10 login attempts per minute per IP
-- **WebSocket**: 5 connections per user
-- **Campaign Operations**: 10 operations per minute per user
-
-Rate limit headers are included in responses:
-```
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 95
-X-RateLimit-Reset: 1671883200
-```
-
----
-
-## CORS Configuration
-
-**Allowed Origins**: Configurable in backend config.json
-**Allowed Methods**: GET, POST, PUT, DELETE, OPTIONS
-**Allowed Headers**: Content-Type, X-Requested-With, Cookie
-**Credentials**: Supported for session-based authentication
-
----
+- **Authentication endpoints**: 10 requests per minute per IP
+- **Campaign operations**: 100 requests per minute per user
+- **WebSocket connections**: 5 concurrent connections per user
+- **General API**: 1000 requests per hour per user
 
 ## Security Considerations
 
-1. **Authentication**: All endpoints except `/ping` require valid session cookies
-2. **Request Validation**: X-Requested-With header required for all state-changing operations to prevent unauthorized requests
-3. **Session Security**: HTTP-only cookies with session fingerprinting and hijacking prevention
-4. **Input Validation**: All inputs are validated and sanitized
-5. **SQL Injection**: Prevented through prepared statements
-6. **XSS Protection**: Content Security Policy headers enabled
-7. **Session Management**: Automatic cleanup, concurrent session limits, and timeout handling
+### HTTPS Only
+All production deployments must use HTTPS for secure communication.
+
+### CORS Configuration
+Configure CORS origins appropriately for your frontend domains.
+
+### Session Security
+- Sessions use HTTP-only cookies
+- SameSite attribute set to 'Strict'
+- Secure flag enabled in production
+- Session expiration: 24 hours (configurable)
+
+### Input Validation
+- All inputs are validated server-side
+- SQL injection prevention with parameterized queries
+- XSS protection with proper output encoding
+
+## SDKs and Client Libraries
+
+### TypeScript/JavaScript Client
+Auto-generated TypeScript client available in `/src/lib/api-client/`
+
+```typescript
+import { CampaignsApi, Configuration } from '@/lib/api-client';
+
+const config = new Configuration({
+  basePath: 'http://localhost:8080/api/v2'
+});
+
+const campaignsApi = new CampaignsApi(config);
+```
+
+## Changelog
+
+### Version 2.0 (Current)
+- Added comprehensive runtime validation
+- Implemented permission-based access control
+- Standardized WebSocket message types
+- Added admin user management endpoints
+- Enhanced campaign orchestration controls
+
+### Version 1.0
+- Initial API implementation
+- Basic campaign management
+- User authentication
+- WebSocket support
 
 ---
 
-*For implementation details and examples, see the source code in `/backend/internal/handlers/` and the frontend API client in `/src/lib/services/apiClient.production.ts`.*
+For technical support or API questions, refer to the main documentation or contact the development team.
