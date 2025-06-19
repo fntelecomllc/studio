@@ -11,13 +11,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { 
   Loader2, 
   Eye, 
   EyeOff, 
   AlertCircle, 
   CheckCircle, 
-  Shield, 
   User, 
   Mail, 
   Calendar,
@@ -226,7 +226,11 @@ export function UserProfile({
               
               <div className="space-y-2">
                 <Label>Role</Label>
-                <Badge variant="secondary">{user.role}</Badge>
+                <div className="flex flex-wrap gap-1">
+                  {user.roles.map((role) => (
+                    <Badge key={role.id} variant="secondary">{role.displayName}</Badge>
+                  ))}
+                </div>
               </div>
               
               <div className="space-y-2">
@@ -250,8 +254,8 @@ export function UserProfile({
                 <Label>Permissions</Label>
                 <div className="flex flex-wrap gap-1">
                   {user.permissions.slice(0, 3).map((permission) => (
-                    <Badge key={permission} variant="outline" className="text-xs">
-                      {permission}
+                    <Badge key={permission.id} variant="outline" className="text-xs">
+                      {permission.displayName}
                     </Badge>
                   ))}
                   {user.permissions.length > 3 && (
@@ -273,14 +277,7 @@ export function UserProfile({
               </Alert>
             )}
 
-            {user.failedLoginAttempts > 0 && (
-              <Alert variant="destructive">
-                <Shield className="h-4 w-4" />
-                <AlertDescription>
-                  {user.failedLoginAttempts} recent failed login attempt{user.failedLoginAttempts !== 1 ? 's' : ''} detected.
-                </AlertDescription>
-              </Alert>
-            )}
+            {/* Removed failedLoginAttempts section as it's not part of the User interface */}
           </CardContent>
         </Card>
       )}
@@ -375,8 +372,15 @@ export function UserProfile({
                       value={passwordValidation.score} 
                       className="h-2"
                     />
-                    <div className={`h-1 rounded-full ${getPasswordStrengthColor(passwordValidation.strength)}`} 
-                         style={{ width: `${passwordValidation.score}%` }} />
+                    <div className={cn(
+                      "h-1 rounded-full transition-all duration-300",
+                      getPasswordStrengthColor(passwordValidation.strength),
+                      // Use width classes based on score ranges
+                      passwordValidation.score === 0 ? "w-0" :
+                      passwordValidation.score <= 25 ? "w-1/4" :
+                      passwordValidation.score <= 50 ? "w-1/2" :
+                      passwordValidation.score <= 75 ? "w-3/4" : "w-full"
+                    )} />
                     
                     {passwordValidation.errors.length > 0 && (
                       <div className="space-y-1">

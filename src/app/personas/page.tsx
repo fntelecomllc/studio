@@ -344,7 +344,14 @@ function PersonasPageContent() {
         icon={Users}
         actionButtons={
           <div className="flex gap-2">
-            <input type="file" ref={fileInputRef} onChange={handleImportFile} accept=".json" style={{ display: 'none' }} />
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleImportFile} 
+              accept=".json" 
+              className="hidden"
+              aria-label={`Import ${activeTab.toUpperCase()} persona file`}
+            />
             <Button onClick={() => fileInputRef.current?.click()} variant="outline">
                 <UploadCloud className="mr-2 h-4 w-4" /> Import {activeTab.toUpperCase()} Persona(s)
             </Button>

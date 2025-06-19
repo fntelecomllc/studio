@@ -206,98 +206,111 @@ Example from `.credentials`:
 DATABASE_URL=postgres://domainflow:pNpTHxEWr2SmY270p1IjGn3dP@localhost:5432/domainflow_production?sslmode=disable
 ```
 
-### Database Schema v2.0 (Consolidated Schema)
+### Database Schema v3.0 (Production Ready)
 
-DomainFlow v2.0 features a **completely consolidated database schema** that replaces the previous 17 fragmented migrations with a single, production-optimized schema file:
+DomainFlow v3.0 features a **complete production-ready database schema** with all legacy migrations consolidated:
 
 **Key Achievements:**
-- **Migration Consolidation**: Successfully consolidated 17 individual migrations into [`backend/database/schema.sql`](backend/database/schema.sql)
-- **Performance**: 60-70% improvement in query performance through optimized indexes and constraints
-- **Consistency**: Perfect alignment between database, backend Go, and frontend TypeScript
-- **Maintainability**: Single schema file eliminates migration complexity
-- **Security**: Complete session-based authentication with fingerprinting and audit logging
-- **Scalability**: Production-ready with optimized indexes and connection pooling
+- **Complete Consolidation**: All legacy migrations consolidated into production-ready schema
+- **Production Schema**: [`backend/database/production_schema_v3.sql`](backend/database/production_schema_v3.sql) - Complete deployment file
+- **Development Schema**: [`backend/database/schema.sql`](backend/database/schema.sql) - Development and updates
+- **Performance**: Fully optimized indexes, triggers, and constraints
+- **Security**: Enterprise-grade session-based authentication with advanced fingerprinting
+- **Default Data**: Pre-configured roles, permissions, and admin users for immediate use
+- **Type Safety**: Perfect alignment between PostgreSQL, Go, and TypeScript
 
 **Schema Components:**
 - **Authentication Schema** (`auth` schema): Complete RBAC system with session management
-  - `auth.users` - User accounts with secure password hashing
-  - `auth.sessions` - Session management with fingerprinting
-  - `auth.roles` - Role-based access control
-  - `auth.permissions` - Granular permission system
-  - `auth.user_roles` - User-role assignments
+  - `auth.users` - User accounts with secure password hashing and MFA support
+  - `auth.sessions` - Advanced session management with fingerprinting and security validation
+  - `auth.roles` - Role-based access control with 4 default roles
+  - `auth.permissions` - 17 granular permissions covering all resources
+  - `auth.user_roles` - User-role assignments with expiration support
   - `auth.role_permissions` - Role-permission mappings
-  - `auth.auth_audit_log` - Comprehensive security audit trail
-- **Application Schema** (`public` schema): Campaign management and domain analysis
-- **Extensions**: PostgreSQL extensions (`uuid-ossp`, `pgcrypto`) for advanced functionality
-- **Functions**: Database functions for session fingerprinting and security
-- **Triggers**: Automatic session fingerprint generation and audit logging
+  - `auth.auth_audit_log` - Comprehensive security audit trail with risk scoring
+  - `auth.rate_limits` - Advanced rate limiting for security
+- **Application Schema** (`public` schema): Complete campaign management and domain analysis
+- **Functions**: Advanced session security validation and cleanup functions
+- **Triggers**: Automatic session fingerprinting and timestamp management
+- **Default Data**: 3 admin users, 4 roles, 17 permissions pre-configured
 
-### Consolidated Schema Deployment
+### Production Schema Deployment
 
-**The New Approach (Post-Consolidation):**
+**New Production Deployment (Recommended):**
 ```bash
-# Deploy using consolidated schema (recommended)
-./deploy-quick.sh    # Automatically applies consolidated schema
-./deploy-fresh.sh    # Fresh deployment with schema rebuild
+# Deploy complete production schema with default users and data
+psql "connection_string" < backend/database/production_schema_v3.sql
+```
 
-# Manual deployment (if needed)
+**Development Environment:**
+```bash
+# Apply development schema for local work
 psql "connection_string" < backend/database/schema.sql
 ```
 
-**Legacy Migration System (Now Deprecated):**
-The previous migration-based approach has been replaced by the consolidated schema. The old migration files have been archived and the new deployment process uses the optimized `backend/database/schema.sql` directly.
-
-### Running Database Migrations
-
-**Method 1: Automatic (Recommended for Development)**
+**Using Deployment Scripts:**
 ```bash
-# Deployment scripts handle migrations automatically
-./deploy-quick.sh    # Uses existing database
-./deploy-fresh.sh    # Rebuilds database from scratch
+./deploy-quick.sh    # Uses development schema for quick setup
+./deploy-fresh.sh    # Fresh deployment with schema rebuild
 ```
 
-**Method 2: Manual Migration (Production)**
+**Default Users Created:**
+- `admin@domainflow.local` (Password: `TempPassword123!`) - Super Admin
+- `dbadmin@domainflow.local` (Password: `dbpassword123!`) - Super Admin  
+- `user@domainflow.com` (Password: `user123!`) - Standard User
+
+**⚠️ Security Warning:** Change all default passwords immediately after deployment!
+
+### Database Setup Methods
+
+**Method 1: Production Schema (New Deployments)**
 ```bash
-# 1. Build migration tool
-cd backend
-go build -o bin/migrate ./cmd/migrate
+# Deploy complete production-ready schema
+psql "connection_string" < backend/database/production_schema_v3.sql
 
-# 2. Run all migrations (000001 through 000017)
-./bin/migrate -dsn "postgres://domainflow:password@localhost:5432/domainflow_production?sslmode=disable" -direction up
-
-# 3. Verify migration status
-psql "postgres://domainflow:password@localhost:5432/domainflow_production?sslmode=disable" -c "SELECT version, dirty FROM schema_migrations ORDER BY version;"
+# Verify deployment
+psql "connection_string" -c "SELECT COUNT(*) FROM auth.users;"
 ```
 
-**Method 3: Step-by-Step Migration**
+**Method 2: Development Schema (Development)**
 ```bash
-# Check current migration version
-psql "connection_string" -c "SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1;"
+# Apply development schema
+psql "connection_string" < backend/database/schema.sql
 
-# Run migrations one by one (if needed)
-./bin/migrate -dsn "connection_string" -direction up
-
-# Verify each migration
-psql "connection_string" -c "\dt" # List tables
-psql "connection_string" -c "\d+ table_name" # Describe specific table
+# Verify tables
+psql "connection_string" -c "\dt auth.*"
 ```
 
-### Session-Based Authentication Migration (000017)
+**Method 3: Automatic Deployment (Recommended)**
+```bash
+./deploy-quick.sh    # Uses development schema
+./deploy-fresh.sh    # Fresh deployment with rebuild
+```
 
-Migration 000017 implements the complete session-based authentication system:
+### Production-Ready Authentication System
 
-**What it Creates:**
-- **`auth.users`**: User accounts with secure password hashing
-- **`auth.sessions`**: HTTP-only session management with fingerprinting
-- **`auth.user_roles`**: Role-based access control (RBAC)
-- **`auth.roles`**: Role definitions (admin, user, etc.)
-- **`auth.permissions`**: Granular permission system
-- **`auth.role_permissions`**: Role-permission mappings
-- **`auth.auth_audit_log`**: Security audit trail
-- **`auth.password_reset_tokens`**: Secure password reset functionality
-- **Security Functions**: Password hashing, session validation, audit logging
+The v3.0 production schema includes a complete enterprise-grade authentication system:
 
-**Migration Features:**
+**Security Features:**
+- **Session-Based Authentication**: HTTP-only cookies with advanced fingerprinting
+- **Role-Based Access Control**: 4 default roles with 17 granular permissions
+- **Multi-Factor Authentication**: Built-in MFA support for enhanced security
+- **Advanced Session Security**: IP validation, user agent matching, and fingerprint verification
+- **Comprehensive Audit Logging**: All authentication events tracked with risk scoring
+- **Rate Limiting**: Protection against brute force and abuse
+- **Session Management**: Automatic cleanup and idle timeout handling
+
+**Default Roles:**
+- **super_admin**: Full system access with all permissions
+- **admin**: Administrative access to most features
+- **user**: Standard user permissions for campaigns and basic operations
+- **viewer**: Read-only access to system resources
+
+**Security Functions:**
+- Session fingerprint generation and validation
+- User agent hash comparison for session security
+- Comprehensive session security validation with multiple checks
+- Automatic expired session cleanup
 - **Secure Defaults**: All tables include proper constraints and indexes
 - **Performance Optimized**: Indexes for common authentication queries
 - **Audit Trail**: Comprehensive logging of security events

@@ -6,50 +6,22 @@ DATABASE_URL ?= postgres://postgres:123456789@localhost:5432/studio?sslmode=disa
 # Go build flags
 GOFLAGS = -mod=mod
 
-.PHONY: migrate-up migrate-down migrate-force migrate-version migrate-create build test
-
-# Run all migrations
-migrate-up:
-	@echo "Running migrations..."
-	@go run -mod=mod ./scripts/migrate.go -action=up -database="$(DATABASE_URL)"
-
-# Rollback the last migration
-migrate-down:
-	@echo "Rolling back last migration..."
-	@go run -mod=mod ./scripts/migrate.go -action=down -database="$(DATABASE_URL)"
-
-# Force a specific migration version
-migrate-force:
-	@if [ -z "$(VERSION)" ]; then \
-		echo "Error: VERSION must be specified"; \
-		echo "Usage: make migrate-force VERSION=<version>"; \
-		exit 1; \
-	fi
-	@go run -mod=mod ./scripts/migrate.go -action=force -version=$(VERSION) -database="$(DATABASE_URL)"
-
-# Show current migration version
-migrate-version:
-	@go run -mod=mod ./scripts/migrate.go -action=version -database="$(DATABASE_URL)"
-
-# Create a new migration file
-migrate-create:
-	@if [ -z "$(NAME)" ]; then \
-		echo "Error: NAME must be specified"; \
-		echo "Usage: make migrate-create NAME=<migration_name>"; \
-		exit 1; \
-	fi
-	@echo "Creating new migration: $(NAME)"
-	@mkdir -p migrations
-	@timestamp=$$(date +%Y%m%d%H%M%S); \
-	filename="migrations/$${timestamp}_$(NAME)"; \
-	touch "$${filename}.up.sql"; \
-	touch "$${filename}.down.sql"; \
-	echo "Created migrations: $${filename}.{up,down}.sql"
+.PHONY: build test clean deps dev-tools generate-mocks help
 
 # Build the application
 build:
 	@echo "Building application..."
 	go build -o bin/studio ./cmd/apiserver
+
+# Build for production
+build-prod:
+	@echo "Building for production..."
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o bin/domainflow-apiserver ./cmd/apiserver
+
+# Run the application
+run:
+	@echo "Running application..."
+	go run ./cmd/apiserver
 
 # Run tests
 test:
@@ -58,6 +30,8 @@ test:
 
 # Run tests with coverage
 test-cover:
+	@$(MAKE) test
+	go tool cover -html=coverage.out
 	@$(MAKE) test
 	go tool cover -html=coverage.out
 
@@ -88,12 +62,9 @@ generate-mocks:
 # Show help
 help:
 	@echo "Available targets:"
-	@echo "  migrate-up         - Run all pending migrations"
-	@echo "  migrate-down       - Rollback the last migration"
-	@echo "  migrate-force      - Force a specific migration version (VERSION=number)"
-	@echo "  migrate-version    - Show current migration version"
-	@echo "  migrate-create     - Create new migration files (NAME=description)"
-	@echo "  build             - Build the application"
+	@echo "  build             - Build the application for development"
+	@echo "  build-prod        - Build the application for production (Linux/amd64)"
+	@echo "  run               - Run the application in development mode"
 	@echo "  test              - Run tests"
 	@echo "  test-cover        - Run tests with coverage report"
 	@echo "  clean             - Clean build artifacts"
@@ -101,3 +72,7 @@ help:
 	@echo "  dev-tools         - Install development tools"
 	@echo "  generate-mocks    - Generate mock implementations"
 	@echo "  help              - Show this help message"
+	@echo ""
+	@echo "Database deployment (no migrations needed):"
+	@echo "  Use: psql \"connection_string\" < database/production_schema_v3.sql"
+	@echo "  Or:  psql \"connection_string\" < database/schema.sql"

@@ -1,8 +1,7 @@
-
 "use client";
 
 import React, { memo, useMemo, useCallback } from 'react';
-import type { Campaign, CampaignPhase, CampaignPhaseStatus } from '@/lib/types';
+import type { CampaignViewModel, CampaignPhase, CampaignPhaseStatus } from '@/lib/types';
 import { CAMPAIGN_PHASES_ORDERED } from '@/lib/constants';
 import { CheckCircle, AlertTriangle, Clock, Loader2, WorkflowIcon, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -15,7 +14,7 @@ import {
 } from "@/components/ui/tooltip";
 
 interface CampaignProgressProps {
-  campaign: Campaign;
+  campaign: CampaignViewModel;
 }
 
 const phaseDisplayNames: Record<CampaignPhase, string> = {
@@ -61,7 +60,7 @@ const PhaseItem = memo(({
   nodeStatus
 }: {
   phase: CampaignPhase;
-  campaign: Campaign;
+  campaign: CampaignViewModel;
   displayPhases: CampaignPhase[];
   operationalPhasesForType: CampaignPhase[];
   isActivePhaseNode: boolean;
@@ -105,6 +104,17 @@ const PhaseItem = memo(({
 });
 
 PhaseItem.displayName = 'PhaseItem';
+
+// Helper function to get appropriate width class for progress
+const getProgressWidthClass = (width: number): string => {
+  if (width === 0) return 'campaign-progress-fill-0';
+  if (width <= 25) return 'campaign-progress-fill-25';
+  if (width <= 33) return 'campaign-progress-fill-33';
+  if (width <= 50) return 'campaign-progress-fill-50';
+  if (width <= 66) return 'campaign-progress-fill-66';
+  if (width <= 75) return 'campaign-progress-fill-75';
+  return 'campaign-progress-fill-100';
+};
 
 // Memoized main component for optimal performance
 const CampaignProgress = memo(({ campaign }: CampaignProgressProps) => {
@@ -186,11 +196,15 @@ const CampaignProgress = memo(({ campaign }: CampaignProgressProps) => {
             );
           })}
           {displayPhases.length > 1 && (
-              <div className="absolute top-5 left-0 right-0 h-1 bg-border -z-0 mx-[calc(5rem/(var(--phase-count,4)*2))] " style={{ '--phase-count': displayPhases.length } as React.CSSProperties}>
+              <div 
+                className="absolute top-5 left-0 right-0 h-1 bg-border -z-0 campaign-progress-line"
+                data-phase-count={displayPhases.length}
+              >
               <div
-                  className="h-full bg-primary transition-all duration-500"
-                  // Progress of the line itself. If Idle, 0. If completed, 100. Otherwise, based on current phase.
-                  style={{ width: `${progressWidth}%` }}
+                  className={cn(
+                    "h-full bg-primary transition-all duration-500",
+                    getProgressWidthClass(progressWidth)
+                  )}
               />
               </div>
           )}

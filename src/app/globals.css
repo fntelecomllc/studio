@@ -110,3 +110,39 @@ body {
 .justify-between { justify-content: space-between; }
 .items-center { align-items: center; }
 .hidden { display: none; }
+
+/* Campaign Progress Component Styles */
+.campaign-progress-line {
+  margin-left: calc(5rem / 8); /* Default for 4 phases */
+  margin-right: calc(5rem / 8);
+}
+
+/* Dynamic margin adjustments for different phase counts */
+.campaign-progress-line[data-phase-count="2"] {
+  margin-left: calc(5rem / 4);
+  margin-right: calc(5rem / 4);
+}
+
+.campaign-progress-line[data-phase-count="3"] {
+  margin-left: calc(5rem / 6);
+  margin-right: calc(5rem / 6);
+}
+
+.campaign-progress-line[data-phase-count="4"] {
+  margin-left: calc(5rem / 8);
+  margin-right: calc(5rem / 8);
+}
+
+.campaign-progress-line[data-phase-count="5"] {
+  margin-left: calc(5rem / 10);
+  margin-right: calc(5rem / 10);
+}
+
+/* Progress width classes for common percentages */
+.campaign-progress-fill-0 { width: 0%; }
+.campaign-progress-fill-25 { width: 25%; }
+.campaign-progress-fill-33 { width: 33.33%; }
+.campaign-progress-fill-50 { width: 50%; }
+.campaign-progress-fill-66 { width: 66.66%; }
+.campaign-progress-fill-75 { width: 75%; }
+.campaign-progress-fill-100 { width: 100%; }
