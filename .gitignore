@@ -1,4 +1,3 @@
-
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # Dependencies
@@ -56,6 +55,15 @@ firebase-debug.log
 .cache
 *.bak
 *.tmp
+
+# Backend build artifacts
+backend/bin/
+backend/build/
+backend/apiserver
+backend/studio
+backend/debug_auth_service
+backend/debug-auth-service
+backend/domainflow-apiserver
 
 # IDX specific (if any, good to have as a general rule for cloud IDEs)
 .idx/
