@@ -18,6 +18,7 @@ import {
   type UnifiedCreateCampaignRequest,
   unifiedCreateCampaignRequestSchema 
 } from '@/lib/schemas/unifiedCampaignSchema';
+import { TypeTransformer } from '@/lib/types/transform';
 
 
 class CampaignService {
@@ -44,7 +45,14 @@ class CampaignService {
       console.log('[CampaignService] Getting campaigns with filters:', filters);
       const response = await apiClient.get<Campaign[]>('/api/v2/campaigns', { params: filters });
       console.log('[CampaignService] Get campaigns response:', response);
-      return response;
+      
+      // Transform raw campaign data to use branded types
+      const transformedData = TypeTransformer.transformArray(response.data, TypeTransformer.transformCampaign);
+      
+      return {
+        ...response,
+        data: transformedData
+      };
     } catch (error) {
       console.error('[CampaignService] Failed to get campaigns:', error);
       throw error;

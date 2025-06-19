@@ -1,3 +1,6 @@
+// Unified type definitions for frontend/backend alignment
+import { UUID, SafeBigInt, ISODateString } from './types/branded';
+
 // src/lib/types.ts - Complete Frontend Type Synchronization with Backend Go Structs
 // Perfect alignment with backend/internal/models/models.go and auth_models.go
 
@@ -191,7 +194,7 @@ export interface HTTPConfigDetails {
 
 // Persona - matches backend Persona struct exactly
 export interface Persona {
-  id: string;
+  id: UUID;
   name: string;
   personaType: PersonaType;
   description?: string;
@@ -199,15 +202,15 @@ export interface Persona {
   configDetails: DNSConfigDetails | HTTPConfigDetails; // Raw JSON config
   isEnabled: boolean;
   status: string;
-  lastTested?: string;
+  lastTested?: ISODateString;
   lastError?: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
 }
 
 // Proxy - matches backend Proxy struct exactly (without sensitive fields)
 export interface Proxy {
-  id: string;
+  id: UUID;
   name: string;
   description?: string;
   address: string;
@@ -220,61 +223,61 @@ export interface Proxy {
   isEnabled: boolean;
   isHealthy: boolean;
   lastStatus?: string;
-  lastCheckedAt?: string;
-  lastTested?: string;
+  lastCheckedAt?: ISODateString;
+  lastTested?: ISODateString;
   lastError?: string;
-  successCount?: number;
-  failureCount?: number;
+  successCount?: SafeBigInt;
+  failureCount?: SafeBigInt;
   latencyMs?: number;
   city?: string;
   countryCode?: string;
   provider?: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
 }
 
 // Keyword Set - matches backend KeywordSet exactly
 export interface KeywordSet {
-  id: string;
+  id: UUID;
   name: string;
   description?: string;
   isEnabled: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
   rules?: KeywordRule[];
 }
 
 // Keyword Rule - matches backend KeywordRule exactly
 export interface KeywordRule {
-  id: string;
-  keywordSetId?: string;
+  id: UUID;
+  keywordSetId?: UUID;
   pattern: string;
   ruleType: KeywordRuleType;
   isCaseSensitive: boolean;
   category?: string;
-  contextChars?: number;
-  createdAt: string;
-  updatedAt: string;
+  contextChars?: SafeBigInt;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
 }
 
 // Domain Generation Campaign Params - matches backend DomainGenerationCampaignParams exactly
 export interface DomainGenerationCampaignParams {
   patternType: string;
-  variableLength?: number;
+  variableLength?: SafeBigInt;
   characterSet?: string;
   constantString?: string;
   tld: string;
-  numDomainsToGenerate: number;
-  totalPossibleCombinations: number;
-  currentOffset: number;
+  numDomainsToGenerate: SafeBigInt;
+  totalPossibleCombinations: SafeBigInt;
+  currentOffset: SafeBigInt;
 }
 
 // DNS Validation Campaign Params - matches backend DNSValidationCampaignParams exactly
 export interface DNSValidationCampaignParams {
-  sourceGenerationCampaignId?: string;
-  personaIds: string[];
-  rotationIntervalSeconds?: number;
-  processingSpeedPerMinute?: number;
+  sourceGenerationCampaignId?: UUID;
+  personaIds: UUID[];
+  rotationIntervalSeconds?: SafeBigInt;
+  processingSpeedPerMinute?: SafeBigInt;
   batchSize?: number;
   retryAttempts?: number;
   metadata?: Record<string, unknown>;
@@ -282,46 +285,46 @@ export interface DNSValidationCampaignParams {
 
 // HTTP Keyword Campaign Params - matches backend HTTPKeywordCampaignParams exactly
 export interface HTTPKeywordCampaignParams {
-  sourceCampaignId: string;
-  keywordSetIds?: string[];
+  sourceCampaignId: UUID;
+  keywordSetIds?: UUID[];
   adHocKeywords?: string[];
-  personaIds: string[];
-  proxyPoolId?: string;
+  personaIds: UUID[];
+  proxyPoolId?: UUID;
   proxySelectionStrategy?: string;
-  rotationIntervalSeconds?: number;
-  processingSpeedPerMinute?: number;
-  batchSize?: number;
-  retryAttempts?: number;
+  rotationIntervalSeconds?: SafeBigInt;
+  processingSpeedPerMinute?: SafeBigInt;
+  batchSize?: SafeBigInt;
+  retryAttempts?: SafeBigInt;
   targetHttpPorts?: number[];
   lastProcessedDomainName?: string;
   sourceType: string;
-  proxyIds?: string[];
+  proxyIds?: UUID[];
   metadata?: Record<string, unknown>;
 }
 
 // Campaign - Core API interface matching backend Campaign struct exactly
 export interface Campaign {
-  id: string;
+  id: UUID;
   name: string;
   campaignType: CampaignType;
   status: CampaignStatus;
-  userId?: string;
-  createdAt: string;
-  updatedAt: string;
-  startedAt?: string;
-  completedAt?: string;
+  userId?: UUID;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+  startedAt?: ISODateString;
+  completedAt?: ISODateString;
   progressPercentage?: number;
-  totalItems?: number;
-  processedItems?: number;
-  successfulItems?: number;
-  failedItems?: number;
+  totalItems?: SafeBigInt;
+  processedItems?: SafeBigInt;
+  successfulItems?: SafeBigInt;
+  failedItems?: SafeBigInt;
   errorMessage?: string;
   metadata?: Record<string, unknown>;
   
   // Additional tracking fields (from backend)
-  estimatedCompletionAt?: string;
+  estimatedCompletionAt?: ISODateString;
   avgProcessingRate?: number;
-  lastHeartbeatAt?: string;
+  lastHeartbeatAt?: ISODateString;
   
   // Campaign parameter details
   domainGenerationParams?: DomainGenerationCampaignParams;
@@ -380,38 +383,38 @@ export interface CampaignViewModel extends Campaign {
 
 // Generated Domain - matches backend GeneratedDomain exactly
 export interface GeneratedDomainBackend {
-  id: string;
-  generationCampaignId: string;
+  id: UUID;
+  generationCampaignId: UUID;
   domainName: string;
-  offsetIndex: number;
-  generatedAt: string;
+  offsetIndex: SafeBigInt;
+  generatedAt: ISODateString;
   sourceKeyword?: string;
   sourcePattern?: string;
   tld?: string;
-  createdAt: string;
+  createdAt: ISODateString;
 }
 
 export type GeneratedDomain = GeneratedDomainBackend;
 
 // DNS Validation Result - matches backend DNSValidationResult exactly
 export interface DNSValidationResult {
-  id: string;
-  dnsCampaignId: string;
-  generatedDomainId?: string;
+  id: UUID;
+  dnsCampaignId: UUID;
+  generatedDomainId?: UUID;
   domainName: string;
   validationStatus: string;
   dnsRecords?: Record<string, unknown>;
-  validatedByPersonaId?: string;
-  attempts: number | null;
-  lastCheckedAt?: string;
-  createdAt: string;
+  validatedByPersonaId?: UUID;
+  attempts: SafeBigInt | null;
+  lastCheckedAt?: ISODateString;
+  createdAt: ISODateString;
 }
 
 // HTTP Keyword Result - matches backend HTTPKeywordResult exactly
 export interface HTTPKeywordResult {
-  id: string;
-  httpKeywordCampaignId: string;
-  dnsResultId?: string;
+  id: UUID;
+  httpKeywordCampaignId: UUID;
+  dnsResultId?: UUID;
   domainName: string;
   validationStatus: string;
   httpStatusCode?: number;
@@ -421,41 +424,41 @@ export interface HTTPKeywordResult {
   foundKeywordsFromSets?: Record<string, unknown>;
   foundAdHocKeywords?: string[];
   contentHash?: string;
-  validatedByPersonaId?: string;
-  usedProxyId?: string;
-  attempts: number | null;
-  lastCheckedAt?: string;
-  createdAt: string;
+  validatedByPersonaId?: UUID;
+  usedProxyId?: UUID;
+  attempts: SafeBigInt | null;
+  lastCheckedAt?: ISODateString;
+  createdAt: ISODateString;
 }
 
 // Campaign Job - matches backend CampaignJob exactly
 export interface CampaignJob {
-  id: string;
-  campaignId: string;
+  id: UUID;
+  campaignId: UUID;
   jobType: CampaignType;
   status: CampaignJobStatus;
-  scheduledAt: string;
+  scheduledAt: ISODateString;
   jobPayload?: Record<string, unknown>;
-  attempts: number;
-  maxAttempts: number;
+  attempts: SafeBigInt;
+  maxAttempts: SafeBigInt;
   lastError?: string;
-  lastAttemptedAt?: string;
-  processingServerId?: string;
-  createdAt: string;
-  updatedAt: string;
-  nextExecutionAt?: string;
-  lockedAt?: string;
-  lockedBy?: string;
+  lastAttemptedAt?: ISODateString;
+  processingServerId?: UUID;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+  nextExecutionAt?: ISODateString;
+  lockedAt?: ISODateString;
+  lockedBy?: UUID;
 }
 
 // Audit Log - matches backend AuditLog exactly
 export interface AuditLog {
-  id: string;
-  timestamp: string;
-  userId?: string;
+  id: UUID;
+  timestamp: ISODateString;
+  userId?: UUID;
   action: string;
   entityType?: string;
-  entityId?: string;
+  entityId?: UUID;
   details?: Record<string, unknown>;
   clientIp?: string;
   userAgent?: string;
@@ -465,7 +468,7 @@ export interface AuditLog {
 
 // User - matches backend User struct exactly (PublicUser fields)
 export interface User {
-  id: string;
+  id: UUID;
   email: string;
   emailVerified: boolean;
   firstName: string;
@@ -474,21 +477,21 @@ export interface User {
   avatarUrl?: string;
   isActive: boolean;
   isLocked: boolean;
-  lastLoginAt?: string;
+  lastLoginAt?: ISODateString;
   lastLoginIp?: string;
   mustChangePassword: boolean;
   mfaEnabled: boolean;
-  mfaLastUsedAt?: string;
-  createdAt: string;
-  updatedAt: string;
+  mfaLastUsedAt?: ISODateString;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
   roles: Role[];
   permissions: Permission[];
 }
 
 // Session - matches backend Session struct exactly
 export interface Session {
-  id: string;
-  userId: string;
+  id: UUID;
+  userId: UUID;
   ipAddress?: string;
   userAgent?: string;
   userAgentHash?: string;
@@ -496,48 +499,48 @@ export interface Session {
   browserFingerprint?: string;
   screenResolution?: string;
   isActive: boolean;
-  expiresAt: string;
-  lastActivityAt: string;
-  createdAt: string;
+  expiresAt: ISODateString;
+  lastActivityAt: ISODateString;
+  createdAt: ISODateString;
 }
 
 // Role - matches backend Role struct exactly
 export interface Role {
-  id: string;
+  id: UUID;
   name: string;
   displayName: string;
   description?: string;
   isSystemRole: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
   permissions?: Permission[];
 }
 
 // Permission - matches backend Permission struct exactly
 export interface Permission {
-  id: string;
+  id: UUID;
   name: string;
   displayName: string;
   description?: string;
   resource: string;
   action: string;
-  createdAt: string;
+  createdAt: ISODateString;
 }
 
 // User Role - matches backend UserRole exactly
 export interface UserRole {
-  userId: string;
-  roleId: string;
-  assignedBy?: string;
-  assignedAt: string;
-  expiresAt?: string;
+  userId: UUID;
+  roleId: UUID;
+  assignedBy?: UUID;
+  assignedAt: ISODateString;
+  expiresAt?: ISODateString;
 }
 
 // Auth Audit Log - matches backend AuthAuditLog exactly
 export interface AuthAuditLog {
-  id: number;
-  userId?: string;
-  sessionId?: string;
+  id: SafeBigInt;
+  userId?: UUID;
+  sessionId?: UUID;
   eventType: string;
   eventStatus: string;
   ipAddress?: string;
@@ -546,25 +549,25 @@ export interface AuthAuditLog {
   securityFlags?: string;
   details?: string;
   riskScore: number;
-  createdAt: string;
+  createdAt: ISODateString;
 }
 
 // Rate Limit - matches backend RateLimit exactly
 export interface RateLimit {
-  id: number;
+  id: SafeBigInt;
   identifier: string;
   action: string;
-  attempts: number;
-  windowStart: string;
-  blockedUntil?: string;
+  attempts: SafeBigInt;
+  windowStart: ISODateString;
+  blockedUntil?: ISODateString;
 }
 
 // Security Context - matches backend SecurityContext exactly
 export interface SecurityContext {
-  userId: string;
-  sessionId: string;
-  lastActivity: string;
-  sessionExpiry: string;
+  userId: UUID;
+  sessionId: UUID;
+  lastActivity: ISODateString;
+  sessionExpiry: ISODateString;
   requiresPasswordChange: boolean;
   riskScore: number;
   permissions: string[];
@@ -888,6 +891,7 @@ export interface Lead {
 
 // Start Campaign Phase Payload
 export interface StartCampaignPhasePayload {
+  campaignId: UUID;
   phaseToStart: CampaignType; // Use CampaignType since this represents workflow phases
   domainSource?: DomainSource;
   numberOfDomainsToProcess?: number;
@@ -934,14 +938,6 @@ export type DomainGenerationPattern =
   | "suffix_variable" 
   | "both_variable"
   | "constant_only";
-
-// Start Campaign Phase Payload for UI
-export interface StartCampaignPhasePayload {
-  campaignId: string;
-  phaseToStart: CampaignType;
-  domainSource?: DomainSource;
-  metadata?: Record<string, unknown>;
-}
 
 // Missing types for frontend compatibility
 

@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Campaign, CampaignViewModel, CampaignStatus, StartCampaignPhasePayload, CampaignDomainDetail, DomainActivityStatus, CampaignValidationItem, GeneratedDomain, CampaignType } from '@/lib/types';
+import { safeBigIntToNumber } from '@/lib/types/branded';
 import { CAMPAIGN_PHASES_ORDERED, getFirstPhase } from '@/lib/constants';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, Briefcase, Dna, Network, Globe, Play, RefreshCw, CheckCircle, Download, PauseCircle, PlayCircle, StopCircle, HelpCircle, Search, ShieldQuestion, ExternalLink, XCircle, Clock, Loader2, ChevronLeft, ChevronRight, Percent } from 'lucide-react';
@@ -428,7 +429,7 @@ export default function CampaignDashboardPage() {
       // Note: V2 API /start endpoint just needs campaignId
       // Domain source and other configs are stored in campaign already
       domainSource: campaign.dnsValidationParams?.sourceGenerationCampaignId ? "campaign_output" : undefined,
-      numberOfDomainsToProcess: campaign.totalItems
+      numberOfDomainsToProcess: campaign.totalItems ? safeBigIntToNumber(campaign.totalItems) : undefined
     };
     
     // Use the simplified V2 API call
@@ -527,14 +528,7 @@ export default function CampaignDashboardPage() {
                 generatedDate: campaign.createdAt,
                 dnsStatus: isDnsItem ? getDomainStatusFromItem((item as CampaignValidationItem).validationStatus) : getGlobalDomainStatusForPhase(domainName, 'dns_validation', campaign),
                 dnsError: isDnsItem ? (item as CampaignValidationItem).errorDetails : undefined,
-                dnsResultsByPersona: isDnsItem ? {'backend-persona': {
-                    id: `dns-${domainName}`,
-                    dnsCampaignId: campaignId,
-                    domainName: domainName,
-                    validationStatus: (item as CampaignValidationItem).validationStatus,
-                    createdAt: (item as CampaignValidationItem).lastCheckedAt || new Date().toISOString(),
-                    attempts: (item as CampaignValidationItem).attempts ?? null,
-                }} : undefined,
+                dnsResultsByPersona: undefined, // TODO: Only populate with real backend data, not synthetic objects
 
                 httpStatus: isHttpItem ? getDomainStatusFromItem((item as CampaignValidationItem).validationStatus) : getGlobalDomainStatusForPhase(domainName, 'http_keyword_validation', campaign),
                 httpError: isHttpItem ? (item as CampaignValidationItem).errorDetails : undefined,
