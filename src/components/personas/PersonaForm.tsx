@@ -29,6 +29,11 @@ import {
   HTTPConfigDetails,
   DNSConfigDetails
 } from "@/lib/types";
+import { 
+  personaManagementSchemaWithBranded as _personaManagementSchemaWithBranded,
+  validateAndTransformFormData as _validateAndTransformFormData,
+  extractBrandedTypeErrors as _extractBrandedTypeErrors
+} from '@/lib/schemas/brandedValidationSchemas';
 
 // DNS Resolver Strategy options
 const DNS_RESOLVER_STRATEGIES: DnsResolverStrategy[] = [
@@ -36,6 +41,23 @@ const DNS_RESOLVER_STRATEGIES: DnsResolverStrategy[] = [
   "weighted_rotation",
   "sequential_failover"
 ];
+
+// Utility functions
+function parseStringToArray(input: string | undefined): string[] {
+  if (!input) return [];
+  return input.split(',').map(s => s.trim()).filter(s => s.length > 0);
+}
+
+function parseJsonOrUndefined<T>(jsonString: string | undefined): T | undefined {
+  if (!jsonString || jsonString.trim() === "" || jsonString.trim() === "{}") {
+    return undefined;
+  }
+  try {
+    return JSON.parse(jsonString) as T;
+  } catch {
+    return undefined;
+  }
+}
 
 // HTTP Persona Schema
 const httpPersonaFormSchema = z.object({
@@ -81,23 +103,6 @@ interface PersonaFormProps {
   persona?: Persona;
   isEditing?: boolean;
   personaType: 'http' | 'dns';
-}
-
-// Utility functions
-function parseStringToArray(input: string | undefined): string[] {
-  if (!input) return [];
-  return input.split(',').map(s => s.trim()).filter(s => s.length > 0);
-}
-
-function parseJsonOrUndefined<T>(jsonString: string | undefined): T | undefined {
-  if (!jsonString || jsonString.trim() === "" || jsonString.trim() === "{}") {
-    return undefined;
-  }
-  try {
-    return JSON.parse(jsonString) as T;
-  } catch {
-    return undefined;
-  }
 }
 
 // HTTP Persona Form Component

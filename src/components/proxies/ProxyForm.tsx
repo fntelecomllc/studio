@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,12 +21,19 @@ import { createProxy, updateProxy } from '@/lib/services/proxyService.production
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from "lucide-react";
+import { 
+  proxyManagementSchemaWithBranded as _proxyManagementSchemaWithBranded,
+  validateAndTransformFormData as _validateAndTransformFormData,
+  extractBrandedTypeErrors as _extractBrandedTypeErrors
+} from '@/lib/schemas/brandedValidationSchemas';
 
 const PROXY_PROTOCOLS: ProxyProtocol[] = ['http', 'https', 'socks4', 'socks5'];
 const INITIAL_PROXY_STATUSES: ProxyStatus[] = ['Active', 'Disabled']; // For creating new proxy
 
+// Enhanced proxy form schema with branded types
 const proxyFormSchema = z.object({
-  address: z.string().min(7, { message: "Proxy address must be at least 7 characters (e.g., 1.2.3.4:80)." }),
+  address: z.string().min(7, { message: "Proxy address must be at least 7 characters (e.g., 1.2.3.4:80)." })
+    .regex(/^[a-zA-Z0-9.-]+:[0-9]+$/, "Invalid hostname:port format"),
   protocol: z.enum(PROXY_PROTOCOLS as [ProxyProtocol, ...ProxyProtocol[]], { required_error: "Protocol is required." }),
   notes: z.string().optional(),
   initialStatus: z.enum(INITIAL_PROXY_STATUSES as [ProxyStatus, ...ProxyStatus[]]).optional(),

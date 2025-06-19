@@ -1,5 +1,25 @@
 package main
 
+// @title DomainFlow API
+// @version 1.0
+// @description DomainFlow API for domain generation, validation, and campaign management
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.url http://www.domainflow.com/support
+// @contact.email support@domainflow.com
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8080
+// @basePath /
+
+// @securityDefinitions.apikey SessionAuth
+// @in cookie
+// @name session_id
+// @description Session-based authentication using HTTP cookies
+
 import (
 	"context"
 	"fmt"
@@ -16,9 +36,12 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	"github.com/fntelecomllc/studio/backend/internal/api"
 	"github.com/fntelecomllc/studio/backend/internal/config"
+	_ "github.com/fntelecomllc/studio/backend/docs"
 	"github.com/fntelecomllc/studio/backend/internal/httpvalidator"
 	"github.com/fntelecomllc/studio/backend/internal/keywordscanner"
 	"github.com/fntelecomllc/studio/backend/internal/middleware"
@@ -240,6 +263,10 @@ func main() {
 	router.Use(securityMiddleware.SecurityHeaders())
 	router.Use(securityMiddleware.EnhancedCORS())
 
+	// Add validation middleware for request/response validation
+	router.Use(middleware.ValidateRequestMiddleware())
+	router.Use(middleware.ValidateResponseMiddleware())
+
 	// Create a middleware group for non-WebSocket routes that need request size limits
 	nonWSMiddleware := func() gin.HandlerFunc {
 		return gin.HandlerFunc(func(c *gin.Context) {
@@ -262,6 +289,10 @@ func main() {
 
 	// Public routes (no authentication required)
 	router.GET("/ping", api.PingHandlerGin)
+
+	// Swagger documentation routes (public)
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	log.Println("Registered Swagger UI route under /swagger/")
 
 	// Authentication routes (public)
 	authRoutes := router.Group("/api/v2/auth")

@@ -71,6 +71,20 @@ func (h *CampaignOrchestratorAPIHandler) RegisterCampaignOrchestrationRoutes(gro
 
 // --- Unified Campaign Creation Handler ---
 
+// createCampaign creates a new campaign
+// @Summary Create a new campaign
+// @Description Create a new campaign with specified type and parameters
+// @Tags Campaigns
+// @Accept json
+// @Produce json
+// @Param request body services.CreateCampaignRequest true "Campaign creation request"
+// @Success 201 {object} models.CampaignAPI "Campaign created successfully"
+// @Failure 400 {object} models.ErrorResponse "Invalid request payload"
+// @Failure 401 {object} models.ErrorResponse "Authentication required"
+// @Failure 403 {object} models.ErrorResponse "Insufficient permissions"
+// @Failure 500 {object} models.ErrorResponse "Internal server error"
+// @Security SessionAuth
+// @Router /campaigns [post]
 func (h *CampaignOrchestratorAPIHandler) createCampaign(c *gin.Context) {
 	var req services.CreateCampaignRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -162,6 +176,22 @@ func (h *CampaignOrchestratorAPIHandler) validateCampaignRequest(req services.Cr
 
 // --- Campaign Information Handlers ---
 
+// listCampaigns lists campaigns with optional filtering
+// @Summary List campaigns
+// @Description Retrieve a list of campaigns with optional filtering and pagination
+// @Tags Campaigns
+// @Produce json
+// @Param limit query int false "Maximum number of campaigns to return (1-100)" default(20)
+// @Param offset query int false "Number of campaigns to skip" default(0)
+// @Param type query string false "Filter by campaign type" Enums(domain_generation,dns_validation,http_keyword_validation)
+// @Param status query string false "Filter by campaign status" Enums(pending,queued,running,pausing,paused,completed,failed,archived,cancelled)
+// @Success 200 {array} models.CampaignAPI "List of campaigns"
+// @Failure 400 {object} models.ErrorResponse "Invalid query parameters"
+// @Failure 401 {object} models.ErrorResponse "Authentication required"
+// @Failure 403 {object} models.ErrorResponse "Insufficient permissions"
+// @Failure 500 {object} models.ErrorResponse "Internal server error"
+// @Security SessionAuth
+// @Router /campaigns [get]
 func (h *CampaignOrchestratorAPIHandler) listCampaigns(c *gin.Context) {
 	// Parse and validate query parameters
 	limit, err := strconv.Atoi(c.DefaultQuery("limit", "20"))

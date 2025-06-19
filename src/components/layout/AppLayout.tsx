@@ -47,6 +47,12 @@ const navigationItems = [
     permission: "campaigns:read"
   },
   {
+    title: "Admin",
+    url: "/admin",
+    icon: Shield,
+    permission: "admin:all"
+  },
+  {
     title: "Settings",
     url: "/settings",
     icon: Settings,

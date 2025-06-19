@@ -1,13 +1,15 @@
-
 "use client";
 
 import { useEffect, useState, useCallback } from 'react';
 import PageHeader from '@/components/shared/PageHeader';
 import ProxyListItem from '@/components/proxies/ProxyListItem';
 import ProxyForm from '@/components/proxies/ProxyForm';
+import { BulkOperations } from '@/components/proxies/BulkOperations';
+import { ProxyTesting } from '@/components/proxies/ProxyTesting';
 import StrictProtectedRoute from '@/components/auth/StrictProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +17,7 @@ import { ShieldCheck, PlusCircle, TestTubeDiagonal, Sparkles, Activity } from 'l
 import type { Proxy, ProxiesListResponse, ProxyActionResponse, ProxyDeleteResponse, UpdateProxyPayload } from '@/lib/types';
 import { getProxies, deleteProxy, testProxy, testAllProxies, cleanProxies, updateProxy } from '@/lib/services/proxyService.production';
 import { useToast } from '@/hooks/use-toast';
+import { useProxyHealth } from '@/lib/hooks/useProxyHealth';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,9 +43,15 @@ function ProxiesPageContent() {
   
   const { toast } = useToast();
 
-  // Use centralized loading state
+  // Use centralized loading state and proxy health monitoring
   const { startLoading, stopLoading, isLoading } = useLoadingStore();
   const loading = isLoading(LOADING_OPERATIONS.FETCH_PROXIES);
+  
+  // Initialize proxy health monitoring for future use
+  useProxyHealth({ 
+    autoRefresh: true, 
+    refreshInterval: 30000 
+  });
 
   const fetchProxiesData = useCallback(async (showLoadingSpinner = true) => {
     if (showLoadingSpinner) startLoading(LOADING_OPERATIONS.FETCH_PROXIES, "Loading proxies");
@@ -239,32 +248,55 @@ function ProxiesPageContent() {
                 <CardDescription>List of all proxy servers available for campaigns.</CardDescription>
             </CardHeader>
             <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[25%]">Address</TableHead>
-                      <TableHead>Protocol</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Last Tested</TableHead>
-                      <TableHead>Success/Fail</TableHead>
-                      <TableHead>Last Error</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {proxies.map(proxy => (
-                      <ProxyListItem
-                        key={proxy.id}
-                        proxy={proxy}
-                        onEdit={handleEditProxy}
-                        onDelete={openDeleteConfirmation}
-                        onTest={handleTestProxy}
-                        onToggleStatus={handleToggleProxyStatus}
-                        isLoading={actionLoading[`test-${proxy.id}`] || actionLoading[`toggle-${proxy.id}`] || actionLoading[`delete-${proxy.id}`]}
-                      />
-                    ))}
-                  </TableBody>
-                </Table>
+                <Tabs defaultValue="allProxies" className="space-y-4">
+                  <TabsList>
+                    <TabsTrigger value="allProxies">All Proxies</TabsTrigger>
+                    <TabsTrigger value="bulkOperations">Bulk Operations</TabsTrigger>
+                    <TabsTrigger value="proxyTesting">Proxy Testing</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="allProxies">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[25%]">Address</TableHead>
+                          <TableHead>Protocol</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Last Tested</TableHead>
+                          <TableHead>Success/Fail</TableHead>
+                          <TableHead>Last Error</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {proxies.map(proxy => (
+                          <ProxyListItem
+                            key={proxy.id}
+                            proxy={proxy}
+                            onEdit={handleEditProxy}
+                            onDelete={openDeleteConfirmation}
+                            onTest={handleTestProxy}
+                            onToggleStatus={handleToggleProxyStatus}
+                            isLoading={actionLoading[`test-${proxy.id}`] || actionLoading[`toggle-${proxy.id}`] || actionLoading[`delete-${proxy.id}`]}
+                          />
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TabsContent>
+                  <TabsContent value="bulkOperations">
+                    <BulkOperations 
+                      proxies={proxies}
+                      onProxiesUpdate={() => fetchProxiesData(false)}
+                      disabled={pageActionLoading !== null}
+                    />
+                  </TabsContent>
+                  <TabsContent value="proxyTesting">
+                    <ProxyTesting 
+                      proxies={proxies} 
+                      onProxiesUpdate={() => fetchProxiesData(false)}
+                      disabled={pageActionLoading !== null}
+                    />
+                  </TabsContent>
+                </Tabs>
             </CardContent>
         </Card>
       )}

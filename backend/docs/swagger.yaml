@@ -1,0 +1,517 @@
+basePath: /
+definitions:
+  ErrorResponse:
+    properties:
+      code:
+        example: 400
+        type: integer
+      message:
+        example: Error message description
+        type: string
+      status:
+        example: error
+        type: string
+    type: object
+  models.CampaignAPI:
+    properties:
+      avgProcessingRate:
+        example: 10.5
+        type: number
+      campaignType:
+        allOf:
+        - $ref: '#/definitions/models.CampaignTypeEnum'
+        example: domain_generation
+      completedAt:
+        type: string
+      createdAt:
+        type: string
+      errorMessage:
+        example: Network timeout error
+        type: string
+      estimatedCompletionAt:
+        type: string
+      failedItems:
+        example: 55
+        type: integer
+      id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      lastHeartbeatAt:
+        type: string
+      metadata:
+        type: object
+      name:
+        example: Domain Discovery Campaign
+        type: string
+      processedItems:
+        example: 755
+        type: integer
+      progressPercentage:
+        example: 75.5
+        type: number
+      startedAt:
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/models.CampaignStatusEnum'
+        example: running
+      successfulItems:
+        example: 700
+        type: integer
+      totalItems:
+        example: 1000
+        type: integer
+      updatedAt:
+        type: string
+      userId:
+        example: 123e4567-e89b-12d3-a456-426614174001
+        type: string
+    type: object
+  models.CampaignStatusEnum:
+    enum:
+    - pending
+    - queued
+    - running
+    - pausing
+    - paused
+    - completed
+    - failed
+    - archived
+    - cancelled
+    type: string
+    x-enum-comments:
+      CampaignStatusArchived: For long-term storage, not active
+      CampaignStatusCancelled: User initiated cancellation
+      CampaignStatusFailed: Terminal failure after retries or critical error
+      CampaignStatusPausing: User or system initiated pause
+    x-enum-varnames:
+    - CampaignStatusPending
+    - CampaignStatusQueued
+    - CampaignStatusRunning
+    - CampaignStatusPausing
+    - CampaignStatusPaused
+    - CampaignStatusCompleted
+    - CampaignStatusFailed
+    - CampaignStatusArchived
+    - CampaignStatusCancelled
+  models.CampaignTypeEnum:
+    enum:
+    - domain_generation
+    - dns_validation
+    - http_keyword_validation
+    type: string
+    x-enum-varnames:
+    - CampaignTypeDomainGeneration
+    - CampaignTypeDNSValidation
+    - CampaignTypeHTTPKeywordValidation
+  models.LoginRequest:
+    properties:
+      captchaToken:
+        type: string
+      email:
+        type: string
+      password:
+        minLength: 12
+        type: string
+      rememberMe:
+        type: boolean
+    required:
+    - email
+    - password
+    type: object
+  models.LoginResponseAPI:
+    properties:
+      error:
+        example: Invalid credentials
+        type: string
+      expiresAt:
+        example: "2025-06-19T14:00:00Z"
+        type: string
+      requires_captcha:
+        example: false
+        type: boolean
+      sessionId:
+        example: sess_123456789
+        type: string
+      success:
+        example: true
+        type: boolean
+      user:
+        $ref: '#/definitions/models.UserAPI'
+    type: object
+  models.UserAPI:
+    properties:
+      avatarUrl:
+        example: https://example.com/avatar.jpg
+        type: string
+      createdAt:
+        type: string
+      email:
+        example: user@example.com
+        type: string
+      emailVerified:
+        example: true
+        type: boolean
+      firstName:
+        example: John
+        type: string
+      id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      isActive:
+        example: true
+        type: boolean
+      isLocked:
+        example: false
+        type: boolean
+      lastLoginAt:
+        type: string
+      lastLoginIp:
+        example: 192.168.1.1
+        type: string
+      lastName:
+        example: Doe
+        type: string
+      mfaEnabled:
+        example: false
+        type: boolean
+      mfaLastUsedAt:
+        type: string
+      mustChangePassword:
+        example: false
+        type: boolean
+      name:
+        example: John Doe
+        type: string
+      permissions:
+        example:
+        - campaigns:read
+        - campaigns:create
+        items:
+          type: string
+        type: array
+      roles:
+        example:
+        - user
+        - admin
+        items:
+          type: string
+        type: array
+      updatedAt:
+        type: string
+    type: object
+  services.CreateCampaignRequest:
+    properties:
+      campaignType:
+        enum:
+        - domain_generation
+        - dns_validation
+        - http_keyword_validation
+        type: string
+      description:
+        type: string
+      dnsValidationParams:
+        allOf:
+        - $ref: '#/definitions/services.DnsValidationParams'
+        description: DNS Validation specific fields
+      domainGenerationParams:
+        allOf:
+        - $ref: '#/definitions/services.DomainGenerationParams'
+        description: Domain Generation specific fields
+      httpKeywordParams:
+        allOf:
+        - $ref: '#/definitions/services.HttpKeywordParams'
+        description: HTTP Keyword Validation specific fields
+      name:
+        type: string
+      userId:
+        type: string
+    required:
+    - campaignType
+    - name
+    type: object
+  services.DnsValidationParams:
+    properties:
+      batchSize:
+        type: integer
+      personaIds:
+        items:
+          type: string
+        minItems: 1
+        type: array
+      processingSpeedPerMinute:
+        minimum: 0
+        type: integer
+      retryAttempts:
+        minimum: 0
+        type: integer
+      rotationIntervalSeconds:
+        minimum: 0
+        type: integer
+      sourceCampaignId:
+        type: string
+    required:
+    - personaIds
+    - sourceCampaignId
+    type: object
+  services.DomainGenerationParams:
+    properties:
+      characterSet:
+        type: string
+      constantString:
+        type: string
+      numDomainsToGenerate:
+        minimum: 0
+        type: integer
+      patternType:
+        enum:
+        - prefix
+        - suffix
+        - both
+        type: string
+      tld:
+        type: string
+      variableLength:
+        type: integer
+    required:
+    - characterSet
+    - constantString
+    - patternType
+    - tld
+    - variableLength
+    type: object
+  services.HttpKeywordParams:
+    properties:
+      adHocKeywords:
+        items:
+          type: string
+        type: array
+      batchSize:
+        type: integer
+      keywordSetIds:
+        items:
+          type: string
+        type: array
+      personaIds:
+        items:
+          type: string
+        minItems: 1
+        type: array
+      processingSpeedPerMinute:
+        minimum: 0
+        type: integer
+      proxyPoolId:
+        type: string
+      proxySelectionStrategy:
+        type: string
+      retryAttempts:
+        minimum: 0
+        type: integer
+      rotationIntervalSeconds:
+        minimum: 0
+        type: integer
+      sourceCampaignId:
+        type: string
+      targetHttpPorts:
+        items:
+          type: integer
+        type: array
+    required:
+    - personaIds
+    - sourceCampaignId
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@domainflow.com
+    name: API Support
+    url: http://www.domainflow.com/support
+  description: DomainFlow API for domain generation, validation, and campaign management
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: DomainFlow API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate a user with email and password
+      parameters:
+      - description: Login credentials
+        in: body
+        name: login
+        required: true
+        schema:
+          $ref: '#/definitions/models.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful
+          schema:
+            $ref: '#/definitions/models.LoginResponseAPI'
+        "400":
+          description: Invalid request format
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "401":
+          description: Invalid credentials
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "403":
+          description: Account inactive
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "423":
+          description: Account locked
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      summary: User login
+      tags:
+      - Authentication
+  /auth/me:
+    get:
+      description: Get information about the currently authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User information
+          schema:
+            $ref: '#/definitions/models.UserAPI'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      security:
+      - SessionAuth: []
+      summary: Get current user
+      tags:
+      - Authentication
+  /campaigns:
+    get:
+      description: Retrieve a list of campaigns with optional filtering and pagination
+      parameters:
+      - default: 20
+        description: Maximum number of campaigns to return (1-100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of campaigns to skip
+        in: query
+        name: offset
+        type: integer
+      - description: Filter by campaign type
+        enum:
+        - domain_generation
+        - dns_validation
+        - http_keyword_validation
+        in: query
+        name: type
+        type: string
+      - description: Filter by campaign status
+        enum:
+        - pending
+        - queued
+        - running
+        - pausing
+        - paused
+        - completed
+        - failed
+        - archived
+        - cancelled
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of campaigns
+          schema:
+            items:
+              $ref: '#/definitions/models.CampaignAPI'
+            type: array
+        "400":
+          description: Invalid query parameters
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "403":
+          description: Insufficient permissions
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      security:
+      - SessionAuth: []
+      summary: List campaigns
+      tags:
+      - Campaigns
+    post:
+      consumes:
+      - application/json
+      description: Create a new campaign with specified type and parameters
+      parameters:
+      - description: Campaign creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.CreateCampaignRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Campaign created successfully
+          schema:
+            $ref: '#/definitions/models.CampaignAPI'
+        "400":
+          description: Invalid request payload
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "403":
+          description: Insufficient permissions
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      security:
+      - SessionAuth: []
+      summary: Create a new campaign
+      tags:
+      - Campaigns
+securityDefinitions:
+  SessionAuth:
+    description: Session-based authentication using HTTP cookies
+    in: cookie
+    name: session_id
+    type: apiKey
+swagger: "2.0"

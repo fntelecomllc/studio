@@ -35,6 +35,19 @@ func NewAuthHandler(sessionService *services.SessionService, sessionConfig *conf
 }
 
 // Login handles user login requests
+// @Summary User login
+// @Description Authenticate a user with email and password
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param login body models.LoginRequest true "Login credentials"
+// @Success 200 {object} models.LoginResponseAPI "Login successful"
+// @Failure 400 {object} ErrorResponse "Invalid request format"
+// @Failure 401 {object} ErrorResponse "Invalid credentials"
+// @Failure 423 {object} ErrorResponse "Account locked"
+// @Failure 403 {object} ErrorResponse "Account inactive"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	fmt.Println("DEBUG: Login handler started")
 	var req models.LoginRequest
@@ -151,6 +164,16 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 }
 
 // Me returns current user information
+// @Summary Get current user
+// @Description Get information about the currently authenticated user
+// @Tags Authentication
+// @Security SessionAuth
+// @Produce json
+// @Success 200 {object} models.UserAPI "User information"
+// @Failure 401 {object} ErrorResponse "Authentication required"
+// @Failure 404 {object} ErrorResponse "User not found"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /auth/me [get]
 func (h *AuthHandler) Me(c *gin.Context) {
 	// Get security context from middleware
 	securityContext, exists := c.Get("security_context")

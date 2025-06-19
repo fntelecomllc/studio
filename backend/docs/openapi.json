@@ -1,0 +1,827 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "description": "DomainFlow API for domain generation, validation, and campaign management",
+        "title": "DomainFlow API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "http://www.domainflow.com/support",
+            "email": "support@domainflow.com"
+        },
+        "license": {
+            "name": "MIT",
+            "url": "https://opensource.org/licenses/MIT"
+        },
+        "version": "1.0"
+    },
+    "paths": {
+        "/auth/login": {
+            "post": {
+                "description": "Authenticate a user with email and password",
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "User login",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/models.LoginRequest"
+                            }
+                        }
+                    },
+                    "description": "Login credentials",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/models.LoginResponseAPI"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request format",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid credentials",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Account inactive",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "Account locked",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/me": {
+            "get": {
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ],
+                "description": "Get information about the currently authenticated user",
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Get current user",
+                "responses": {
+                    "200": {
+                        "description": "User information",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/models.UserAPI"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/campaigns": {
+            "get": {
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ],
+                "description": "Retrieve a list of campaigns with optional filtering and pagination",
+                "tags": [
+                    "Campaigns"
+                ],
+                "summary": "List campaigns",
+                "parameters": [
+                    {
+                        "description": "Maximum number of campaigns to return (1-100)",
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 20
+                        }
+                    },
+                    {
+                        "description": "Number of campaigns to skip",
+                        "name": "offset",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 0
+                        }
+                    },
+                    {
+                        "description": "Filter by campaign type",
+                        "name": "type",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "domain_generation",
+                                "dns_validation",
+                                "http_keyword_validation"
+                            ]
+                        }
+                    },
+                    {
+                        "description": "Filter by campaign status",
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "pending",
+                                "queued",
+                                "running",
+                                "pausing",
+                                "paused",
+                                "completed",
+                                "failed",
+                                "archived",
+                                "cancelled"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of campaigns",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/models.CampaignAPI"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid query parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Insufficient permissions",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ],
+                "description": "Create a new campaign with specified type and parameters",
+                "tags": [
+                    "Campaigns"
+                ],
+                "summary": "Create a new campaign",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/services.CreateCampaignRequest"
+                            }
+                        }
+                    },
+                    "description": "Campaign creation request",
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Campaign created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/models.CampaignAPI"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request payload",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Insufficient permissions",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "servers": [
+        {
+            "url": "//localhost:8080"
+        }
+    ],
+    "components": {
+        "securitySchemes": {
+            "SessionAuth": {
+                "description": "Session-based authentication using HTTP cookies",
+                "type": "apiKey",
+                "name": "session_id",
+                "in": "cookie"
+            }
+        },
+        "schemas": {
+            "ErrorResponse": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "integer",
+                        "example": 400
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Error message description"
+                    },
+                    "status": {
+                        "type": "string",
+                        "example": "error"
+                    }
+                }
+            },
+            "models.CampaignAPI": {
+                "type": "object",
+                "properties": {
+                    "avgProcessingRate": {
+                        "type": "number",
+                        "example": 10.5
+                    },
+                    "campaignType": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/models.CampaignTypeEnum"
+                            }
+                        ],
+                        "example": "domain_generation"
+                    },
+                    "completedAt": {
+                        "type": "string"
+                    },
+                    "createdAt": {
+                        "type": "string"
+                    },
+                    "errorMessage": {
+                        "type": "string",
+                        "example": "Network timeout error"
+                    },
+                    "estimatedCompletionAt": {
+                        "type": "string"
+                    },
+                    "failedItems": {
+                        "type": "integer",
+                        "example": 55
+                    },
+                    "id": {
+                        "type": "string",
+                        "example": "123e4567-e89b-12d3-a456-426614174000"
+                    },
+                    "lastHeartbeatAt": {
+                        "type": "string"
+                    },
+                    "metadata": {
+                        "type": "object"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Domain Discovery Campaign"
+                    },
+                    "processedItems": {
+                        "type": "integer",
+                        "example": 755
+                    },
+                    "progressPercentage": {
+                        "type": "number",
+                        "example": 75.5
+                    },
+                    "startedAt": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/models.CampaignStatusEnum"
+                            }
+                        ],
+                        "example": "running"
+                    },
+                    "successfulItems": {
+                        "type": "integer",
+                        "example": 700
+                    },
+                    "totalItems": {
+                        "type": "integer",
+                        "example": 1000
+                    },
+                    "updatedAt": {
+                        "type": "string"
+                    },
+                    "userId": {
+                        "type": "string",
+                        "example": "123e4567-e89b-12d3-a456-426614174001"
+                    }
+                }
+            },
+            "models.CampaignStatusEnum": {
+                "type": "string",
+                "enum": [
+                    "pending",
+                    "queued",
+                    "running",
+                    "pausing",
+                    "paused",
+                    "completed",
+                    "failed",
+                    "archived",
+                    "cancelled"
+                ],
+                "x-enum-comments": {
+                    "CampaignStatusArchived": "For long-term storage, not active",
+                    "CampaignStatusCancelled": "User initiated cancellation",
+                    "CampaignStatusFailed": "Terminal failure after retries or critical error",
+                    "CampaignStatusPausing": "User or system initiated pause"
+                },
+                "x-enum-varnames": [
+                    "CampaignStatusPending",
+                    "CampaignStatusQueued",
+                    "CampaignStatusRunning",
+                    "CampaignStatusPausing",
+                    "CampaignStatusPaused",
+                    "CampaignStatusCompleted",
+                    "CampaignStatusFailed",
+                    "CampaignStatusArchived",
+                    "CampaignStatusCancelled"
+                ]
+            },
+            "models.CampaignTypeEnum": {
+                "type": "string",
+                "enum": [
+                    "domain_generation",
+                    "dns_validation",
+                    "http_keyword_validation"
+                ],
+                "x-enum-varnames": [
+                    "CampaignTypeDomainGeneration",
+                    "CampaignTypeDNSValidation",
+                    "CampaignTypeHTTPKeywordValidation"
+                ]
+            },
+            "models.LoginRequest": {
+                "type": "object",
+                "required": [
+                    "email",
+                    "password"
+                ],
+                "properties": {
+                    "captchaToken": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string",
+                        "minLength": 12
+                    },
+                    "rememberMe": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "models.LoginResponseAPI": {
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "type": "string",
+                        "example": "Invalid credentials"
+                    },
+                    "expiresAt": {
+                        "type": "string",
+                        "example": "2025-06-19T14:00:00Z"
+                    },
+                    "requires_captcha": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "sessionId": {
+                        "type": "string",
+                        "example": "sess_123456789"
+                    },
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "user": {
+                        "$ref": "#/components/schemas/models.UserAPI"
+                    }
+                }
+            },
+            "models.UserAPI": {
+                "type": "object",
+                "properties": {
+                    "avatarUrl": {
+                        "type": "string",
+                        "example": "https://example.com/avatar.jpg"
+                    },
+                    "createdAt": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string",
+                        "example": "user@example.com"
+                    },
+                    "emailVerified": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "firstName": {
+                        "type": "string",
+                        "example": "John"
+                    },
+                    "id": {
+                        "type": "string",
+                        "example": "123e4567-e89b-12d3-a456-426614174000"
+                    },
+                    "isActive": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "isLocked": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "lastLoginAt": {
+                        "type": "string"
+                    },
+                    "lastLoginIp": {
+                        "type": "string",
+                        "example": "192.168.1.1"
+                    },
+                    "lastName": {
+                        "type": "string",
+                        "example": "Doe"
+                    },
+                    "mfaEnabled": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "mfaLastUsedAt": {
+                        "type": "string"
+                    },
+                    "mustChangePassword": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "John Doe"
+                    },
+                    "permissions": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "example": [
+                            "campaigns:read",
+                            "campaigns:create"
+                        ]
+                    },
+                    "roles": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "example": [
+                            "user",
+                            "admin"
+                        ]
+                    },
+                    "updatedAt": {
+                        "type": "string"
+                    }
+                }
+            },
+            "services.CreateCampaignRequest": {
+                "type": "object",
+                "required": [
+                    "campaignType",
+                    "name"
+                ],
+                "properties": {
+                    "campaignType": {
+                        "type": "string",
+                        "enum": [
+                            "domain_generation",
+                            "dns_validation",
+                            "http_keyword_validation"
+                        ]
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "dnsValidationParams": {
+                        "description": "DNS Validation specific fields",
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/services.DnsValidationParams"
+                            }
+                        ]
+                    },
+                    "domainGenerationParams": {
+                        "description": "Domain Generation specific fields",
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/services.DomainGenerationParams"
+                            }
+                        ]
+                    },
+                    "httpKeywordParams": {
+                        "description": "HTTP Keyword Validation specific fields",
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/services.HttpKeywordParams"
+                            }
+                        ]
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "userId": {
+                        "type": "string"
+                    }
+                }
+            },
+            "services.DnsValidationParams": {
+                "type": "object",
+                "required": [
+                    "personaIds",
+                    "sourceCampaignId"
+                ],
+                "properties": {
+                    "batchSize": {
+                        "type": "integer"
+                    },
+                    "personaIds": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "processingSpeedPerMinute": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "retryAttempts": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "rotationIntervalSeconds": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "sourceCampaignId": {
+                        "type": "string"
+                    }
+                }
+            },
+            "services.DomainGenerationParams": {
+                "type": "object",
+                "required": [
+                    "characterSet",
+                    "constantString",
+                    "patternType",
+                    "tld",
+                    "variableLength"
+                ],
+                "properties": {
+                    "characterSet": {
+                        "type": "string"
+                    },
+                    "constantString": {
+                        "type": "string"
+                    },
+                    "numDomainsToGenerate": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "patternType": {
+                        "type": "string",
+                        "enum": [
+                            "prefix",
+                            "suffix",
+                            "both"
+                        ]
+                    },
+                    "tld": {
+                        "type": "string"
+                    },
+                    "variableLength": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "services.HttpKeywordParams": {
+                "type": "object",
+                "required": [
+                    "personaIds",
+                    "sourceCampaignId"
+                ],
+                "properties": {
+                    "adHocKeywords": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "batchSize": {
+                        "type": "integer"
+                    },
+                    "keywordSetIds": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "personaIds": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "processingSpeedPerMinute": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "proxyPoolId": {
+                        "type": "string"
+                    },
+                    "proxySelectionStrategy": {
+                        "type": "string"
+                    },
+                    "retryAttempts": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "rotationIntervalSeconds": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "sourceCampaignId": {
+                        "type": "string"
+                    },
+                    "targetHttpPorts": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

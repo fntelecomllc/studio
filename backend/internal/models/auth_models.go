@@ -270,3 +270,10 @@ func (sc *SecurityContext) CanAccess(resource, action string) bool {
 	permission := resource + ":" + action
 	return sc.HasPermission(permission)
 }
+
+// ErrorResponse represents a standard API error response
+type ErrorResponse struct {
+	Status  string `json:"status" example:"error"`
+	Message string `json:"message" example:"Error message description"`
+	Code    int    `json:"code,omitempty" example:"400"`
+} // @name ErrorResponse

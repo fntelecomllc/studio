@@ -1,30 +1,53 @@
 import * as z from "zod";
 import { CampaignSelectedType, DomainGenerationPattern, CampaignPhase } from "@/lib/types";
 import { CAMPAIGN_SELECTED_TYPES, DOMAIN_GENERATION_PATTERNS } from "@/lib/constants";
+import { 
+  uuidSchema as _uuidSchema,
+  campaignIdSchema as _campaignIdSchema,
+  personaIdSchema as _personaIdSchema,
+  proxyIdSchema as _proxyIdSchema
+} from '@/lib/schemas/brandedValidationSchemas';
 
 export const CampaignFormConstants = {
   NONE_VALUE_PLACEHOLDER: "_NONE_"
 } as const;
 
-// Base schema for common campaign fields
+// Enhanced base schema with branded type validation for IDs
 const baseCampaignSchema = z.object({
   name: z.string().min(3, { message: "Campaign name must be at least 3 characters." }),
   description: z.string().optional(),
   selectedType: z.enum(Object.values(CAMPAIGN_SELECTED_TYPES) as unknown as [CampaignSelectedType, ...CampaignSelectedType[]], {
     required_error: "You need to select a campaign type."
   }),
-  assignedHttpPersonaId: z.string().optional(),
-  assignedDnsPersonaId: z.string().optional(),
+  // Enhanced with branded UUID validation
+  assignedHttpPersonaId: z.string()
+    .optional()
+    .refine((val) => !val || val === CampaignFormConstants.NONE_VALUE_PLACEHOLDER || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val), {
+      message: "Invalid persona ID format"
+    }),
+  assignedDnsPersonaId: z.string()
+    .optional()
+    .refine((val) => !val || val === CampaignFormConstants.NONE_VALUE_PLACEHOLDER || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val), {
+      message: "Invalid persona ID format"
+    }),
   proxyAssignmentMode: z.enum(['none', 'single', 'rotate_active']).default('none'),
-  assignedProxyId: z.string().optional(),
+  assignedProxyId: z.string()
+    .optional()
+    .refine((val) => !val || val === CampaignFormConstants.NONE_VALUE_PLACEHOLDER || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val), {
+      message: "Invalid proxy ID format"
+    }),
 });
 
-// Domain source schema
+// Enhanced domain source schema with branded campaign ID validation
 const domainSourceSchema = z.object({
   domainSourceSelectionMode: z.enum(['none','upload', 'campaign_output']).optional(),
   uploadedDomainsFile: z.custom<File>(val => val instanceof File, "Please select a file.").optional().nullable(),
   uploadedDomainsContentCache: z.array(z.string()).optional(),
-  sourceCampaignId: z.string().optional(),
+  sourceCampaignId: z.string()
+    .optional()
+    .refine((val) => !val || val === CampaignFormConstants.NONE_VALUE_PLACEHOLDER || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val), {
+      message: "Invalid campaign ID format"
+    }),
   sourcePhase: z.custom<CampaignPhase>().optional(),
   initialDomainsToProcessCount: z.coerce.number().int().positive("Must be a positive number if set.").optional(),
 });
