@@ -4,12 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CampaignFormValues, CampaignFormConstants } from "@/lib/schemas/campaignFormSchema";
-import type { Campaign } from '@/lib/types';
+import type { CampaignViewModel } from '@/lib/types';
 
 interface DomainSourceConfigProps {
   control: Control<CampaignFormValues>;
   watch: UseFormWatch<CampaignFormValues>;
-  sourceCampaigns: Campaign[];
+  sourceCampaigns: CampaignViewModel[];
   isLoading: boolean;
 }
 

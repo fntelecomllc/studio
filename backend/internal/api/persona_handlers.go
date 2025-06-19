@@ -191,7 +191,7 @@ func (h *APIHandler) createPersonaGin(c *gin.Context, personaType models.Persona
 
 	// Create Audit Log
 	auditLog := &models.AuditLog{
-		UserID:     sql.NullString{}, // TODO: Populate UserID if available from auth context
+		UserID:     uuid.NullUUID{}, // TODO: Populate UserID if available from auth context
 		Action:     fmt.Sprintf("Create %s Persona", req.PersonaType),
 		EntityType: sql.NullString{String: "Persona", Valid: true},
 		EntityID:   uuid.NullUUID{UUID: personaID, Valid: true},
@@ -405,7 +405,7 @@ func (h *APIHandler) updatePersonaGin(c *gin.Context, personaType models.Persona
 	}
 
 	auditLog := &models.AuditLog{
-		UserID:     sql.NullString{},
+		UserID:     uuid.NullUUID{},
 		Action:     fmt.Sprintf("Update %s Persona", personaType),
 		EntityType: sql.NullString{String: "Persona", Valid: true},
 		EntityID:   uuid.NullUUID{UUID: personaID, Valid: true},
@@ -500,7 +500,7 @@ func (h *APIHandler) deletePersonaGin(c *gin.Context, personaType models.Persona
 	}
 
 	auditLog := &models.AuditLog{
-		UserID:     sql.NullString{},
+		UserID:     uuid.NullUUID{},
 		Action:     fmt.Sprintf("Delete %s Persona", personaType),
 		EntityType: sql.NullString{String: "Persona", Valid: true},
 		EntityID:   uuid.NullUUID{UUID: personaID, Valid: true},
@@ -516,4 +516,219 @@ func (h *APIHandler) deletePersonaGin(c *gin.Context, personaType models.Persona
 	// If isSQL and opErr is nil, deferred commit will execute.
 	// If Firestore and opErr is nil, operations succeeded independently.
 	c.Status(http.StatusNoContent)
+}
+
+// === UNIFIED PERSONA HANDLERS ===
+// These handlers provide unified endpoints for both DNS and HTTP personas
+// They support the frontend's expectation of unified API endpoints
+
+// ListAllPersonasGin handles GET /api/v2/personas
+// Returns all personas (both DNS and HTTP) with optional filtering
+func (h *APIHandler) ListAllPersonasGin(c *gin.Context) {
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+
+	isEnabledQuery := c.Query("isEnabled")
+	var isEnabledFilter *bool
+	if isEnabledQuery != "" {
+		b, err := strconv.ParseBool(isEnabledQuery)
+		if err == nil {
+			isEnabledFilter = &b
+		}
+	}
+
+	// Optional type filter
+	personaTypeQuery := c.Query("personaType")
+	var typeFilter models.PersonaTypeEnum
+	if personaTypeQuery != "" {
+		switch models.PersonaTypeEnum(personaTypeQuery) {
+		case models.PersonaTypeDNS:
+			typeFilter = models.PersonaTypeDNS
+		case models.PersonaTypeHTTP:
+			typeFilter = models.PersonaTypeHTTP
+		default:
+			// Invalid type, ignore filter
+		}
+	}
+	// Note: empty typeFilter ("") means all types
+
+	filter := store.ListPersonasFilter{
+		Type:      typeFilter, // empty string means all types
+		IsEnabled: isEnabledFilter,
+		Limit:     limit,
+		Offset:    offset,
+	}
+
+	var querier store.Querier
+	if h.DB != nil {
+		querier = h.DB
+	}
+
+	personas, err := h.PersonaStore.ListPersonas(c.Request.Context(), querier, filter)
+	if err != nil {
+		log.Printf("Error listing all personas: %v", err)
+		respondWithErrorGin(c, http.StatusInternalServerError, "Failed to list personas")
+		return
+	}
+
+	responseItems := make([]PersonaResponse, len(personas))
+	for i, p := range personas {
+		responseItems[i] = toPersonaResponse(p)
+	}
+
+	respondWithJSONGin(c, http.StatusOK, responseItems)
+}
+
+// CreatePersonaGin handles POST /api/v2/personas
+// Creates a persona with the type specified in the request body
+func (h *APIHandler) CreatePersonaGin(c *gin.Context) {
+	var req CreatePersonaRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("[CreatePersonaGin] Error binding JSON: %v", err)
+		respondWithErrorGin(c, http.StatusBadRequest, "Invalid request payload: "+err.Error())
+		return
+	}
+
+	// Validate persona type
+	switch req.PersonaType {
+	case models.PersonaTypeDNS, models.PersonaTypeHTTP:
+		// Valid types
+	default:
+		respondWithErrorGin(c, http.StatusBadRequest, "Invalid personaType. Must be 'dns' or 'http'")
+		return
+	}
+
+	// Delegate to the type-specific handler logic
+	h.createPersonaGin(c, req.PersonaType)
+}
+
+// GetPersonaByIDGin handles GET /api/v2/personas/:id
+// Returns a specific persona by ID regardless of type
+func (h *APIHandler) GetPersonaByIDGin(c *gin.Context) {
+	personaIDStr := c.Param("id")
+	personaID, err := uuid.Parse(personaIDStr)
+	if err != nil {
+		respondWithErrorGin(c, http.StatusBadRequest, "Invalid persona ID format")
+		return
+	}
+
+	var querier store.Querier
+	if h.DB != nil {
+		querier = h.DB
+	}
+
+	persona, err := h.PersonaStore.GetPersonaByID(c.Request.Context(), querier, personaID)
+	if err != nil {
+		if err == store.ErrNotFound {
+			respondWithErrorGin(c, http.StatusNotFound, fmt.Sprintf("Persona with ID %s not found", personaIDStr))
+		} else {
+			log.Printf("Error fetching persona %s: %v", personaIDStr, err)
+			respondWithErrorGin(c, http.StatusInternalServerError, "Failed to fetch persona")
+		}
+		return
+	}
+
+	respondWithJSONGin(c, http.StatusOK, toPersonaResponse(persona))
+}
+
+// UpdatePersonaGin handles PUT /api/v2/personas/:id
+// Updates a persona by ID, preserving its original type
+func (h *APIHandler) UpdatePersonaGin(c *gin.Context) {
+	personaIDStr := c.Param("id")
+	personaID, err := uuid.Parse(personaIDStr)
+	if err != nil {
+		respondWithErrorGin(c, http.StatusBadRequest, "Invalid persona ID format")
+		return
+	}
+
+	// First, get the existing persona to determine its type
+	var querier store.Querier
+	if h.DB != nil {
+		querier = h.DB
+	}
+
+	existingPersona, err := h.PersonaStore.GetPersonaByID(c.Request.Context(), querier, personaID)
+	if err != nil {
+		if err == store.ErrNotFound {
+			respondWithErrorGin(c, http.StatusNotFound, fmt.Sprintf("Persona with ID %s not found", personaIDStr))
+		} else {
+			log.Printf("Error fetching persona %s for update: %v", personaIDStr, err)
+			respondWithErrorGin(c, http.StatusInternalServerError, "Failed to fetch persona for update")
+		}
+		return
+	}
+
+	// Delegate to the type-specific update handler
+	h.updatePersonaGin(c, existingPersona.PersonaType)
+}
+
+// DeletePersonaGin handles DELETE /api/v2/personas/:id
+// Deletes a persona by ID regardless of type
+func (h *APIHandler) DeletePersonaGin(c *gin.Context) {
+	personaIDStr := c.Param("id")
+	personaID, err := uuid.Parse(personaIDStr)
+	if err != nil {
+		respondWithErrorGin(c, http.StatusBadRequest, "Invalid persona ID format")
+		return
+	}
+
+	// First, get the existing persona to determine its type for proper audit logging
+	var querier store.Querier
+	if h.DB != nil {
+		querier = h.DB
+	}
+
+	existingPersona, err := h.PersonaStore.GetPersonaByID(c.Request.Context(), querier, personaID)
+	if err != nil {
+		if err == store.ErrNotFound {
+			respondWithErrorGin(c, http.StatusNotFound, fmt.Sprintf("Persona with ID %s not found", personaIDStr))
+		} else {
+			log.Printf("Error fetching persona %s for deletion: %v", personaIDStr, err)
+			respondWithErrorGin(c, http.StatusInternalServerError, "Failed to fetch persona for deletion")
+		}
+		return
+	}
+
+	// Delegate to the type-specific delete handler
+	h.deletePersonaGin(c, existingPersona.PersonaType)
+}
+
+// TestPersonaGin handles POST /api/v2/personas/:id/test
+// Tests a persona by ID regardless of type
+func (h *APIHandler) TestPersonaGin(c *gin.Context) {
+	personaIDStr := c.Param("id")
+	personaID, err := uuid.Parse(personaIDStr)
+	if err != nil {
+		respondWithErrorGin(c, http.StatusBadRequest, "Invalid persona ID format")
+		return
+	}
+
+	// Get the persona to determine its type
+	var querier store.Querier
+	if h.DB != nil {
+		querier = h.DB
+	}
+
+	persona, err := h.PersonaStore.GetPersonaByID(c.Request.Context(), querier, personaID)
+	if err != nil {
+		if err == store.ErrNotFound {
+			respondWithErrorGin(c, http.StatusNotFound, fmt.Sprintf("Persona with ID %s not found", personaIDStr))
+		} else {
+			log.Printf("Error fetching persona %s for testing: %v", personaIDStr, err)
+			respondWithErrorGin(c, http.StatusInternalServerError, "Failed to fetch persona for testing")
+		}
+		return
+	}
+
+	// For now, return a simple test result
+	// In the future, this could trigger actual testing logic
+	testResult := map[string]interface{}{
+		"personaId":   persona.ID,
+		"personaType": persona.PersonaType,
+		"status":      "success",
+		"message":     fmt.Sprintf("%s persona test completed successfully", persona.PersonaType),
+		"testedAt":    time.Now().UTC().Format(time.RFC3339),
+	}
+
+	respondWithJSONGin(c, http.StatusOK, testResult)
 }

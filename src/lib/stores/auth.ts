@@ -1,6 +1,7 @@
 // src/lib/stores/auth.ts
 // Simplified Authentication State Management - Cookie-based session validation only
-import { authService, type AuthState, type AuthUser, type LoginCredentials } from '@/lib/services/authService';
+import { authService, type AuthState, type LoginCredentials } from '@/lib/services/authService';
+import type { User } from '@/lib/types';
 
 class AuthStore {
   private static instance: AuthStore;
@@ -44,7 +45,7 @@ class AuthStore {
   }
 
   // Get current user
-  getUser(): AuthUser | null {
+  getUser(): User | null {
     return this.authState.user;
   }
 
@@ -146,7 +147,7 @@ export const authStore = AuthStore.getInstance();
 // Helper hooks and utilities
 export interface UseAuthResult {
   isAuthenticated: boolean;
-  user: AuthUser | null;
+  user: User | null;
   isLoading: boolean;
   isInitialized: boolean;
   sessionExpiry: number | null;
@@ -188,7 +189,7 @@ export function isAuthenticated(): boolean {
   return authStore.isAuthenticated();
 }
 
-export function getCurrentUser(): AuthUser | null {
+export function getCurrentUser(): User | null {
   return authStore.getUser();
 }
 

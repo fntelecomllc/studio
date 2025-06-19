@@ -343,9 +343,13 @@ func CreateCampaignProgressMessage(campaignID string, progress float64, status s
 		Type:           "campaign_progress",
 		SequenceNumber: atomic.AddInt64(&globalSequenceCounter, 1),
 		CampaignID:     campaignID,
-		Status:         status,
-		Phase:          phase,
-		Progress:       progress,
+		Data: map[string]interface{}{
+			"progressPercentage": progress,
+			"status":             status,
+			"phase":              phase,
+			"processedItems":     0, // Should be provided by caller
+			"totalItems":         0, // Should be provided by caller
+		},
 	}
 }
 
@@ -357,8 +361,10 @@ func CreateProxyStatusMessage(proxyID, status string, campaignID string) WebSock
 		Type:           "proxy_status_update",
 		SequenceNumber: atomic.AddInt64(&globalSequenceCounter, 1),
 		CampaignID:     campaignID,
-		ProxyID:        proxyID,
-		ProxyStatus:    status,
+		Data: map[string]interface{}{
+			"proxyId": proxyID,
+			"status":  status,
+		},
 	}
 }
 
@@ -370,15 +376,18 @@ func CreateDomainGenerationMessage(campaignID string, domainsGenerated int64, to
 	}
 	
 	return WebSocketMessage{
-		ID:               uuid.New().String(),
-		Timestamp:        time.Now().UTC().Format(time.RFC3339),
-		Type:             "domain_generation_progress",
-		SequenceNumber:   atomic.AddInt64(&globalSequenceCounter, 1),
-		CampaignID:       campaignID,
-		DomainsGenerated: domainsGenerated,
-		Progress:         progress,
-		Status:           "generating",
-		Phase:            "domain_generation",
+		ID:             uuid.New().String(),
+		Timestamp:      time.Now().UTC().Format(time.RFC3339),
+		Type:           "domain_generation_progress",
+		SequenceNumber: atomic.AddInt64(&globalSequenceCounter, 1),
+		CampaignID:     campaignID,
+		Data: map[string]interface{}{
+			"domainsGenerated": domainsGenerated,
+			"totalDomains":     totalDomains,
+			"progress":         progress,
+			"status":           "generating",
+			"phase":            "domain_generation",
+		},
 	}
 }
 
@@ -390,15 +399,18 @@ func CreateValidationProgressMessage(campaignID string, validationsProcessed int
 	}
 	
 	return WebSocketMessage{
-		ID:                   uuid.New().String(),
-		Timestamp:            time.Now().UTC().Format(time.RFC3339),
-		Type:                 "validation_progress",
-		SequenceNumber:       atomic.AddInt64(&globalSequenceCounter, 1),
-		CampaignID:           campaignID,
-		ValidationsProcessed: validationsProcessed,
-		Progress:             progress,
-		Status:               "validating",
-		Phase:                validationType,
+		ID:             uuid.New().String(),
+		Timestamp:      time.Now().UTC().Format(time.RFC3339),
+		Type:           "validation_progress",
+		SequenceNumber: atomic.AddInt64(&globalSequenceCounter, 1),
+		CampaignID:     campaignID,
+		Data: map[string]interface{}{
+			"validationsProcessed": validationsProcessed,
+			"totalValidations":     totalValidations,
+			"progress":             progress,
+			"validationType":       validationType,
+			"phase":                validationType + "_validation",
+		},
 	}
 }
 
@@ -409,8 +421,154 @@ func CreateSystemNotificationMessage(message string, level string) WebSocketMess
 		Timestamp:      time.Now().UTC().Format(time.RFC3339),
 		Type:           "system_notification",
 		SequenceNumber: atomic.AddInt64(&globalSequenceCounter, 1),
-		Message:        message,
-		Status:         level, // info, warning, error, success
+		Data: map[string]interface{}{
+			"level":   level, // info, warning, error, success
+			"message": message,
+		},
+	}
+}
+
+// Enhanced message creation functions for standardized WebSocket communication
+
+// CreateDomainGeneratedMessage creates a message for individual domain generation
+func CreateDomainGeneratedMessage(campaignID, domainID, domain string, offset, batchSize int) WebSocketMessage {
+	return WebSocketMessage{
+		ID:             uuid.New().String(),
+		Timestamp:      time.Now().UTC().Format(time.RFC3339),
+		Type:           "domain_generated",
+		SequenceNumber: atomic.AddInt64(&globalSequenceCounter, 1),
+		CampaignID:     campaignID,
+		Data: map[string]interface{}{
+			"domainId":  domainID,
+			"domain":    domain,
+			"offset":    offset,
+			"batchSize": batchSize,
+		},
+	}
+}
+
+// CreateDNSValidationResultMessage creates a DNS validation result message
+func CreateDNSValidationResultMessage(campaignID, domainID, domain, validationStatus string, attempts int, dnsRecords map[string]interface{}) WebSocketMessage {
+	return WebSocketMessage{
+		ID:             uuid.New().String(),
+		Timestamp:      time.Now().UTC().Format(time.RFC3339),
+		Type:           "dns_validation_result",
+		SequenceNumber: atomic.AddInt64(&globalSequenceCounter, 1),
+		CampaignID:     campaignID,
+		Data: map[string]interface{}{
+			"domainId":         domainID,
+			"domain":           domain,
+			"validationStatus": validationStatus, // resolved, unresolved, error, timeout
+			"dnsRecords":       dnsRecords,
+			"attempts":         attempts,
+		},
+	}
+}
+
+// CreateHTTPValidationResultMessage creates an HTTP validation result message
+func CreateHTTPValidationResultMessage(campaignID, domainID, domain, validationStatus string, statusCode int, keywordsFound []string, responseTime float64) WebSocketMessage {
+	return WebSocketMessage{
+		ID:             uuid.New().String(),
+		Timestamp:      time.Now().UTC().Format(time.RFC3339),
+		Type:           "http_validation_result",
+		SequenceNumber: atomic.AddInt64(&globalSequenceCounter, 1),
+		CampaignID:     campaignID,
+		Data: map[string]interface{}{
+			"domainId":         domainID,
+			"domain":           domain,
+			"validationStatus": validationStatus, // success, failed, timeout, error
+			"statusCode":       statusCode,
+			"keywordsFound":    keywordsFound,
+			"responseTime":     responseTime,
+		},
+	}
+}
+
+// CreateCampaignPhaseCompleteMessage creates a campaign phase completion message
+func CreateCampaignPhaseCompleteMessage(campaignID, phase string, completedItems, failedItems int, nextPhase string) WebSocketMessage {
+	return WebSocketMessage{
+		ID:             uuid.New().String(),
+		Timestamp:      time.Now().UTC().Format(time.RFC3339),
+		Type:           "campaign_phase_complete",
+		SequenceNumber: atomic.AddInt64(&globalSequenceCounter, 1),
+		CampaignID:     campaignID,
+		Data: map[string]interface{}{
+			"phase":          phase, // domain_generation, dns_validation, http_validation
+			"completedItems": completedItems,
+			"failedItems":    failedItems,
+			"nextPhase":      nextPhase, // or "completed"
+		},
+	}
+}
+
+// CreateCampaignCompleteMessage creates a campaign completion message
+func CreateCampaignCompleteMessage(campaignID, finalStatus string, totalProcessed, totalSuccessful, totalFailed int, duration float64) WebSocketMessage {
+	return WebSocketMessage{
+		ID:             uuid.New().String(),
+		Timestamp:      time.Now().UTC().Format(time.RFC3339),
+		Type:           "campaign_complete",
+		SequenceNumber: atomic.AddInt64(&globalSequenceCounter, 1),
+		CampaignID:     campaignID,
+		Data: map[string]interface{}{
+			"finalStatus":     finalStatus, // completed, failed, cancelled
+			"totalProcessed":  totalProcessed,
+			"totalSuccessful": totalSuccessful,
+			"totalFailed":     totalFailed,
+			"duration":        duration, // in seconds
+		},
+	}
+}
+
+// CreateCampaignErrorMessage creates a campaign error message
+func CreateCampaignErrorMessage(campaignID, errorCode, errorMessage, phase string, retryable bool) WebSocketMessage {
+	return WebSocketMessage{
+		ID:             uuid.New().String(),
+		Timestamp:      time.Now().UTC().Format(time.RFC3339),
+		Type:           "campaign_error",
+		SequenceNumber: atomic.AddInt64(&globalSequenceCounter, 1),
+		CampaignID:     campaignID,
+		Data: map[string]interface{}{
+			"errorCode":    errorCode,
+			"errorMessage": errorMessage,
+			"phase":        phase,
+			"retryable":    retryable,
+		},
+	}
+}
+
+// CreateUserNotificationMessage creates a user-specific notification message
+func CreateUserNotificationMessage(userID, level, title, message, actionURL string) WebSocketMessage {
+	data := map[string]interface{}{
+		"level":   level, // info, warning, error
+		"title":   title,
+		"message": message,
+	}
+	if actionURL != "" {
+		data["actionUrl"] = actionURL
+	}
+
+	return WebSocketMessage{
+		ID:             uuid.New().String(),
+		Timestamp:      time.Now().UTC().Format(time.RFC3339),
+		Type:           "user_notification",
+		SequenceNumber: atomic.AddInt64(&globalSequenceCounter, 1),
+		Data:           data,
+		// Note: userID would typically be included in routing logic, not in the message itself
+	}
+}
+
+// CreateConnectionAckMessage creates a connection acknowledgment message
+func CreateConnectionAckMessage(connectionID, userID string, lastSequenceNumber int64) WebSocketMessage {
+	return WebSocketMessage{
+		ID:             uuid.New().String(),
+		Timestamp:      time.Now().UTC().Format(time.RFC3339),
+		Type:           "connection_ack",
+		SequenceNumber: atomic.AddInt64(&globalSequenceCounter, 1),
+		Data: map[string]interface{}{
+			"connectionId":       connectionID,
+			"userId":             userID,
+			"lastSequenceNumber": lastSequenceNumber,
+		},
 	}
 }
 

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import PageHeader from '@/components/shared/PageHeader';
 import StrictProtectedRoute from '@/components/auth/StrictProtectedRoute';
 import { ConditionalAccess } from '@/components/auth/ProtectedRoute';
-import type { Campaign, CampaignsListResponse, CampaignDeleteResponse, CampaignOperationResponse } from '@/lib/types';
+import type { CampaignViewModel, CampaignsListResponse, CampaignDeleteResponse, CampaignOperationResponse } from '@/lib/types';
 import { PlusCircle, Briefcase, CheckCircle, AlertTriangle, Clock, PauseCircle, Wifi, WifiOff } from 'lucide-react';
 import { useEffect, useState, useCallback, useRef, lazy, Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,6 +20,7 @@ import type { WebSocketMessage } from '@/lib/services/websocketService.simple';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOptimisticUpdate, useLoadingState, useStateSubscription } from '@/lib/state/stateManager';
+import { transformCampaignsToViewModels, mergeCampaignApiUpdate } from '@/lib/utils/campaignTransforms';
 
 // PERFORMANCE: Lazy load campaign components for better bundle splitting
 const CampaignListItem = lazy(() => import('@/components/campaigns/CampaignListItem'));
@@ -33,7 +34,7 @@ const ComponentLoader = () => (
 );
 
 function CampaignsPageContent() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [campaigns, setCampaigns] = useState<CampaignViewModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"all" | "active" | "completed" | "failed" | "paused">("all");
   const [wsConnected, setWsConnected] = useState(false);
@@ -92,7 +93,7 @@ function CampaignsPageContent() {
                       ? { 
                           ...campaign, 
                           status: normalizeStatus(message.data.status),
-                          currentPhase: message.data.phase as Campaign['currentPhase']
+                          currentPhase: message.data.phase as CampaignViewModel['currentPhase']
                         }
                       : campaign
                   ));
@@ -185,7 +186,7 @@ function CampaignsPageContent() {
       if (response.status === 'success' && Array.isArray(response.data)) {
         console.log(`[CampaignsPage] Successfully loaded ${response.data.length} campaigns`);
         if (isMountedRef.current) {
-          setCampaigns(response.data);
+          setCampaigns(transformCampaignsToViewModels(response.data));
         }
       } else {
         console.warn('[CampaignsPage] Failed to load campaigns:', response.message);
@@ -390,7 +391,7 @@ function CampaignsPageContent() {
       if (response.status === 'success' && response.data) {
         await confirmUpdate(updateId, response.data);
         toast({ title: `Campaign ${action}ed`, description: response.message });
-        setCampaigns(prev => prev.map(c => c.id === campaignId ? {...c, ...response.data} : c));
+        setCampaigns(prev => prev.map(c => c.id === campaignId ? mergeCampaignApiUpdate(c, response.data || {}) : c));
       } else {
         await rollbackUpdate(updateId, response.message);
         toast({ title: `Error ${action}ing campaign`, description: response.message, variant: "destructive"});

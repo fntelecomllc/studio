@@ -195,7 +195,7 @@ func (h *APIHandler) CreateKeywordSetGin(c *gin.Context) {
 	// Only create audit log if AuditLogStore is not nil
 	if h.AuditLogStore != nil {
 		auditLog := &models.AuditLog{
-			UserID:     sql.NullString{},
+			UserID:       uuid.NullUUID{},
 			Action:     "Create KeywordSet",
 			EntityType: sql.NullString{String: "KeywordSet", Valid: true},
 			EntityID:   uuid.NullUUID{UUID: setID, Valid: true},
@@ -434,7 +434,7 @@ func (h *APIHandler) UpdateKeywordSetGin(c *gin.Context) {
 	if updated {
 		if h.AuditLogStore != nil {
 			auditLog := &models.AuditLog{
-				UserID:     sql.NullString{},
+				UserID:       uuid.NullUUID{},
 				Action:     "Update KeywordSet",
 				EntityType: sql.NullString{String: "KeywordSet", Valid: true},
 				EntityID:   uuid.NullUUID{UUID: setID, Valid: true},
@@ -523,7 +523,7 @@ func (h *APIHandler) DeleteKeywordSetGin(c *gin.Context) {
 
 	if h.AuditLogStore != nil {
 		auditLog := &models.AuditLog{
-			UserID:     sql.NullString{},
+			UserID:       uuid.NullUUID{},
 			Action:     "Delete KeywordSet",
 			EntityType: sql.NullString{String: "KeywordSet", Valid: true},
 			EntityID:   uuid.NullUUID{UUID: setID, Valid: true},

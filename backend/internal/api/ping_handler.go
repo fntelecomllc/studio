@@ -10,5 +10,8 @@ import (
 
 // PingHandlerGin responds to ping requests to check server health using Gin.
 func PingHandlerGin(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "pong", "timestamp": time.Now().UTC().Format(time.RFC3339)})
+	respondWithJSONGin(c, http.StatusOK, map[string]string{
+		"message": "pong", 
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	})
 }

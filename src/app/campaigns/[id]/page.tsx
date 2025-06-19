@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { Campaign, CampaignStatus, StartCampaignPhasePayload, CampaignDomainDetail, DomainActivityStatus, CampaignValidationItem, GeneratedDomain, CampaignType } from '@/lib/types';
+import type { Campaign, CampaignViewModel, CampaignStatus, StartCampaignPhasePayload, CampaignDomainDetail, DomainActivityStatus, CampaignValidationItem, GeneratedDomain, CampaignType } from '@/lib/types';
 import { CAMPAIGN_PHASES_ORDERED, getFirstPhase } from '@/lib/constants';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, Briefcase, Dna, Network, Globe, Play, RefreshCw, CheckCircle, Download, PauseCircle, PlayCircle, StopCircle, HelpCircle, Search, ShieldQuestion, ExternalLink, XCircle, Clock, Loader2, ChevronLeft, ChevronRight, Percent } from 'lucide-react';
@@ -18,6 +18,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { getCampaignById, startCampaign as startCampaignPhase, pauseCampaign, resumeCampaign, cancelCampaign as stopCampaign, getGeneratedDomains as getGeneratedDomainsForCampaign, getDNSValidationResults as getDnsCampaignDomains, getHTTPKeywordResults as getHttpCampaignItems } from '@/lib/services/campaignService.production';
+import { transformCampaignToViewModel } from '@/lib/utils/campaignTransforms';
 import { websocketService } from '@/lib/services/websocketService.simple';
 import PhaseGateButton from '@/components/campaigns/PhaseGateButton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -106,7 +107,7 @@ export default function CampaignDashboardPage() {
   const campaignId = params.id as string;
   const campaignTypeFromQuery = searchParams.get('type') as Campaign['campaignType'] | null;
 
-  const [campaign, setCampaign] = useState<Campaign | null>(null);
+  const [campaign, setCampaign] = useState<CampaignViewModel | null>(null);
   const [generatedDomains, setGeneratedDomains] = useState<GeneratedDomain[]>([]);
   const [dnsCampaignItems, setDnsCampaignItems] = useState<CampaignValidationItem[]>([]);
   const [httpCampaignItems, setHttpCampaignItems] = useState<CampaignValidationItem[]>([]);
@@ -125,7 +126,7 @@ export default function CampaignDashboardPage() {
   const isMountedRef = useRef(true);
 
   // Helper functions - moved to top for proper hoisting
-  const getGlobalLeadStatusAndScore = (domainName: string, campaign: Campaign): { status: DomainActivityStatus; score?: number } => {
+  const getGlobalLeadStatusAndScore = (domainName: string, campaign: CampaignViewModel): { status: DomainActivityStatus; score?: number } => {
         if (!campaign) {
             return { status: 'n_a' };
         }
@@ -134,7 +135,7 @@ export default function CampaignDashboardPage() {
         return { status: 'n_a' };
   };
 
-  const getGlobalDomainStatusForPhase = useCallback((domainName: string, phase: 'dns_validation' | 'http_keyword_validation', campaign: Campaign): DomainActivityStatus => {
+  const getGlobalDomainStatusForPhase = useCallback((domainName: string, phase: 'dns_validation' | 'http_keyword_validation', campaign: CampaignViewModel): DomainActivityStatus => {
         if (!campaign) {
             return 'n_a';
         }
@@ -191,7 +192,7 @@ export default function CampaignDashboardPage() {
 
         if (campaignDetailsResponse.status === 'success' && campaignDetailsResponse.data) {
             if(isMountedRef.current) {
-              setCampaign(campaignDetailsResponse.data);
+              setCampaign(transformCampaignToViewModel(campaignDetailsResponse.data));
               // Domain generation stream will update streamedDomains, which is then merged here.
               // For other campaign types, their items are fetched separately.
               if (campaignDetailsResponse.data.campaignType === 'domain_generation') {

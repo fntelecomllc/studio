@@ -311,9 +311,9 @@ func (s *domainGenerationServiceImpl) logAuditEvent(ctx context.Context, exec st
 		detailsJSON = json.RawMessage(fmt.Sprintf(`{"campaign_name": "%s", "description": "Details marshalling error, raw: %s"}`, campaign.Name, description))
 	}
 
-	var auditLogUserID sql.NullString
+	var auditLogUserID uuid.NullUUID
 	if campaign.UserID != nil {
-		auditLogUserID = sql.NullString{String: campaign.UserID.String(), Valid: true}
+		auditLogUserID = uuid.NullUUID{UUID: *campaign.UserID, Valid: true}
 	}
 	auditLog := &models.AuditLog{
 		Timestamp:  time.Now().UTC(),

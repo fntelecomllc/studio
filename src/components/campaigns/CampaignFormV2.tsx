@@ -20,7 +20,7 @@ import { Target, Loader2 } from 'lucide-react';
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { CAMPAIGN_SELECTED_TYPES } from "@/lib/constants";
-import type { Campaign, CampaignSelectedType, CampaignPhase, DomainGenerationPattern, DomainSourceSelectionMode } from '@/lib/types';
+import type { CampaignViewModel, CampaignSelectedType, CampaignPhase, DomainGenerationPattern, DomainSourceSelectionMode } from '@/lib/types';
 import { createCampaignUnified } from "@/lib/services/campaignService.production";
 import { 
   type UnifiedCreateCampaignRequest
@@ -48,7 +48,7 @@ import KeywordConfig from "./form/KeywordConfig";
 import OperationalAssignments from "./form/OperationalAssignments";
 
 interface CampaignFormProps {
-  campaignToEdit?: Campaign;
+  campaignToEdit?: CampaignViewModel;
   isEditing?: boolean;
 }
 

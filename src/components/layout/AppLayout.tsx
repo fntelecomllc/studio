@@ -110,7 +110,9 @@ const AppSidebar = memo(() => {
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
             <span className="text-sm font-medium">{user?.email}</span>
-            <span className="text-xs text-muted-foreground">{user?.role}</span>
+            <span className="text-xs text-muted-foreground">
+              {user?.roles.map(role => role.displayName).join(', ')}
+            </span>
           </div>
           <button
             onClick={handleLogout}

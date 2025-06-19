@@ -235,6 +235,12 @@ type Campaign struct {
 	SuccessfulItems             *int64                          `db:"successful_items" json:"successfulItems,omitempty"`
 	FailedItems                 *int64                          `db:"failed_items" json:"failedItems,omitempty"`
 	Metadata                    *json.RawMessage                `db:"metadata" json:"metadata,omitempty"`
+	
+	// Additional tracking fields
+	EstimatedCompletionAt       *time.Time                      `db:"estimated_completion_at" json:"estimatedCompletionAt,omitempty"`
+	AvgProcessingRate           *float64                        `db:"avg_processing_rate" json:"avgProcessingRate,omitempty"`
+	LastHeartbeatAt             *time.Time                      `db:"last_heartbeat_at" json:"lastHeartbeatAt,omitempty"`
+	
 	DomainGenerationParams      *DomainGenerationCampaignParams `json:"domainGenerationParams,omitempty"`
 	DNSValidationParams         *DNSValidationCampaignParams    `json:"dnsValidationParams,omitempty"`
 	HTTPKeywordValidationParams *HTTPKeywordCampaignParams      `json:"httpKeywordValidationParams,omitempty"`
@@ -314,9 +320,11 @@ type DNSValidationResult struct {
 type HTTPKeywordCampaignParams struct {
 	CampaignID               uuid.UUID        `db:"campaign_id" json:"-" firestore:"-"`
 	SourceCampaignID         uuid.UUID        `db:"source_campaign_id" json:"sourceCampaignId" firestore:"sourceCampaignId" validate:"required"`
+	SourceType               string           `db:"source_type" json:"sourceType" firestore:"sourceType" validate:"required"`
 	KeywordSetIDs            []uuid.UUID      `db:"keyword_set_ids" json:"keywordSetIds,omitempty" firestore:"keywordSetIds,omitempty"`
 	AdHocKeywords            *[]string        `db:"ad_hoc_keywords" json:"adHocKeywords,omitempty" firestore:"adHocKeywords,omitempty"`
 	PersonaIDs               []uuid.UUID      `db:"persona_ids" json:"personaIds" firestore:"personaIds" validate:"required,min=1,dive,uuid"`
+	ProxyIDs                 *[]uuid.UUID     `db:"proxy_ids" json:"proxyIds,omitempty" firestore:"proxyIds,omitempty"`
 	ProxyPoolID              uuid.NullUUID    `db:"proxy_pool_id" json:"proxyPoolId,omitempty" firestore:"proxyPoolId,omitempty"`
 	ProxySelectionStrategy   *string          `db:"proxy_selection_strategy" json:"proxySelectionStrategy,omitempty" firestore:"proxySelectionStrategy,omitempty"`
 	RotationIntervalSeconds  *int             `db:"rotation_interval_seconds" json:"rotationIntervalSeconds,omitempty" firestore:"rotationIntervalSeconds,omitempty" validate:"omitempty,gte=0"`
@@ -325,8 +333,6 @@ type HTTPKeywordCampaignParams struct {
 	RetryAttempts            *int             `db:"retry_attempts" json:"retryAttempts,omitempty" firestore:"retryAttempts,omitempty" validate:"omitempty,gte=0"`
 	TargetHTTPPorts          *[]int           `db:"target_http_ports" json:"targetHttpPorts,omitempty" firestore:"targetHttpPorts,omitempty"`
 	LastProcessedDomainName  *string          `db:"last_processed_domain_name" json:"lastProcessedDomainName,omitempty" firestore:"lastProcessedDomainName,omitempty"`
-	SourceType               string           `db:"source_type" json:"sourceType" firestore:"sourceType" validate:"required"`
-	ProxyIDs                 *[]uuid.UUID     `db:"proxy_ids" json:"proxyIds,omitempty" firestore:"proxyIds,omitempty"`
 	Metadata                 *json.RawMessage `db:"metadata" json:"metadata,omitempty" firestore:"metadata,omitempty"`
 }
 
@@ -355,7 +361,7 @@ type HTTPKeywordResult struct {
 type AuditLog struct {
 	ID         uuid.UUID        `db:"id" json:"id" firestore:"id"`
 	Timestamp  time.Time        `db:"timestamp" json:"timestamp" firestore:"timestamp"`
-	UserID     sql.NullString   `db:"user_id" json:"userId,omitempty" firestore:"userId,omitempty"`
+	UserID     uuid.NullUUID    `db:"user_id" json:"userId,omitempty" firestore:"userId,omitempty"` // Fixed: UUID type to match database
 	Action     string           `db:"action" json:"action" firestore:"action" validate:"required"`
 	EntityType sql.NullString   `db:"entity_type" json:"entityType,omitempty" firestore:"entityType,omitempty"`
 	EntityID   uuid.NullUUID    `db:"entity_id" json:"entityId,omitempty" firestore:"entityId,omitempty"`
@@ -382,6 +388,33 @@ type CampaignJob struct {
 	NextExecutionAt    sql.NullTime          `db:"next_execution_at" json:"nextExecutionAt,omitempty" firestore:"nextExecutionAt,omitempty"`
 	LockedAt           sql.NullTime          `db:"locked_at" json:"lockedAt,omitempty" firestore:"lockedAt,omitempty"`
 	LockedBy           sql.NullString        `db:"locked_by" json:"lockedBy,omitempty" firestore:"lockedBy,omitempty"`
+}
+
+// ProxyPool represents a proxy pool configuration
+type ProxyPool struct {
+	ID                       uuid.UUID      `db:"id" json:"id"`
+	Name                     string         `db:"name" json:"name" validate:"required"`
+	Description              sql.NullString `db:"description" json:"description,omitempty"`
+	IsEnabled                bool           `db:"is_enabled" json:"isEnabled"`
+	PoolStrategy             sql.NullString `db:"pool_strategy" json:"poolStrategy,omitempty"` // round_robin, random, weighted, failover
+	HealthCheckEnabled       bool           `db:"health_check_enabled" json:"healthCheckEnabled"`
+	HealthCheckIntervalSeconds *int         `db:"health_check_interval_seconds" json:"healthCheckIntervalSeconds,omitempty"`
+	MaxRetries               *int           `db:"max_retries" json:"maxRetries,omitempty"`
+	TimeoutSeconds           *int           `db:"timeout_seconds" json:"timeoutSeconds,omitempty"`
+	CreatedAt                time.Time      `db:"created_at" json:"createdAt"`
+	UpdatedAt                time.Time      `db:"updated_at" json:"updatedAt"`
+
+	// Computed fields (not stored in DB)
+	Proxies []Proxy `json:"proxies,omitempty" db:"-"`
+}
+
+// ProxyPoolMembership represents the junction between proxy pools and proxies
+type ProxyPoolMembership struct {
+	PoolID   uuid.UUID `db:"pool_id" json:"poolId" validate:"required"`
+	ProxyID  uuid.UUID `db:"proxy_id" json:"proxyId" validate:"required"`
+	Weight   *int      `db:"weight" json:"weight,omitempty" validate:"omitempty,gt=0"`
+	IsActive bool      `db:"is_active" json:"isActive"`
+	AddedAt  time.Time `db:"added_at" json:"addedAt"`
 }
 
 // DereferenceGeneratedDomainSlice converts a slice of *GeneratedDomain to []GeneratedDomain.

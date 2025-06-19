@@ -220,7 +220,7 @@ func (h *APIHandler) AddProxyGin(c *gin.Context) {
 	}
 
 	auditLog := &models.AuditLog{
-		UserID:     sql.NullString{},
+		UserID:     uuid.NullUUID{},
 		Action:     "Create Proxy",
 		EntityType: sql.NullString{String: "Proxy", Valid: true},
 		EntityID:   uuid.NullUUID{UUID: proxyID, Valid: true},
@@ -363,7 +363,7 @@ func (h *APIHandler) UpdateProxyGin(c *gin.Context) {
 	}
 
 	auditLog := &models.AuditLog{
-		UserID:     sql.NullString{},
+		UserID:     uuid.NullUUID{},
 		Action:     "Update Proxy",
 		EntityType: sql.NullString{String: "Proxy", Valid: true},
 		EntityID:   uuid.NullUUID{UUID: proxyID, Valid: true},
@@ -445,7 +445,7 @@ func (h *APIHandler) DeleteProxyGin(c *gin.Context) {
 	}
 
 	auditLog := &models.AuditLog{
-		UserID:     sql.NullString{},
+		UserID:     uuid.NullUUID{},
 		Action:     "Delete Proxy",
 		EntityType: sql.NullString{String: "Proxy", Valid: true},
 		EntityID:   uuid.NullUUID{UUID: proxyID, Valid: true},
@@ -518,7 +518,7 @@ func (h *APIHandler) ForceCheckAllProxiesGin(c *gin.Context) {
 		h.ProxyMgr.ForceCheckProxiesAsync(nil)
 		message = "Health check process initiated for all managed proxies. Check status endpoint."
 	}
-	respondWithJSONGin(c, http.StatusAccepted, gin.H{"message": message})
+	respondWithJSONGin(c, http.StatusAccepted, map[string]string{"message": message})
 }
 
 func (h *APIHandler) TestProxyGin(c *gin.Context) {

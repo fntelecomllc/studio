@@ -32,52 +32,19 @@ func NewCampaignOrchestratorAPIHandler(orchService services.CampaignOrchestrator
 // RegisterCampaignOrchestrationRoutes registers all campaign orchestration related routes.
 // It requires a base group and auth middleware instance for permission-based access control.
 //
-// CAMPAIGN CREATION ENDPOINTS - ARCHITECTURAL DOCUMENTATION:
+// CAMPAIGN CREATION ENDPOINT:
 //
-// This API provides multiple campaign creation endpoints to support different client integrations:
-//
-// 1. UNIFIED ENDPOINT (RECOMMENDED):
-//    POST /campaigns - Main endpoint using unified CreateCampaignRequest payload
-//    - Supports all campaign types through a single, consistent interface
-//    - Uses discriminated union based on "campaignType" field
-//    - Provides comprehensive validation and error handling
-//    - This is the preferred endpoint for new integrations
-//
-// 2. LEGACY TYPE-SPECIFIC ENDPOINTS (DEPRECATED):
-//    POST /campaigns/generate        - Domain generation campaigns only
-//    POST /campaigns/dns-validate    - DNS validation campaigns only  
-//    POST /campaigns/http-validate   - HTTP keyword validation campaigns only
-//    POST /campaigns/keyword-validate - HTTP keyword validation campaigns only (ALIAS)
-//    
-//    IMPORTANT: /http-validate and /keyword-validate are ALIASES that map to the SAME handler.
-//    This aliasing exists for backwards compatibility with different client naming conventions.
-//    Both endpoints accept identical payloads and produce identical results.
-//
-// MIGRATION GUIDANCE:
-// - New code should use the unified POST /campaigns endpoint
-// - Legacy endpoints will be maintained for backwards compatibility but are not recommended
-// - The legacy endpoints may be deprecated in future API versions
-//
-// ENDPOINT ALIASING CLARIFICATION:
-// - /http-validate: Originally named for HTTP-based validation workflows
-// - /keyword-validate: Added as alias to match client-side terminology  
-// - Both endpoints use the same handler: h.createHTTPKeywordCampaign
-// - Both accept CreateHTTPKeywordCampaignRequest payloads
-// - This aliasing provides flexibility for different client naming preferences
+// POST /campaigns - Unified endpoint using CreateCampaignRequest payload
+// - Supports all campaign types through a single, consistent interface
+// - Uses discriminated union based on "campaignType" field
+// - Provides comprehensive validation and error handling
+// - All legacy type-specific endpoints have been removed in favor of this unified approach
 func (h *CampaignOrchestratorAPIHandler) RegisterCampaignOrchestrationRoutes(group *gin.RouterGroup, authMiddleware *middleware.AuthMiddleware) {
 	// === CAMPAIGN CREATION ENDPOINTS ===
 	
 	// Unified campaign creation endpoint (preferred)
 	// Supports all campaign types through discriminated union
 	group.POST("", authMiddleware.RequirePermission("campaigns:create"), h.createCampaign)
-
-	// Legacy campaign creation routes - kept for backward compatibility
-	// TODO: Consider deprecation in future API versions
-	// These endpoints provide type-specific creation for legacy clients
-	group.POST("/generate", authMiddleware.RequirePermission("campaigns:create"), h.createDomainGenerationCampaign)      // Domain generation only
-	group.POST("/dns-validate", authMiddleware.RequirePermission("campaigns:create"), h.createDNSValidationCampaign)     // DNS validation only
-	group.POST("/http-validate", authMiddleware.RequirePermission("campaigns:create"), h.createHTTPKeywordCampaign)      // HTTP keyword validation
-	group.POST("/keyword-validate", authMiddleware.RequirePermission("campaigns:create"), h.createHTTPKeywordCampaign)   // ALIAS: Same as /http-validate
 
 	// Campaign reading routes - require campaigns:read permission
 	group.GET("", authMiddleware.RequirePermission("campaigns:read"), h.listCampaigns)
@@ -193,136 +160,6 @@ func (h *CampaignOrchestratorAPIHandler) validateCampaignRequest(req services.Cr
 	return nil
 }
 
-// --- Legacy Campaign Creation Handlers (Deprecated) ---
-//
-// These handlers provide backwards compatibility for clients that haven't migrated 
-// to the unified campaign creation endpoint. Each handler accepts a type-specific 
-// request payload and delegates to the appropriate orchestrator service method.
-//
-// DEPRECATION NOTICE: These endpoints are maintained for backwards compatibility only.
-// New integrations should use the unified POST /campaigns endpoint instead.
-
-// createDomainGenerationCampaign handles legacy domain generation campaign creation.
-// Endpoint: POST /campaigns/generate
-// Payload: CreateDomainGenerationCampaignRequest
-// Use unified endpoint instead: POST /campaigns with campaignType="domain_generation"
-func (h *CampaignOrchestratorAPIHandler) createDomainGenerationCampaign(c *gin.Context) {
-	var req services.CreateDomainGenerationCampaignRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		// Use validation error response for binding errors
-		var validationErrors []ErrorDetail
-		validationErrors = append(validationErrors, ErrorDetail{
-			Field:   "body",
-			Code:    ErrorCodeValidation,
-			Message: "Invalid request payload: " + err.Error(),
-		})
-		respondWithValidationErrorGin(c, validationErrors)
-		return
-	}
-
-	// Validate struct if validator is available
-	if validate != nil {
-		if err := validate.Struct(req); err != nil {
-			// Convert validation errors to ErrorDetail slice
-			var validationErrors []ErrorDetail
-			// Handle validation errors properly - this is a simplified version
-			validationErrors = append(validationErrors, ErrorDetail{
-				Code:    ErrorCodeValidation,
-				Message: "Validation failed: " + err.Error(),
-			})
-			respondWithValidationErrorGin(c, validationErrors)
-			return
-		}
-	}
-
-	campaign, err := h.orchestratorService.CreateDomainGenerationCampaign(c.Request.Context(), req)
-	if err != nil {
-		log.Printf("Error creating domain generation campaign: %v", err)
-		// Use detailed error response with appropriate error code
-		respondWithDetailedErrorGin(c, http.StatusInternalServerError, ErrorCodeInternalServer,
-			"Failed to create domain generation campaign", []ErrorDetail{
-				{
-					Code:    ErrorCodeInternalServer,
-					Message: err.Error(),
-					Context: map[string]interface{}{
-						"campaign_type": "domain_generation",
-					},
-				},
-			})
-		return
-	}
-	respondWithJSONGin(c, http.StatusCreated, campaign)
-}
-
-// createDNSValidationCampaign handles legacy DNS validation campaign creation.
-// Endpoint: POST /campaigns/dns-validate
-// Payload: CreateDNSValidationCampaignRequest  
-// Use unified endpoint instead: POST /campaigns with campaignType="dns_validation"
-func (h *CampaignOrchestratorAPIHandler) createDNSValidationCampaign(c *gin.Context) {
-	var req services.CreateDNSValidationCampaignRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		respondWithErrorGin(c, http.StatusBadRequest, "Invalid request payload: "+err.Error())
-		return
-	}
-	// req.UserID = getMaybeUserIDFromContext(c).String
-
-	// if validate != nil {
-	// 	if err := validate.Struct(req); err != nil {
-	// 		respondWithErrorGin(c, http.StatusBadRequest, "Validation failed: "+err.Error())
-	// 		return
-	// 	}
-	// }
-
-	campaign, err := h.orchestratorService.CreateDNSValidationCampaign(c.Request.Context(), req)
-	if err != nil {
-		log.Printf("Error creating DNS validation campaign: %v", err)
-		respondWithErrorGin(c, http.StatusInternalServerError, fmt.Sprintf("Failed to create DNS validation campaign: %v", err))
-		return
-	}
-	respondWithJSONGin(c, http.StatusCreated, campaign)
-}
-
-// createHTTPKeywordCampaign handles legacy HTTP keyword validation campaign creation.
-// 
-// ENDPOINT ALIASES: This handler serves TWO aliased endpoints:
-// - POST /campaigns/http-validate    (original endpoint name)
-// - POST /campaigns/keyword-validate (alias for client compatibility)
-//
-// Both endpoints:
-// - Accept identical CreateHTTPKeywordCampaignRequest payloads
-// - Produce identical campaign creation results  
-// - Use the same validation and error handling logic
-// - Are mapped to this single handler implementation
-//
-// The aliasing provides flexibility for different client naming conventions
-// while maintaining a single implementation point.
-//
-// Payload: CreateHTTPKeywordCampaignRequest
-// Use unified endpoint instead: POST /campaigns with campaignType="http_keyword_validation"
-func (h *CampaignOrchestratorAPIHandler) createHTTPKeywordCampaign(c *gin.Context) {
-	var req services.CreateHTTPKeywordCampaignRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		respondWithErrorGin(c, http.StatusBadRequest, "Invalid request payload: "+err.Error())
-		return
-	}
-	// req.UserID = getMaybeUserIDFromContext(c).String
-
-	// if validate != nil {
-	// 	if err := validate.Struct(req); err != nil {
-	// 		respondWithErrorGin(c, http.StatusBadRequest, "Validation failed: "+err.Error())
-	// 		return
-	// 	}
-	// }
-
-	campaign, err := h.orchestratorService.CreateHTTPKeywordCampaign(c.Request.Context(), req)
-	if err != nil {
-		log.Printf("Error creating HTTP/Keyword campaign: %v", err)
-		respondWithErrorGin(c, http.StatusInternalServerError, fmt.Sprintf("Failed to create HTTP/Keyword campaign: %v", err))
-		return
-	}
-	respondWithJSONGin(c, http.StatusCreated, campaign)
-}
-
 // --- Campaign Information Handlers ---
 
 func (h *CampaignOrchestratorAPIHandler) listCampaigns(c *gin.Context) {
@@ -382,7 +219,7 @@ func (h *CampaignOrchestratorAPIHandler) listCampaigns(c *gin.Context) {
 			Count:    int(totalCount),
 		},
 	})
-	c.JSON(http.StatusOK, response)
+	respondWithJSONGin(c, http.StatusOK, response)
 }
 
 func (h *CampaignOrchestratorAPIHandler) getCampaignDetails(c *gin.Context) {
@@ -483,7 +320,7 @@ func (h *CampaignOrchestratorAPIHandler) pauseCampaign(c *gin.Context) {
 		respondWithErrorGin(c, http.StatusInternalServerError, fmt.Sprintf("Failed to pause campaign: %v", err))
 		return
 	}
-	respondWithJSONGin(c, http.StatusOK, gin.H{"message": "Campaign pause requested"})
+	respondWithJSONGin(c, http.StatusOK, map[string]string{"message": "Campaign pause requested"})
 }
 
 func (h *CampaignOrchestratorAPIHandler) resumeCampaign(c *gin.Context) {
@@ -499,7 +336,7 @@ func (h *CampaignOrchestratorAPIHandler) resumeCampaign(c *gin.Context) {
 		respondWithErrorGin(c, http.StatusInternalServerError, fmt.Sprintf("Failed to resume campaign: %v", err))
 		return
 	}
-	respondWithJSONGin(c, http.StatusOK, gin.H{"message": "Campaign queued for resume"})
+	respondWithJSONGin(c, http.StatusOK, map[string]string{"message": "Campaign queued for resume"})
 }
 
 func (h *CampaignOrchestratorAPIHandler) cancelCampaign(c *gin.Context) {
@@ -515,7 +352,7 @@ func (h *CampaignOrchestratorAPIHandler) cancelCampaign(c *gin.Context) {
 		respondWithErrorGin(c, http.StatusInternalServerError, fmt.Sprintf("Failed to cancel campaign: %v", err))
 		return
 	}
-	respondWithJSONGin(c, http.StatusOK, gin.H{"message": "Campaign cancellation requested"})
+	respondWithJSONGin(c, http.StatusOK, map[string]string{"message": "Campaign cancellation requested"})
 }
 
 
@@ -532,7 +369,7 @@ func (h *CampaignOrchestratorAPIHandler) deleteCampaign(c *gin.Context) {
 		respondWithErrorGin(c, http.StatusInternalServerError, fmt.Sprintf("Failed to delete campaign: %v", err))
 		return
 	}
-	respondWithJSONGin(c, http.StatusOK, gin.H{"message": "Campaign deleted successfully"})
+	respondWithJSONGin(c, http.StatusOK, map[string]string{"message": "Campaign deleted successfully"})
 }
 
 func (h *CampaignOrchestratorAPIHandler) getGeneratedDomains(c *gin.Context) {

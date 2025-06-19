@@ -1,1 +1,0 @@
--- This is an empty down migration file.

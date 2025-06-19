@@ -5,7 +5,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import type { Campaign, LatestDomainActivity, CampaignPhase, DomainActivityStatus, CampaignsListResponse, CampaignSelectedType } from '@/lib/types';
+import type { CampaignViewModel, LatestDomainActivity, CampaignPhase, DomainActivityStatus, CampaignsListResponse, CampaignSelectedType } from '@/lib/types';
 import { CAMPAIGN_PHASES_ORDERED } from '@/lib/constants';
 import { ScrollArea } from '../ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CheckCircle, XCircle, Clock, HelpCircle, Search, ShieldQuestion, ExternalLink, Activity, Dna, AlertCircle, ChevronLeft, ChevronRight, Percent } from 'lucide-react';
 import Link from 'next/link';
 import { getCampaigns } from '@/lib/services/campaignService.production'; // Updated import path
+import { transformCampaignsToViewModels } from '@/lib/utils/campaignTransforms';
 import { useLoadingStore, LOADING_OPERATIONS } from '@/lib/stores/loadingStore';
 
 const MAX_ITEMS_DISPLAY_INITIAL_LOAD = 200; // Max items to process for the global table initially
@@ -36,7 +37,7 @@ const formatDate = (dateString: string): string => {
 const getGlobalDomainStatusForPhase = (
   domainName: string,
   phase: CampaignPhase,
-  campaign: Campaign
+  campaign: CampaignViewModel
 ): DomainActivityStatus => {
   const selectedType = campaign.selectedType || campaign.campaignType;
   const phasesForType = CAMPAIGN_PHASES_ORDERED[selectedType];
@@ -89,7 +90,7 @@ const getGlobalDomainStatusForPhase = (
 
 const getGlobalLeadStatusAndScore = (
   domainName: string,
-  campaign: Campaign
+  campaign: CampaignViewModel
 ): { status: DomainActivityStatus; score?: number } => {
     const selectedType = campaign.selectedType || campaign.campaignType;
     const phasesForType = CAMPAIGN_PHASES_ORDERED[selectedType];
@@ -185,7 +186,7 @@ export default function LatestActivityTable() {
       const processedActivities: LatestDomainActivity[] = [];
 
       if (response.status === 'success' && Array.isArray(response.data)) {
-        const campaignsArray = response.data;
+        const campaignsArray = transformCampaignsToViewModels(response.data);
         campaignsArray.forEach(campaign => {
           (campaign.domains || []).forEach(domainName => {
             const leadInfo = getGlobalLeadStatusAndScore(domainName, campaign);
@@ -398,7 +399,7 @@ export default function LatestActivityTable() {
 // Helper function to determine campaign type from activity, might need refinement based on how you store full campaign objects
 // For now, it assumes the activity's campaignName or other properties can help infer it,
 // or you might need to cross-reference with a list of all campaigns if available.
-function getCampaignTypeFromActivity(activity: LatestDomainActivity, allCampaigns: Campaign[]): CampaignSelectedType | string {
+function getCampaignTypeFromActivity(activity: LatestDomainActivity, allCampaigns: CampaignViewModel[]): CampaignSelectedType | string {
     // A more robust way would be to have allCampaigns passed in or fetched and then look up by activity.campaignId
     // For simplicity, this is a placeholder. You'd look up campaign.selectedType.
     const campaign = allCampaigns.find(c => c.id === activity.campaignId);

@@ -99,20 +99,20 @@ func GinAPIKeyAuthMiddleware(apiKey string) gin.HandlerFunc {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			log.Printf("Gin Auth Error: Missing Authorization header from %s for %s %s", c.Request.RemoteAddr, c.Request.Method, c.Request.RequestURI)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, map[string]string{"error": "Authorization header required"})
 			return
 		}
 
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
 			log.Printf("Gin Auth Error: Invalid Authorization header format from %s for %s %s", c.Request.RemoteAddr, c.Request.Method, c.Request.RequestURI)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid Authorization header format"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, map[string]string{"error": "Invalid Authorization header format"})
 			return
 		}
 
 		if parts[1] != apiKey {
 			log.Printf("Gin Auth Error: Invalid API Key provided by %s for %s %s", c.Request.RemoteAddr, c.Request.Method, c.Request.RequestURI)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid API Key"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, map[string]string{"error": "Invalid API Key"})
 			return
 		}
 		c.Next() // Proceed to the next handler

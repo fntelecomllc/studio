@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import type { Campaign } from '@/lib/types';
+import type { CampaignViewModel } from '@/lib/types';
 import { ArrowRight, CalendarDays, CheckCircle, AlertTriangle, WorkflowIcon, Play, MoreVertical, FilePenLine, Trash2, PauseCircle, PlayCircle, StopCircle, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -30,7 +30,7 @@ import {
 import { CAMPAIGN_PHASES_ORDERED, getNextPhase } from '@/lib/constants';
 
 interface CampaignListItemProps {
-  campaign: Campaign;
+  campaign: CampaignViewModel;
   onDeleteCampaign: (campaignId: string) => void;
   onPauseCampaign?: (campaignId: string) => void;
   onResumeCampaign?: (campaignId: string) => void;
@@ -53,7 +53,7 @@ const formatDate = (dateString: string): string => {
 };
 
 // Memoized progress calculation function
-const getOverallCampaignProgress = (campaign: Campaign): number => {
+const getOverallCampaignProgress = (campaign: CampaignViewModel): number => {
   const selectedType = campaign.selectedType || campaign.campaignType;
   const phasesForType = CAMPAIGN_PHASES_ORDERED[selectedType];
   if (!phasesForType || phasesForType.length === 0) return 0;
@@ -80,7 +80,7 @@ const getOverallCampaignProgress = (campaign: Campaign): number => {
 };
 
 // Memoized status badge info generation
-const getStatusBadgeInfo = (campaign: Campaign): { text: string, variant: "default" | "secondary" | "destructive" | "outline", icon: JSX.Element } => {
+const getStatusBadgeInfo = (campaign: CampaignViewModel): { text: string, variant: "default" | "secondary" | "destructive" | "outline", icon: JSX.Element } => {
   if (campaign.currentPhase === "Completed") return { text: "Completed", variant: "default", icon: <CheckCircle className="h-4 w-4 text-green-500" /> };
   if (campaign.phaseStatus === "Failed") return { text: `Failed: ${campaign.currentPhase || 'Unknown'}`, variant: "destructive", icon: <AlertTriangle className="h-4 w-4 text-destructive" /> };
   if (campaign.phaseStatus === "Paused") return { text: `Paused: ${campaign.currentPhase || 'Unknown'}`, variant: "outline", icon: <PauseCircle className="h-4 w-4 text-muted-foreground" /> };

@@ -299,7 +299,7 @@ export interface HTTPKeywordCampaignParams {
   metadata?: Record<string, unknown>;
 }
 
-// Campaign - matches backend Campaign struct exactly with frontend compatibility fields
+// Campaign - Core API interface matching backend Campaign struct exactly
 export interface Campaign {
   id: string;
   name: string;
@@ -313,14 +313,24 @@ export interface Campaign {
   progressPercentage?: number;
   totalItems?: number;
   processedItems?: number;
-  errorMessage?: string;
   successfulItems?: number;
   failedItems?: number;
+  errorMessage?: string;
   metadata?: Record<string, unknown>;
+  
+  // Additional tracking fields (from backend)
+  estimatedCompletionAt?: string;
+  avgProcessingRate?: number;
+  lastHeartbeatAt?: string;
+  
+  // Campaign parameter details
   domainGenerationParams?: DomainGenerationCampaignParams;
   dnsValidationParams?: DNSValidationCampaignParams;
   httpKeywordValidationParams?: HTTPKeywordCampaignParams;
-  
+}
+
+// CampaignViewModel - Extended interface for UI-specific state and computed properties
+export interface CampaignViewModel extends Campaign {
   // Frontend compatibility fields
   description?: string;
   selectedType?: CampaignSelectedType;

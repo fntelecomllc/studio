@@ -376,14 +376,14 @@ func (s *httpKeywordCampaignServiceImpl) logAuditEvent(ctx context.Context, exec
 		detailsJSON = json.RawMessage(fmt.Sprintf(`{"campaign_name": "%s", "description": "Details marshalling error: %s"}`, campaign.Name, description))
 	}
 
-	var userIDNullString sql.NullString
+	var userIDNullUUID uuid.NullUUID
 	if campaign.UserID != nil {
-		userIDNullString = sql.NullString{String: campaign.UserID.String(), Valid: true}
+		userIDNullUUID = uuid.NullUUID{UUID: *campaign.UserID, Valid: true}
 	}
 
 	auditLog := &models.AuditLog{
 		Timestamp:  time.Now().UTC(),
-		UserID:     userIDNullString,
+		UserID:     userIDNullUUID,
 		Action:     action,
 		EntityType: sql.NullString{String: "Campaign", Valid: true},
 		EntityID:   uuid.NullUUID{UUID: campaign.ID, Valid: true},

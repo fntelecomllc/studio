@@ -302,6 +302,15 @@ func main() {
 		// Persona routes with permission-based access control
 		personaGroup := apiV2.Group("/personas")
 		{
+			// Unified persona endpoints (preferred)
+			personaGroup.GET("", authMiddleware.RequirePermission("personas:read"), apiHandler.ListAllPersonasGin)
+			personaGroup.POST("", authMiddleware.RequirePermission("personas:create"), apiHandler.CreatePersonaGin)
+			personaGroup.GET("/:id", authMiddleware.RequirePermission("personas:read"), apiHandler.GetPersonaByIDGin)
+			personaGroup.PUT("/:id", authMiddleware.RequirePermission("personas:update"), apiHandler.UpdatePersonaGin)
+			personaGroup.DELETE("/:id", authMiddleware.RequirePermission("personas:delete"), apiHandler.DeletePersonaGin)
+			personaGroup.POST("/:id/test", authMiddleware.RequirePermission("personas:read"), apiHandler.TestPersonaGin)
+
+			// Type-specific endpoints (backward compatibility)
 			dnsPersonaGroup := personaGroup.Group("/dns")
 			{
 				dnsPersonaGroup.POST("", authMiddleware.RequirePermission("personas:create"), apiHandler.CreateDNSPersonaGin)

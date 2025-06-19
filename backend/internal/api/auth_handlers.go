@@ -40,10 +40,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	var req models.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		fmt.Printf("DEBUG: JSON binding failed: %v\n", err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   "Invalid request format",
-		})
+		respondWithErrorGin(c, http.StatusBadRequest, "Invalid request format")
 		return
 	}
 	fmt.Printf("DEBUG: Request parsed successfully: %s\n", req.Email)
@@ -60,35 +57,15 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		// Handle authentication errors with appropriate responses
 		switch err.Error() {
 		case "user not found":
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"success": false,
-				"error":   "Invalid email or password",
-				"code":    "INVALID_CREDENTIALS",
-			})
+			respondWithErrorGin(c, http.StatusUnauthorized, "Invalid email or password")
 		case "invalid password":
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"success": false,
-				"error":   "Invalid email or password",
-				"code":    "INVALID_CREDENTIALS",
-			})
+			respondWithErrorGin(c, http.StatusUnauthorized, "Invalid email or password")
 		case "account locked":
-			c.JSON(http.StatusLocked, gin.H{
-				"success": false,
-				"error":   "Account is temporarily locked due to multiple failed login attempts",
-				"code":    "ACCOUNT_LOCKED",
-			})
+			respondWithErrorGin(c, http.StatusLocked, "Account is temporarily locked due to multiple failed login attempts")
 		case "account inactive":
-			c.JSON(http.StatusForbidden, gin.H{
-				"success": false,
-				"error":   "Account is not active",
-				"code":    "ACCOUNT_INACTIVE",
-			})
+			respondWithErrorGin(c, http.StatusForbidden, "Account is not active")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"success": false,
-				"error":   "Authentication failed",
-				"code":    "AUTH_ERROR",
-			})
+			respondWithErrorGin(c, http.StatusInternalServerError, "Authentication failed")
 		}
 		return
 	}
@@ -98,11 +75,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	sessionData, err := h.sessionService.CreateSession(user.ID, ipAddress, c.GetHeader("User-Agent"))
 	if err != nil {
 		fmt.Printf("DEBUG: Session creation failed: %v\n", err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to create session",
-			"code":    "SESSION_ERROR",
-		})
+		respondWithErrorGin(c, http.StatusInternalServerError, "Failed to create session")
 		return
 	}
 	fmt.Printf("DEBUG: Session created successfully with ID: %s\n", sessionData.ID)
@@ -124,14 +97,15 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	// Update last login information
 	h.updateLastLogin(user.ID, ipAddress)
 
-	// Return successful login response with correct field names
-	c.JSON(http.StatusOK, gin.H{
-		"success":   true,
-		"message":   "Login successful",
+	// Create session data for response
+	sessionResponse := map[string]interface{}{
 		"user":      user.PublicUser(),
-		"sessionId": sessionData.ID,  // Frontend expects sessionId (camelCase)
-		"expiresAt": sessionData.ExpiresAt.Format(time.RFC3339),  // Frontend expects expiresAt (camelCase)
-	})
+		"sessionId": sessionData.ID,
+		"expiresAt": sessionData.ExpiresAt.Format(time.RFC3339),
+	}
+
+	// Return successful login response with correct field names
+	respondWithJSONGin(c, http.StatusOK, sessionResponse)
 }
 
 // Logout handles user logout requests
@@ -144,8 +118,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		if err != nil {
 			// No active session - just clear cookies and return success
 			h.clearSessionCookies(c)
-			c.JSON(http.StatusOK, gin.H{
-				"success": true,
+			respondWithJSONGin(c, http.StatusOK, map[string]string{
 				"message": "Logged out successfully",
 			})
 			return
@@ -156,18 +129,23 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	if err := h.sessionService.InvalidateSession(sessionID); err != nil {
 		// Still clear cookies even if logout fails
 		h.clearSessionCookies(c)
-		c.JSON(http.StatusOK, gin.H{
-			"success": true,
-			"message": "Logged out successfully",
-		})
+		respondWithJSONGin(c, http.StatusOK, map[string]string{"message": "Logged out successfully"})
 		return
+	}
+
+	// Clear the session from database if it exists
+	if sessionID != "" {
+		err = h.sessionService.InvalidateSession(sessionID)
+		if err != nil {
+			// Log the error but don't fail the logout
+			fmt.Printf("Failed to invalidate session %s: %v\n", sessionID, err)
+		}
 	}
 
 	// Clear all session cookies
 	h.clearSessionCookies(c)
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
+	respondWithJSONGin(c, http.StatusOK, map[string]string{
 		"message": "Logged out successfully",
 	})
 }
@@ -177,9 +155,7 @@ func (h *AuthHandler) Me(c *gin.Context) {
 	// Get security context from middleware
 	securityContext, exists := c.Get("security_context")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Authentication required",
-		})
+		respondWithErrorGin(c, http.StatusUnauthorized, "Authentication required")
 		return
 	}
 
@@ -198,14 +174,10 @@ func (h *AuthHandler) Me(c *gin.Context) {
 	err := h.db.Get(&user, query, ctx.UserID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": "User not found",
-			})
+			respondWithErrorGin(c, http.StatusNotFound, "User not found")
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to retrieve user information",
-		})
+		respondWithErrorGin(c, http.StatusInternalServerError, "Failed to retrieve user information")
 		return
 	}
 
@@ -220,9 +192,7 @@ func (h *AuthHandler) Me(c *gin.Context) {
 	var roleNames []string
 	err = h.db.Select(&roleNames, rolesQuery, ctx.UserID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to fetch user roles",
-		})
+		respondWithErrorGin(c, http.StatusInternalServerError, "Failed to fetch user roles")
 		return
 	}
 
@@ -237,9 +207,7 @@ func (h *AuthHandler) Me(c *gin.Context) {
 	var permissionNames []string
 	err = h.db.Select(&permissionNames, permissionsQuery, ctx.UserID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to fetch user permissions",
-		})
+		respondWithErrorGin(c, http.StatusInternalServerError, "Failed to fetch user permissions")
 		return
 	}
 
@@ -259,26 +227,19 @@ func (h *AuthHandler) Me(c *gin.Context) {
 	user.Permissions = permissions
 
 	// Return full user information (same format as login)
-	c.JSON(http.StatusOK, user.PublicUser())
+	respondWithJSONGin(c, http.StatusOK, user.PublicUser())
 }
 
 // ChangePassword handles password change requests
 func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	var req models.ChangePasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   "Invalid request format",
-		})
+		respondWithErrorGin(c, http.StatusBadRequest, "Invalid request format")
 		return
 	}
 
 	// TODO: Implement password change functionality
-	c.JSON(http.StatusNotImplemented, gin.H{
-		"success": false,
-		"error":   "Password change functionality not yet implemented in session-based system",
-		"code":    "NOT_IMPLEMENTED",
-	})
+	respondWithErrorGin(c, http.StatusNotImplemented, "Password change functionality not yet implemented in session-based system")
 }
 
 
@@ -290,11 +251,7 @@ func (h *AuthHandler) RefreshSession(c *gin.Context) {
 		// Try legacy cookie name
 		sessionID, err = c.Cookie(config.LegacySessionCookieName)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"success": false,
-				"error":   "No active session",
-				"code":    "NO_SESSION",
-			})
+			respondWithErrorGin(c, http.StatusUnauthorized, "No active session")
 			return
 		}
 	}
@@ -310,17 +267,9 @@ func (h *AuthHandler) RefreshSession(c *gin.Context) {
 
 		switch err {
 		case services.ErrSessionExpired, services.ErrSessionNotFound:
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"success": false,
-				"error":   "Session expired",
-				"code":    "SESSION_EXPIRED",
-			})
+			respondWithErrorGin(c, http.StatusUnauthorized, "Session expired")
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"success": false,
-				"error":   "Failed to refresh session",
-				"code":    "REFRESH_ERROR",
-			})
+			respondWithErrorGin(c, http.StatusInternalServerError, "Failed to refresh session")
 		}
 		return
 	}
@@ -328,11 +277,7 @@ func (h *AuthHandler) RefreshSession(c *gin.Context) {
 	// Extend session if needed
 	newExpiry := time.Now().Add(h.sessionService.GetConfig().Duration)
 	if err := h.sessionService.ExtendSession(sessionID, newExpiry); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to extend session",
-			"code":    "EXTEND_ERROR",
-		})
+		respondWithErrorGin(c, http.StatusInternalServerError, "Failed to extend session")
 		return
 	}
 
@@ -347,9 +292,8 @@ func (h *AuthHandler) RefreshSession(c *gin.Context) {
 		h.config.CookieHttpOnly,
 	)
 
-	c.JSON(http.StatusOK, gin.H{
-		"success":   true,
-		"expiresAt": newExpiry.Format(time.RFC3339),  // Frontend expects expiresAt (camelCase)
+	respondWithJSONGin(c, http.StatusOK, map[string]string{
+		"expiresAt": newExpiry.Format(time.RFC3339),
 	})
 }
 
@@ -566,7 +510,7 @@ func (h *AuthHandler) GetPermissions(c *gin.Context) {
 		"admin:system",
 	}
 	
-	c.JSON(http.StatusOK, gin.H{
+	respondWithJSONGin(c, http.StatusOK, map[string][]string{
 		"permissions": permissions,
 	})
 }
@@ -603,10 +547,7 @@ func (h *AuthHandler) ListUsers(c *gin.Context) {
 	
 	rows, err := h.db.Query(query, limit, offset)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to fetch users",
-		})
+		respondWithErrorGin(c, http.StatusInternalServerError, "Failed to fetch users")
 		return
 	}
 	defer rows.Close()
@@ -622,10 +563,7 @@ func (h *AuthHandler) ListUsers(c *gin.Context) {
 			&lastLoginAt, &user.FailedLoginAttempts, &user.MFAEnabled,
 		)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"success": false,
-				"error":   "Failed to scan user data",
-			})
+			respondWithErrorGin(c, http.StatusInternalServerError, "Failed to scan user data")
 			return
 		}
 		
@@ -640,43 +578,35 @@ func (h *AuthHandler) ListUsers(c *gin.Context) {
 	var totalCount int
 	err = h.db.Get(&totalCount, "SELECT COUNT(*) FROM auth.users")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to get user count",
-		})
+		respondWithErrorGin(c, http.StatusInternalServerError, "Failed to get user count")
 		return
 	}
 	
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    users,
-		"pagination": gin.H{
+	response := map[string]interface{}{
+		"users": users,
+		"pagination": map[string]interface{}{
 			"page":       page,
 			"limit":      limit,
 			"total":      totalCount,
 			"totalPages": (totalCount + limit - 1) / limit,
 		},
-	})
+	}
+	
+	respondWithJSONGin(c, http.StatusOK, response)
 }
 
 // CreateUser handles POST /api/v2/admin/users
 func (h *AuthHandler) CreateUser(c *gin.Context) {
 	var req models.CreateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   "Invalid request format",
-		})
+		respondWithErrorGin(c, http.StatusBadRequest, "Invalid request format")
 		return
 	}
 	
 	// Hash the password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to hash password",
-		})
+		respondWithErrorGin(c, http.StatusInternalServerError, "Failed to hash password")
 		return
 	}
 	
@@ -692,16 +622,10 @@ func (h *AuthHandler) CreateUser(c *gin.Context) {
 		Scan(&createdAt, &updatedAt)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key") {
-			c.JSON(http.StatusConflict, gin.H{
-				"success": false,
-				"error":   "User with this email already exists",
-			})
+			respondWithErrorGin(c, http.StatusConflict, "User with this email already exists")
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to create user",
-		})
+		respondWithErrorGin(c, http.StatusInternalServerError, "Failed to create user")
 		return
 	}
 	
@@ -718,10 +642,7 @@ func (h *AuthHandler) CreateUser(c *gin.Context) {
 		MFAEnabled: false,
 	}
 	
-	c.JSON(http.StatusCreated, gin.H{
-		"success": true,
-		"data":    user,
-	})
+	respondWithJSONGin(c, http.StatusCreated, user)
 }
 
 // GetUser handles GET /api/v2/admin/users/:userId
@@ -729,10 +650,7 @@ func (h *AuthHandler) GetUser(c *gin.Context) {
 	userIDStr := c.Param("userId")
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   "Invalid user ID",
-		})
+		respondWithErrorGin(c, http.StatusBadRequest, "Invalid user ID")
 		return
 	}
 	
@@ -754,16 +672,10 @@ func (h *AuthHandler) GetUser(c *gin.Context) {
 	
 	if err != nil {
 		if err == sql.ErrNoRows {
-			c.JSON(http.StatusNotFound, gin.H{
-				"success": false,
-				"error":   "User not found",
-			})
+			respondWithErrorGin(c, http.StatusNotFound, "User not found")
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to fetch user",
-		})
+		respondWithErrorGin(c, http.StatusInternalServerError, "Failed to fetch user")
 		return
 	}
 	
@@ -771,10 +683,7 @@ func (h *AuthHandler) GetUser(c *gin.Context) {
 		user.LastLoginAt = &lastLoginAt.Time
 	}
 	
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    user,
-	})
+	respondWithJSONGin(c, http.StatusOK, user)
 }
 
 // UpdateUser handles PUT /api/v2/admin/users/:userId
@@ -782,19 +691,13 @@ func (h *AuthHandler) UpdateUser(c *gin.Context) {
 	userIDStr := c.Param("userId")
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   "Invalid user ID",
-		})
+		respondWithErrorGin(c, http.StatusBadRequest, "Invalid user ID")
 		return
 	}
 	
 	var req models.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   "Invalid request format",
-		})
+		respondWithErrorGin(c, http.StatusBadRequest, "Invalid request format")
 		return
 	}
 	
@@ -822,10 +725,7 @@ func (h *AuthHandler) UpdateUser(c *gin.Context) {
 	}
 	
 	if len(setParts) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   "No fields to update",
-		})
+		respondWithErrorGin(c, http.StatusBadRequest, "No fields to update")
 		return
 	}
 	
@@ -856,16 +756,10 @@ func (h *AuthHandler) UpdateUser(c *gin.Context) {
 	
 	if err != nil {
 		if err == sql.ErrNoRows {
-			c.JSON(http.StatusNotFound, gin.H{
-				"success": false,
-				"error":   "User not found",
-			})
+			respondWithErrorGin(c, http.StatusNotFound, "User not found")
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to update user",
-		})
+		respondWithErrorGin(c, http.StatusInternalServerError, "Failed to update user")
 		return
 	}
 	
@@ -873,10 +767,7 @@ func (h *AuthHandler) UpdateUser(c *gin.Context) {
 		user.LastLoginAt = &lastLoginAt.Time
 	}
 	
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"data":    user,
-	})
+	respondWithJSONGin(c, http.StatusOK, user)
 }
 
 // DeleteUser handles DELETE /api/v2/admin/users/:userId
@@ -884,10 +775,7 @@ func (h *AuthHandler) DeleteUser(c *gin.Context) {
 	userIDStr := c.Param("userId")
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   "Invalid user ID",
-		})
+		respondWithErrorGin(c, http.StatusBadRequest, "Invalid user ID")
 		return
 	}
 	
@@ -895,35 +783,23 @@ func (h *AuthHandler) DeleteUser(c *gin.Context) {
 	var exists bool
 	err = h.db.Get(&exists, "SELECT EXISTS(SELECT 1 FROM auth.users WHERE id = $1)", userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to check user existence",
-		})
+		respondWithErrorGin(c, http.StatusInternalServerError, "Failed to check user existence")
 		return
 	}
 	
 	if !exists {
-		c.JSON(http.StatusNotFound, gin.H{
-			"success": false,
-			"error":   "User not found",
-		})
+		respondWithErrorGin(c, http.StatusNotFound, "User not found")
 		return
 	}
 	
 	// Delete user
 	_, err = h.db.Exec("DELETE FROM auth.users WHERE id = $1", userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   "Failed to delete user",
-		})
+		respondWithErrorGin(c, http.StatusInternalServerError, "Failed to delete user")
 		return
 	}
 	
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "User deleted successfully",
-	})
+	respondWithJSONGin(c, http.StatusOK, map[string]string{"message": "User deleted successfully"})
 }
 
 // Helper functions

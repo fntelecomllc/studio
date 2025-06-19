@@ -142,7 +142,7 @@ func (h *WebSocketHandler) HandleConnections(c *gin.Context) {
 		sessionID, err = c.Cookie("session_id")
 		if err != nil {
 			log.Printf("WebSocket connection rejected: no session cookie found")
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+			respondWithErrorGin(c, http.StatusUnauthorized, "Authentication required")
 			return
 		}
 	}
@@ -153,7 +153,7 @@ func (h *WebSocketHandler) HandleConnections(c *gin.Context) {
 	// Validate origin for cross-site request protection
 	if !h.isValidOrigin(origin) {
 		log.Printf("WebSocket connection rejected: invalid origin '%s'", origin)
-		c.JSON(http.StatusForbidden, gin.H{"error": "Invalid origin"})
+		respondWithErrorGin(c, http.StatusForbidden, "Invalid origin")
 		return
 	}
 
@@ -167,21 +167,21 @@ func (h *WebSocketHandler) HandleConnections(c *gin.Context) {
 	sessionData, err := h.sessionService.ValidateSession(sessionID, clientIP)
 	if err != nil {
 		log.Printf("WebSocket connection rejected: invalid session - %v", err)
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired session"})
+		respondWithErrorGin(c, http.StatusUnauthorized, "Invalid or expired session")
 		return
 	}
 
 	// Additional security checks for WebSocket connections
 	if sessionData.UserID.String() == "" {
 		log.Printf("WebSocket connection rejected: no user ID in session")
-		c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
+		respondWithErrorGin(c, http.StatusForbidden, "Insufficient permissions")
 		return
 	}
 
 	// Validate session fingerprint for enhanced security
 	if !h.validateSessionFingerprint(sessionData, clientIP, userAgent) {
 		log.Printf("WebSocket connection rejected: session fingerprint mismatch for user %s", sessionData.UserID)
-		c.JSON(http.StatusForbidden, gin.H{"error": "Session security validation failed"})
+		respondWithErrorGin(c, http.StatusForbidden, "Session security validation failed")
 		return
 	}
 

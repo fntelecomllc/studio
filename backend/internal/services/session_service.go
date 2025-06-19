@@ -674,7 +674,7 @@ func (s *SessionService) logAuditEvent(ctx context.Context, sessionID string, us
 	auditLog := &models.AuditLog{
 		ID:         uuid.New(),
 		Timestamp:  time.Now().UTC(),
-		UserID:     sql.NullString{String: userID.String(), Valid: true},
+		UserID:     uuid.NullUUID{UUID: userID, Valid: true},
 		Action:     action,
 		EntityType: sql.NullString{String: "session", Valid: true},
 		EntityID:   uuid.NullUUID{UUID: userID, Valid: true}, // Use userID as entity for session events

@@ -5,7 +5,6 @@
 import apiClient from './apiClient.production';
 import type {
   Campaign,
-  CreateCampaignPayload,
   CampaignsListResponse,
   CampaignDetailResponse,
   CampaignCreationResponse,
@@ -78,52 +77,6 @@ class CampaignService {
       return response as CampaignCreationResponse;
     } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any -- Error handling for diagnostic logging
       console.error('[CampaignService] Unified campaign creation failed:', error);
-      
-      // Enhanced error handling with specific messages
-      if (error.response?.status === 403) {
-        throw new Error('Authentication failed. Please log in again.');
-      } else if (error.response?.status === 400) {
-        const message = error.response?.data?.message || 'Invalid campaign data provided.';
-        throw new Error(message);
-      } else if (error.response?.status === 422) {
-        const details = error.response?.data?.details || 'Validation failed.';
-        throw new Error(`Validation error: ${details}`);
-      } else if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
-      } else if (error.message) {
-        throw error;
-      } else {
-        throw new Error('Failed to create campaign. Please try again.');
-      }
-    }
-  }
-
-  // Legacy Campaign Creation Method (deprecated - kept for backward compatibility)
-  async createCampaign(payload: CreateCampaignPayload): Promise<CampaignCreationResponse> {
-    try {
-      console.log('[CampaignService] Creating campaign with payload:', payload);
-      
-      let endpoint = '';
-      switch (payload.campaignType) {
-        case 'domain_generation':
-          endpoint = '/api/v2/campaigns/generate';
-          break;
-        case 'dns_validation':
-          endpoint = '/api/v2/campaigns/dns-validate';
-          break;
-        case 'http_keyword_validation':
-          endpoint = '/api/v2/campaigns/keyword-validate';
-          break;
-        default:
-          throw new Error(`Unsupported campaign type: ${payload.campaignType}`);
-      }
-
-      const response = await apiClient.post<Campaign>(endpoint, payload as unknown as Record<string, unknown>);
-      
-      console.log('[CampaignService] Campaign created successfully:', response);
-      return response as CampaignCreationResponse;
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any -- Error handling for diagnostic logging
-      console.error('[CampaignService] Campaign creation failed:', error);
       
       // Enhanced error handling with specific messages
       if (error.response?.status === 403) {
@@ -271,10 +224,6 @@ export const getCampaignById = (campaignId: string) =>
 // Unified campaign creation (preferred)
 export const createCampaignUnified = (payload: UnifiedCreateCampaignRequest) => 
   campaignService.createCampaignUnified(payload);
-
-// Legacy campaign creation (deprecated)
-export const createCampaign = (payload: CreateCampaignPayload) => 
-  campaignService.createCampaign(payload);
 
 export const startCampaign = (campaignId: string) => 
   campaignService.startCampaign(campaignId);

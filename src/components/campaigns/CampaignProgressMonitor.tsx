@@ -8,14 +8,14 @@ import { AlertCircle, CheckCircle, Clock, Pause, Wifi, WifiOff } from 'lucide-re
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { websocketService } from '@/lib/services/websocketService.simple';
-import type { Campaign, CampaignPhase, CampaignStatus } from '@/lib/types';
+import type { CampaignViewModel, CampaignPhase, CampaignStatus } from '@/lib/types';
 import type { WebSocketMessage } from '@/lib/services/websocketService.simple';
 import { normalizeStatus, getStatusColor } from '@/lib/utils/statusMapping';
 import { adaptWebSocketMessage } from '@/lib/utils/websocketMessageAdapter';
 
 interface CampaignProgressMonitorProps {
-  campaign: Campaign;
-  onCampaignUpdate?: (updatedCampaign: Partial<Campaign>) => void;
+  campaign: CampaignViewModel;
+  onCampaignUpdate?: (updatedCampaign: Partial<CampaignViewModel>) => void;
   onDomainReceived?: (domain: string) => void;
 }
 

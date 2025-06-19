@@ -6,7 +6,7 @@ import { apiClient } from '@/lib/api/client';
 import { ProductionApiClient } from '@/lib/services/apiClient.production';
 import { useLoadingStore, LOADING_OPERATIONS } from '@/lib/stores/loadingStore';
 import type {
-  User,
+  User, // Use unified User interface from types.ts
   LoginResponse,
   ChangePasswordRequest,
   PasswordValidationResult,
@@ -16,19 +16,7 @@ import type {
   UserListResponse
 } from '@/lib/types';
 
-export interface AuthUser {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  permissions: string[];
-  avatarUrl?: string;
-  isActive: boolean;
-  mustChangePassword: boolean;
-  lastLoginAt?: string;
-  failedLoginAttempts: number;
-  lockedUntil?: string;
-}
+// Remove duplicate AuthUser interface - use User from types.ts instead
 
 export interface LoginCredentials {
   email: string;
@@ -38,7 +26,7 @@ export interface LoginCredentials {
 
 export interface AuthState {
   isAuthenticated: boolean;
-  user: AuthUser | null;
+  user: User | null;  // Use unified User interface
   isLoading: boolean;
   sessionExpiry: number | null;
   availablePermissions: string[];  // Add this field
@@ -93,22 +81,8 @@ class AuthService {
         // Fetch available permissions from backend
         const availablePermissions = await this.fetchAvailablePermissions();
         
-        // Convert User to AuthUser format
-        const authUser: AuthUser = {
-          id: userData.id,
-          email: userData.email,
-          name: userData.name || `${userData.firstName} ${userData.lastName}`,
-          role: userData.roles?.[0]?.name || 'user',
-          permissions: userData.permissions?.map((p: { name: string }) => p.name) || [],
-          avatarUrl: userData.avatarUrl,
-          isActive: userData.isActive,
-          mustChangePassword: userData.mustChangePassword,
-          lastLoginAt: userData.lastLoginAt,
-          failedLoginAttempts: 0,
-          lockedUntil: userData.isLocked ? 'locked' : undefined
-        };
-        
-        this.updateAuthState(authUser, null, availablePermissions);
+        // Use the user data directly as it already matches the User interface
+        this.updateAuthState(userData, null, availablePermissions);
         logAuth.init('Session restored successfully', { userId: userData.id });
       } else {
         logAuth.init('No active session found');
@@ -149,21 +123,6 @@ class AuthService {
         // Fetch available permissions from backend  
         const availablePermissions = await this.fetchAvailablePermissions();
         
-        // Convert User to AuthUser format
-        const authUser: AuthUser = {
-          id: loginResponse.data.user.id,
-          email: loginResponse.data.user.email,
-          name: loginResponse.data.user.name || `${loginResponse.data.user.firstName} ${loginResponse.data.user.lastName}`,
-          role: loginResponse.data.user.roles?.[0]?.name || 'user',
-          permissions: loginResponse.data.user.permissions?.map((p: { name: string }) => p.name) || [],
-          avatarUrl: loginResponse.data.user.avatarUrl,
-          isActive: loginResponse.data.user.isActive,
-          mustChangePassword: loginResponse.data.user.mustChangePassword,
-          lastLoginAt: loginResponse.data.user.lastLoginAt,
-          failedLoginAttempts: 0,
-          lockedUntil: loginResponse.data.user.isLocked ? 'locked' : undefined
-        };
-        
         // Convert expiresAt to timestamp if provided
         const sessionExpiry = loginResponse.data.expiresAt ? new Date(loginResponse.data.expiresAt).getTime() : null;
         
@@ -173,7 +132,8 @@ class AuthService {
           apiClient.setSessionExpiry(loginResponse.data.expiresAt);
         }
         
-        this.updateAuthState(authUser, sessionExpiry, availablePermissions);
+        // Use the user data directly as it already matches the User interface
+        this.updateAuthState(loginResponse.data.user, sessionExpiry, availablePermissions);
         
         logAuth.success('Login successful', { userId: loginResponse.data.user.id });
         loadingStore.stopLoading(LOADING_OPERATIONS.LOGIN, 'succeeded');
@@ -270,12 +230,12 @@ class AuthService {
       return false;
     }
     
-    return this.authState.user.permissions.includes(permission);
+    return this.authState.user.permissions.some(p => p.name === permission);
   }
 
   // Check if user has specific role
   hasRole(role: string): boolean {
-    return this.authState.user?.role === role;
+    return this.authState.user?.roles.some(r => r.name === role) ?? false;
   }
 
   // Subscribe to auth state changes
@@ -300,7 +260,7 @@ class AuthService {
   }
 
   // Get current user
-  getCurrentUser(): AuthUser | null {
+  getCurrentUser(): User | null {
     return this.authState.user;
   }
 
@@ -513,7 +473,7 @@ class AuthService {
   }
 
   // Private helper methods
-  private updateAuthState(user: AuthUser, sessionExpiry: number | null, availablePermissions?: string[]): void {
+  private updateAuthState(user: User, sessionExpiry: number | null, availablePermissions?: string[]): void {
     this.authState.isAuthenticated = true;
     this.authState.user = user;
     this.authState.sessionExpiry = sessionExpiry;

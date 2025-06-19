@@ -231,7 +231,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (!result) {
       console.log('[Auth] Permission denied:', {
         permission,
-        userRole: authState.user.role,
+        userRoles: authState.user.roles.map(r => r.name),
         hasPermissions: authState.user.permissions.length > 0
       });
     }
