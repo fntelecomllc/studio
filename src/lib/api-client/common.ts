@@ -39,7 +39,7 @@ export const assertParamExists = function (functionName: string, paramName: stri
  *
  * @export
  */
-export const setApiKeyToObject = async function (object: unknown, keyParamName: string, configuration?: Configuration) {
+export const setApiKeyToObject = async function (object: Record<string, any>, keyParamName: string, configuration?: Configuration) {
     if (configuration && configuration.apiKey) {
         const localVarApiKeyValue = typeof configuration.apiKey === 'function'
             ? await configuration.apiKey(keyParamName)
@@ -52,7 +52,7 @@ export const setApiKeyToObject = async function (object: unknown, keyParamName: 
  *
  * @export
  */
-export const setBasicAuthToObject = function (object: unknown, configuration?: Configuration) {
+export const setBasicAuthToObject = function (object: Record<string, any>, configuration?: Configuration) {
     if (configuration && (configuration.username || configuration.password)) {
         object["auth"] = { username: configuration.username, password: configuration.password };
     }
@@ -62,7 +62,7 @@ export const setBasicAuthToObject = function (object: unknown, configuration?: C
  *
  * @export
  */
-export const setBearerAuthToObject = async function (object: unknown, configuration?: Configuration) {
+export const setBearerAuthToObject = async function (object: Record<string, any>, configuration?: Configuration) {
     if (configuration && configuration.accessToken) {
         const accessToken = typeof configuration.accessToken === 'function'
             ? await configuration.accessToken()
@@ -75,7 +75,7 @@ export const setBearerAuthToObject = async function (object: unknown, configurat
  *
  * @export
  */
-export const setOAuthToObject = async function (object: unknown, name: string, scopes: string[], configuration?: Configuration) {
+export const setOAuthToObject = async function (object: Record<string, any>, name: string, scopes: string[], configuration?: Configuration) {
     if (configuration && configuration.accessToken) {
         const localVarAccessTokenValue = typeof configuration.accessToken === 'function'
             ? await configuration.accessToken(name, scopes)
@@ -89,19 +89,19 @@ function setFlattenedQueryParams(urlSearchParams: URLSearchParams, parameter: un
     if (typeof parameter === "object") {
         if (Array.isArray(parameter)) {
             (parameter as unknown[]).forEach(item => setFlattenedQueryParams(urlSearchParams, item, key));
-        } 
+        }
         else {
-            Object.keys(parameter).forEach(currentKey => 
-                setFlattenedQueryParams(urlSearchParams, parameter[currentKey], `${key}${key !== '' ? '.' : ''}${currentKey}`)
+            Object.keys(parameter as Record<string, unknown>).forEach(currentKey =>
+                setFlattenedQueryParams(urlSearchParams, (parameter as Record<string, unknown>)[currentKey], `${key}${key !== '' ? '.' : ''}${currentKey}`)
             );
         }
-    } 
+    }
     else {
         if (urlSearchParams.has(key)) {
-            urlSearchParams.append(key, parameter);
-        } 
+            urlSearchParams.append(key, String(parameter));
+        }
         else {
-            urlSearchParams.set(key, parameter);
+            urlSearchParams.set(key, String(parameter));
         }
     }
 }
@@ -120,10 +120,10 @@ export const setSearchParams = function (url: URL, ...objects: unknown[]) {
  *
  * @export
  */
-export const serializeDataIfNeeded = function (value: unknown, requestOptions: unknown, configuration?: Configuration) {
+export const serializeDataIfNeeded = function (value: unknown, requestOptions: Record<string, any>, configuration?: Configuration) {
     const nonString = typeof value !== 'string';
     const needsSerialization = nonString && configuration && configuration.isJsonMime
-        ? configuration.isJsonMime(requestOptions.headers['Content-Type'])
+        ? configuration.isJsonMime(requestOptions.headers?.['Content-Type'])
         : nonString;
     return needsSerialization
         ? JSON.stringify(value !== undefined ? value : {})

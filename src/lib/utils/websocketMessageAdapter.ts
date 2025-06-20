@@ -2,7 +2,7 @@
 // Simplified WebSocket Message Type Adaptation
 // Handles conversion between simple WebSocket messages and legacy message formats
 
-import type { WebSocketMessage, CampaignProgressMessage } from '@/lib/services/websocketService.simple';
+import type { WebSocketMessage, CampaignProgressMessage } from '@/lib/websocket/enhancedWebSocketClient';
 import { createUUID, UUID } from '@/lib/types/branded';
 
 /**

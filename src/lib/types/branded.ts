@@ -102,9 +102,9 @@ export function isValidISODate(value: string): boolean {
     return false;
   }
   
-  // Basic ISO 8601 format check (allows various valid formats)
-  // Supports: YYYY-MM-DD, YYYY-MM-DDTHH:mm:ss, YYYY-MM-DDTHH:mm:ss.sssZ, etc.
-  const isoRegex = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?(Z|[+-]\d{2}:\d{2})?)?$/;
+  // Strict ISO 8601 format check - requires time component
+  // Supports: YYYY-MM-DDTHH:mm:ss, YYYY-MM-DDTHH:mm:ss.sssZ, YYYY-MM-DDTHH:mm:ss±HH:mm
+  const isoRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?(Z|[+-]\d{2}:\d{2})?$/;
   return isoRegex.test(value);
 }
 

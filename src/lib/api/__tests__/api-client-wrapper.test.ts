@@ -1,17 +1,20 @@
 // src/lib/api/__tests__/api-client-wrapper.test.ts
 // Tests for API client validation wrapper
 
-import { 
-  validateApiResponse, 
+import {
+  validateApiResponse,
   validateApiRequest,
   ApiValidationError,
-  createValidatedApiMethod 
+  createValidatedApiMethod
 } from '../api-client-wrapper';
-import { 
-  validateUUID, 
+import {
+  Validator,
+  ValidationResult
+} from '../../validation/runtime-validators';
+import {
+  validateUUID,
   validateEmail,
-  validateSafeBigInt,
-  Validator
+  validateSafeBigInt
 } from '../../utils/runtime-validators';
 
 describe('API Client Wrapper Validation', () => {
@@ -25,9 +28,12 @@ describe('API Client Wrapper Validation', () => {
         config: {},
       } as any;
 
-      // Create a proper type guard validator
-      const uuidValidator: Validator<string> = (value: unknown): value is string => {
-        return typeof value === 'string' && validateUUID(value);
+      // Create a proper validator
+      const uuidValidator: Validator<string> = (value: unknown): ValidationResult<string> => {
+        if (typeof value === 'string' && validateUUID(value)) {
+          return { isValid: true, data: value, errors: [] };
+        }
+        return { isValid: false, data: undefined, errors: [{ field: 'value', message: 'Invalid UUID' }] };
       };
 
       const result = validateApiResponse(mockResponse, uuidValidator, 'UUID validation');
@@ -43,8 +49,11 @@ describe('API Client Wrapper Validation', () => {
         config: {},
       } as any;
 
-      const uuidValidator: Validator<string> = (value: unknown): value is string => {
-        return typeof value === 'string' && validateUUID(value);
+      const uuidValidator: Validator<string> = (value: unknown): ValidationResult<string> => {
+        if (typeof value === 'string' && validateUUID(value)) {
+          return { isValid: true, data: value, errors: [] };
+        }
+        return { isValid: false, data: undefined, errors: [{ field: 'value', message: 'Invalid UUID' }] };
       };
 
       expect(() => {
@@ -61,8 +70,11 @@ describe('API Client Wrapper Validation', () => {
         config: {},
       } as any;
 
-      const emailValidator: Validator<string> = (value: unknown): value is string => {
-        return typeof value === 'string' && validateEmail(value);
+      const emailValidator: Validator<string> = (value: unknown): ValidationResult<string> => {
+        if (typeof value === 'string' && validateEmail(value)) {
+          return { isValid: true, data: value, errors: [] };
+        }
+        return { isValid: false, data: undefined, errors: [{ field: 'value', message: 'Invalid email' }] };
       };
 
       const result = validateApiResponse(mockResponse, emailValidator, 'email validation');
@@ -78,8 +90,11 @@ describe('API Client Wrapper Validation', () => {
         config: {},
       } as any;
 
-      const safeBigIntValidator: Validator<string> = (value: unknown): value is string => {
-        return validateSafeBigInt(value);
+      const safeBigIntValidator: Validator<string> = (value: unknown): ValidationResult<string> => {
+        if (validateSafeBigInt(value)) {
+          return { isValid: true, data: String(value), errors: [] };
+        }
+        return { isValid: false, data: undefined, errors: [{ field: 'value', message: 'Invalid SafeBigInt' }] };
       };
 
       const result = validateApiResponse(mockResponse, safeBigIntValidator, 'SafeBigInt validation');
@@ -94,11 +109,16 @@ describe('API Client Wrapper Validation', () => {
         id: '123e4567-e89b-12d3-a456-426614174000'
       };
 
-      const requestValidator: Validator<typeof requestData> = (value: unknown): value is typeof requestData => {
-        if (typeof value !== 'object' || value === null) return false;
+      const requestValidator: Validator<typeof requestData> = (value: unknown): ValidationResult<typeof requestData> => {
+        if (typeof value !== 'object' || value === null) {
+          return { isValid: false, data: undefined, errors: [{ field: 'value', message: 'Value must be an object' }] };
+        }
         const obj = value as any;
-        return typeof obj.email === 'string' && validateEmail(obj.email) &&
-               typeof obj.id === 'string' && validateUUID(obj.id);
+        if (typeof obj.email === 'string' && validateEmail(obj.email) &&
+            typeof obj.id === 'string' && validateUUID(obj.id)) {
+          return { isValid: true, data: obj as typeof requestData, errors: [] };
+        }
+        return { isValid: false, data: undefined, errors: [{ field: 'value', message: 'Invalid request data' }] };
       };
 
       const result = validateApiRequest(requestData, requestValidator, 'user data');
@@ -111,11 +131,16 @@ describe('API Client Wrapper Validation', () => {
         id: 'invalid-uuid'
       };
 
-      const requestValidator: Validator<any> = (value: unknown): value is any => {
-        if (typeof value !== 'object' || value === null) return false;
+      const requestValidator: Validator<any> = (value: unknown): ValidationResult<any> => {
+        if (typeof value !== 'object' || value === null) {
+          return { isValid: false, data: undefined, errors: [{ field: 'value', message: 'Value must be an object' }] };
+        }
         const obj = value as any;
-        return typeof obj.email === 'string' && validateEmail(obj.email) &&
-               typeof obj.id === 'string' && validateUUID(obj.id);
+        if (typeof obj.email === 'string' && validateEmail(obj.email) &&
+            typeof obj.id === 'string' && validateUUID(obj.id)) {
+          return { isValid: true, data: obj, errors: [] };
+        }
+        return { isValid: false, data: undefined, errors: [{ field: 'value', message: 'Invalid request data' }] };
       };
 
       expect(() => {
@@ -137,12 +162,19 @@ describe('API Client Wrapper Validation', () => {
         config: {},
       });
 
-      const requestValidator: Validator<any> = (value: unknown): value is any => true; // Accept any request
-      const responseValidator: Validator<any> = (value: unknown): value is any => {
-        if (typeof value !== 'object' || value === null) return false;
+      const requestValidator: Validator<any> = (value: unknown): ValidationResult<any> => {
+        return { isValid: true, data: value, errors: [] }; // Accept any request
+      };
+      const responseValidator: Validator<any> = (value: unknown): ValidationResult<any> => {
+        if (typeof value !== 'object' || value === null) {
+          return { isValid: false, data: undefined, errors: [{ field: 'value', message: 'Value must be an object' }] };
+        }
         const obj = value as any;
-        return typeof obj.id === 'string' && validateUUID(obj.id) &&
-               typeof obj.email === 'string' && validateEmail(obj.email);
+        if (typeof obj.id === 'string' && validateUUID(obj.id) &&
+            typeof obj.email === 'string' && validateEmail(obj.email)) {
+          return { isValid: true, data: obj, errors: [] };
+        }
+        return { isValid: false, data: undefined, errors: [{ field: 'value', message: 'Invalid response data' }] };
       };
 
       const validatedMethod = createValidatedApiMethod(
@@ -173,12 +205,19 @@ describe('API Client Wrapper Validation', () => {
         config: {},
       });
 
-      const requestValidator: Validator<any> = (value: unknown): value is any => true;
-      const responseValidator: Validator<any> = (value: unknown): value is any => {
-        if (typeof value !== 'object' || value === null) return false;
+      const requestValidator: Validator<any> = (value: unknown): ValidationResult<any> => {
+        return { isValid: true, data: value, errors: [] };
+      };
+      const responseValidator: Validator<any> = (value: unknown): ValidationResult<any> => {
+        if (typeof value !== 'object' || value === null) {
+          return { isValid: false, data: undefined, errors: [{ field: 'value', message: 'Value must be an object' }] };
+        }
         const obj = value as any;
-        return typeof obj.id === 'string' && validateUUID(obj.id) &&
-               typeof obj.email === 'string' && validateEmail(obj.email);
+        if (typeof obj.id === 'string' && validateUUID(obj.id) &&
+            typeof obj.email === 'string' && validateEmail(obj.email)) {
+          return { isValid: true, data: obj, errors: [] };
+        }
+        return { isValid: false, data: undefined, errors: [{ field: 'value', message: 'Invalid response data' }] };
       };
 
       const validatedMethod = createValidatedApiMethod(
@@ -208,17 +247,20 @@ describe('API Client Wrapper Validation', () => {
         config: {},
       } as any;
 
-      const campaignValidator: Validator<any> = (value: unknown): value is any => {
-        if (typeof value !== 'object' || value === null) return false;
+      const campaignValidator: Validator<any> = (value: unknown): ValidationResult<any> => {
+        if (typeof value !== 'object' || value === null) {
+          return { isValid: false, data: undefined, errors: [{ field: 'value', message: 'Value must be an object' }] };
+        }
         const campaign = value as any;
         
-        return (
-          typeof campaign.id === 'string' && validateUUID(campaign.id) &&
-          typeof campaign.name === 'string' && campaign.name.length > 0 &&
-          ['active', 'paused', 'completed', 'cancelled'].includes(campaign.status) &&
-          validateSafeBigInt(campaign.maxResults) &&
-          typeof campaign.createdAt === 'string'
-        );
+        if (typeof campaign.id === 'string' && validateUUID(campaign.id) &&
+            typeof campaign.name === 'string' && campaign.name.length > 0 &&
+            ['active', 'paused', 'completed', 'cancelled'].includes(campaign.status) &&
+            validateSafeBigInt(campaign.maxResults) &&
+            typeof campaign.createdAt === 'string') {
+          return { isValid: true, data: campaign, errors: [] };
+        }
+        return { isValid: false, data: undefined, errors: [{ field: 'value', message: 'Invalid campaign data' }] };
       };
 
       const result = validateApiResponse(
@@ -246,18 +288,21 @@ describe('API Client Wrapper Validation', () => {
         config: {},
       } as any;
 
-      const userValidator: Validator<any> = (value: unknown): value is any => {
-        if (typeof value !== 'object' || value === null) return false;
+      const userValidator: Validator<any> = (value: unknown): ValidationResult<any> => {
+        if (typeof value !== 'object' || value === null) {
+          return { isValid: false, data: undefined, errors: [{ field: 'value', message: 'Value must be an object' }] };
+        }
         const user = value as any;
         
-        return (
-          typeof user.id === 'string' && validateUUID(user.id) &&
-          typeof user.email === 'string' && validateEmail(user.email) &&
-          typeof user.name === 'string' && user.name.length > 0 &&
-          Array.isArray(user.roles) &&
-          Array.isArray(user.permissions) &&
-          typeof user.isActive === 'boolean'
-        );
+        if (typeof user.id === 'string' && validateUUID(user.id) &&
+            typeof user.email === 'string' && validateEmail(user.email) &&
+            typeof user.name === 'string' && user.name.length > 0 &&
+            Array.isArray(user.roles) &&
+            Array.isArray(user.permissions) &&
+            typeof user.isActive === 'boolean') {
+          return { isValid: true, data: user, errors: [] };
+        }
+        return { isValid: false, data: undefined, errors: [{ field: 'value', message: 'Invalid user data' }] };
       };
 
       const result = validateApiResponse(
@@ -289,15 +334,22 @@ describe('API Client Wrapper Validation', () => {
         config: {},
       } as any;
 
-      const arrayValidator: Validator<any[]> = (value: unknown): value is any[] => {
-        if (!Array.isArray(value)) return false;
+      const arrayValidator: Validator<any[]> = (value: unknown): ValidationResult<any[]> => {
+        if (!Array.isArray(value)) {
+          return { isValid: false, data: undefined, errors: [{ field: 'value', message: 'Value must be an array' }] };
+        }
         
-        return value.every((item: any) => 
+        const isValid = value.every((item: any) =>
           typeof item === 'object' && item !== null &&
           typeof item.id === 'string' && validateUUID(item.id) &&
           typeof item.name === 'string' && item.name.length > 0 &&
           validateSafeBigInt(item.count)
         );
+
+        if (isValid) {
+          return { isValid: true, data: value, errors: [] };
+        }
+        return { isValid: false, data: undefined, errors: [{ field: 'value', message: 'Invalid array data' }] };
       };
 
       const result = validateApiResponse(
@@ -320,8 +372,11 @@ describe('API Client Wrapper Validation', () => {
         config: {},
       } as any;
 
-      const nullValidator: Validator<null> = (value: unknown): value is null => {
-        return value === null;
+      const nullValidator: Validator<null> = (value: unknown): ValidationResult<null> => {
+        if (value === null) {
+          return { isValid: true, data: null, errors: [] };
+        }
+        return { isValid: false, data: undefined, errors: [{ field: 'value', message: 'Value must be null' }] };
       };
 
       const result = validateApiResponse(mockNullResponse, nullValidator, 'null response');
@@ -337,8 +392,11 @@ describe('API Client Wrapper Validation', () => {
         config: {},
       } as any;
 
-      const emptyObjectValidator: Validator<{}> = (value: unknown): value is {} => {
-        return typeof value === 'object' && value !== null && Object.keys(value).length === 0;
+      const emptyObjectValidator: Validator<{}> = (value: unknown): ValidationResult<{}> => {
+        if (typeof value === 'object' && value !== null && Object.keys(value).length === 0) {
+          return { isValid: true, data: {}, errors: [] };
+        }
+        return { isValid: false, data: undefined, errors: [{ field: 'value', message: 'Value must be empty object' }] };
       };
 
       const result = validateApiResponse(mockEmptyResponse, emptyObjectValidator, 'empty object');
@@ -354,7 +412,9 @@ describe('API Client Wrapper Validation', () => {
         config: {},
       } as any;
 
-      const strictValidator: Validator<any> = (value: unknown): value is any => false;
+      const strictValidator: Validator<any> = (value: unknown): ValidationResult<any> => {
+        return { isValid: false, data: undefined, errors: [{ field: 'value', message: 'Always fails' }] };
+      };
 
       try {
         validateApiResponse(mockResponse, strictValidator, 'strict validation');
@@ -384,19 +444,26 @@ describe('API Client Wrapper Validation', () => {
         config: {},
       } as any;
 
-      const optimizedValidator: Validator<any[]> = (value: unknown): value is any[] => {
-        if (!Array.isArray(value)) return false;
+      const optimizedValidator: Validator<any[]> = (value: unknown): ValidationResult<any[]> => {
+        if (!Array.isArray(value)) {
+          return { isValid: false, data: undefined, errors: [{ field: 'value', message: 'Value must be an array' }] };
+        }
         
         // For performance, only validate structure of first few items
         const sampleSize = Math.min(value.length, 10);
         const samples = value.slice(0, sampleSize);
         
-        return samples.every((item: any) => 
+        const isValid = samples.every((item: any) =>
           typeof item === 'object' && item !== null &&
           typeof item.id === 'string' &&
           typeof item.name === 'string' &&
           typeof item.value === 'number'
         );
+
+        if (isValid) {
+          return { isValid: true, data: value, errors: [] };
+        }
+        return { isValid: false, data: undefined, errors: [{ field: 'value', message: 'Invalid array data' }] };
       };
 
       const startTime = Date.now();

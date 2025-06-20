@@ -1,0 +1,112 @@
+name: Contract Integrity Validation
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'backend/**/*.go'
+      - 'src/lib/api-client/**'
+      - 'src/lib/types/**'
+      - 'scripts/contract-sync/**'
+      - '.github/workflows/contract-integrity.yml'
+
+jobs:
+  validate-contracts:
+    runs-on: ubuntu-latest
+    name: Validate API Contract Integrity
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+          
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd backend && go mod download
+          
+      - name: Extract Go contracts
+        id: extract
+        run: |
+          echo "Extracting Go contracts..."
+          npm run contracts:extract
+          
+      - name: Generate TypeScript models
+        id: generate
+        run: |
+          echo "Generating TypeScript models from OpenAPI..."
+          npm run contracts:generate
+          
+      - name: Validate enum consistency
+        run: |
+          echo "Validating enum consistency between frontend and backend..."
+          node scripts/contract-sync/validate-alignment.ts enums
+          
+      - name: Check SafeBigInt usage for int64 fields
+        run: |
+          echo "Checking SafeBigInt usage for all int64 fields..."
+          grep -r "int64" backend/internal/models/ | while read -r line; do
+            field=$(echo "$line" | grep -oP '\w+\s+int64' | awk '{print $1}')
+            if [[ -n "$field" ]]; then
+              echo "Checking TypeScript handling of $field..."
+              if ! grep -r "SafeBigInt.*$field" src/lib/types/ src/lib/api-client/; then
+                echo "ERROR: int64 field '$field' not using SafeBigInt in TypeScript"
+                exit 1
+              fi
+            fi
+          done
+          
+      - name: Compare generated vs existing types
+        run: |
+          echo "Comparing generated types with existing implementations..."
+          if ! diff -r src/lib/types/generated/ scripts/contract-sync/src/lib/types/generated/; then
+            echo "ERROR: Generated types do not match existing types"
+            echo "Run 'npm run contracts:sync' locally to update types"
+            exit 1
+          fi
+          
+      - name: Validate contract transformations
+        run: |
+          echo "Running contract transformation tests..."
+          npm test -- src/lib/types/__tests__/contract-transformations.test.ts
+          
+      - name: Generate contract validation report
+        if: always()
+        run: |
+          echo "Generating contract validation report..."
+          npm run contracts:validate > contract-validation-report.md
+          
+      - name: Upload validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract-validation-report
+          path: contract-validation-report.md
+          
+      - name: Comment PR with validation results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('contract-validation-report.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Contract Integrity Validation Report\n\n${report}`
+            });

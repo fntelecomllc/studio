@@ -1,0 +1,106 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# 1. Type checking
+echo "📝 Running TypeScript type check..."
+npm run type-check
+if [ $? -ne 0 ]; then
+  echo "❌ TypeScript type check failed. Please fix type errors before committing."
+  exit 1
+fi
+
+# 2. Contract validation
+echo "📄 Validating API contracts..."
+npm run test:contracts
+if [ $? -ne 0 ]; then
+  echo "❌ Contract validation failed. Ensure frontend/backend contracts are aligned."
+  exit 1
+fi
+
+# 3. Schema validation
+echo "🔐 Validating Zod schemas..."
+npm run validate:schemas
+if [ $? -ne 0 ]; then
+  echo "❌ Schema validation failed. Check schema consistency."
+  exit 1
+fi
+
+# 4. Lint staged files
+echo "🎨 Running ESLint on staged files..."
+npx lint-staged
+if [ $? -ne 0 ]; then
+  echo "❌ ESLint validation failed. Please fix linting errors."
+  exit 1
+fi
+
+# 5. Check for dead code in staged files
+echo "🧹 Checking for dead code..."
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx)$' || true)
+if [ -n "$STAGED_FILES" ]; then
+  npx ts-prune --project tsconfig.json | grep -E "($(echo $STAGED_FILES | tr ' ' '|'))" > /tmp/dead-code-staged.txt || true
+  if [ -s /tmp/dead-code-staged.txt ]; then
+    echo "⚠️  Warning: Dead code detected in staged files:"
+    cat /tmp/dead-code-staged.txt
+    echo "Consider removing unused exports before committing."
+  fi
+fi
+
+# 6. Validate enum consistency
+echo "🔢 Validating enum consistency..."
+node scripts/validate-enums.js
+if [ $? -ne 0 ]; then
+  echo "❌ Enum validation failed. Frontend and backend enums must match."
+  exit 1
+fi
+
+# 7. Check for SafeBigInt usage
+echo "🔢 Checking SafeBigInt usage for numeric IDs..."
+STAGED_TS_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx)$' | grep -v test | grep -v spec || true)
+if [ -n "$STAGED_TS_FILES" ]; then
+  for file in $STAGED_TS_FILES; do
+    # Check for numeric ID fields without SafeBigInt
+    if grep -E "(id|Id|count|Count|size|Size):\s*(number|Number)" "$file" > /dev/null 2>&1; then
+      echo "❌ Error: Found numeric ID/count/size fields without SafeBigInt in $file"
+      echo "Please use SafeBigInt for all ID, count, and size fields."
+      grep -n -E "(id|Id|count|Count|size|Size):\s*(number|Number)" "$file" || true
+      exit 1
+    fi
+  done
+fi
+
+# 8. Run tests for modified source files
+echo "🧪 Running tests for modified files..."
+STAGED_SRC_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^src/.*\.(ts|tsx)$' | grep -v test | grep -v spec || true)
+if [ -n "$STAGED_SRC_FILES" ]; then
+  # Find corresponding test files
+  TEST_FILES=""
+  for file in $STAGED_SRC_FILES; do
+    # Look for test file in __tests__ directory
+    TEST_FILE=$(echo "$file" | sed 's/\.tsx\?$/.test.ts/')
+    TEST_FILE_TSX=$(echo "$file" | sed 's/\.tsx\?$/.test.tsx/')
+    DIR=$(dirname "$file")
+    BASENAME=$(basename "$file" .ts | sed 's/\.tsx$//')
+    
+    if [ -f "$DIR/__tests__/$BASENAME.test.ts" ]; then
+      TEST_FILES="$TEST_FILES $DIR/__tests__/$BASENAME.test.ts"
+    elif [ -f "$DIR/__tests__/$BASENAME.test.tsx" ]; then
+      TEST_FILES="$TEST_FILES $DIR/__tests__/$BASENAME.test.tsx"
+    elif [ -f "$TEST_FILE" ]; then
+      TEST_FILES="$TEST_FILES $TEST_FILE"
+    elif [ -f "$TEST_FILE_TSX" ]; then
+      TEST_FILES="$TEST_FILES $TEST_FILE_TSX"
+    fi
+  done
+  
+  if [ -n "$TEST_FILES" ]; then
+    npm test -- $TEST_FILES --run
+    if [ $? -ne 0 ]; then
+      echo "❌ Tests failed for modified files. Please fix failing tests."
+      exit 1
+    fi
+  fi
+fi
+
+echo "✅ All pre-commit checks passed!"

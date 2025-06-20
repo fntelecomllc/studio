@@ -297,10 +297,11 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
             description: data.description,
             httpKeywordParams: {
               sourceCampaignId: data.sourceCampaignId,
+              sourceType: 'DomainGeneration',  // Required field - defaulting to DomainGeneration
               adHocKeywords: adHocKeywords,
               personaIds: [data.assignedHttpPersonaId],
-              proxyPoolId: (data.assignedProxyId && data.assignedProxyId !== CampaignFormConstants.NONE_VALUE_PLACEHOLDER) 
-                ? data.assignedProxyId 
+              proxyPoolId: (data.assignedProxyId && data.assignedProxyId !== CampaignFormConstants.NONE_VALUE_PLACEHOLDER)
+                ? data.assignedProxyId
                 : undefined,
               rotationIntervalSeconds: 300,
               processingSpeedPerMinute: 60,

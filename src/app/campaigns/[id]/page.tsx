@@ -20,7 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { getCampaignById, startCampaign as startCampaignPhase, pauseCampaign, resumeCampaign, cancelCampaign as stopCampaign, getGeneratedDomains as getGeneratedDomainsForCampaign, getDNSValidationResults as getDnsCampaignDomains, getHTTPKeywordResults as getHttpCampaignItems } from '@/lib/services/campaignService.production';
 import { transformCampaignToViewModel } from '@/lib/utils/campaignTransforms';
-import { websocketService } from '@/lib/services/websocketService.simple';
+import { websocketService } from '@/lib/websocket/enhancedWebSocketClient';
 import PhaseGateButton from '@/components/campaigns/PhaseGateButton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLoadingStore } from '@/lib/stores/loadingStore';

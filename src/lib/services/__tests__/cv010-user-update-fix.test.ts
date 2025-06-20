@@ -6,23 +6,38 @@
  * from CONTRACT_VIOLATIONS_MATRIX.
  */
 
-import { adminService, updateUser } from '@/lib/services/adminService';
-import apiClient from '@/lib/services/apiClient.production';
 import type { UUID } from '@/lib/types/branded';
 import type { UpdateUserRequest } from '@/lib/services/adminService';
 
-// Mock the API client
-jest.mock('@/lib/services/apiClient.production', () => ({
-  default: {
-    put: jest.fn(),
-  },
-}));
+// Mock the API client before importing services that use it
+jest.mock('@/lib/services/apiClient.production');
+
+// Import after mock is set up
+import { adminService, updateUser } from '@/lib/services/adminService';
+import apiClient from '@/lib/services/apiClient.production';
+
+// Mock the apiClient methods
+const mockPut = jest.fn();
+const mockGet = jest.fn();
+const mockPost = jest.fn();
+const mockDelete = jest.fn();
+
+// Set up the mocked methods
+(apiClient as any).put = mockPut;
+(apiClient as any).get = mockGet;
+(apiClient as any).post = mockPost;
+(apiClient as any).delete = mockDelete;
 
 describe('CV-010: User Update Endpoint Integration', () => {
   const mockUserId = '123e4567-e89b-12d3-a456-426614174000' as UUID;
   
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reset all mocks
+    mockPut.mockReset();
+    mockGet.mockReset();
+    mockPost.mockReset();
+    mockDelete.mockReset();
   });
 
   it('should call PUT /api/v2/admin/users/{id} endpoint', async () => {
@@ -35,6 +50,7 @@ describe('CV-010: User Update Endpoint Integration', () => {
     };
 
     const mockResponse = {
+      status: 'success' as const,
       data: {
         id: mockUserId,
         email: 'test@example.com',
@@ -51,13 +67,13 @@ describe('CV-010: User Update Endpoint Integration', () => {
       },
     };
 
-    (apiClient.put as jest.Mock).mockResolvedValueOnce(mockResponse);
+    mockPut.mockResolvedValueOnce(mockResponse);
 
     // Act
     const result = await updateUser(mockUserId, updateRequest);
 
     // Assert
-    expect(apiClient.put).toHaveBeenCalledWith(
+    expect(mockPut).toHaveBeenCalledWith(
       `/api/v2/admin/users/${mockUserId}`,
       updateRequest
     );
@@ -74,6 +90,7 @@ describe('CV-010: User Update Endpoint Integration', () => {
     };
 
     const mockResponse = {
+      status: 'success' as const,
       data: {
         id: mockUserId,
         email: 'test@example.com',
@@ -89,13 +106,13 @@ describe('CV-010: User Update Endpoint Integration', () => {
       },
     };
 
-    (apiClient.put as jest.Mock).mockResolvedValueOnce(mockResponse);
+    mockPut.mockResolvedValueOnce(mockResponse);
 
     // Act
     const result = await adminService.updateUser(mockUserId, partialUpdate);
 
     // Assert
-    expect(apiClient.put).toHaveBeenCalledWith(
+    expect(mockPut).toHaveBeenCalledWith(
       `/api/v2/admin/users/${mockUserId}`,
       partialUpdate
     );
@@ -112,6 +129,7 @@ describe('CV-010: User Update Endpoint Integration', () => {
     };
 
     const mockResponse = {
+      status: 'success' as const,
       data: {
         id: mockUserId,
         email: 'test@example.com',
@@ -131,13 +149,13 @@ describe('CV-010: User Update Endpoint Integration', () => {
       },
     };
 
-    (apiClient.put as jest.Mock).mockResolvedValueOnce(mockResponse);
+    mockPut.mockResolvedValueOnce(mockResponse);
 
     // Act
     const result = await adminService.updateUser(mockUserId, roleUpdate);
 
     // Assert
-    expect(apiClient.put).toHaveBeenCalledWith(
+    expect(mockPut).toHaveBeenCalledWith(
       `/api/v2/admin/users/${mockUserId}`,
       roleUpdate
     );
@@ -155,7 +173,7 @@ describe('CV-010: User Update Endpoint Integration', () => {
       lastName: 'Fail',
     };
 
-    (apiClient.put as jest.Mock).mockRejectedValueOnce({
+    mockPut.mockRejectedValueOnce({
       response: {
         status: 404,
         data: {
@@ -176,7 +194,7 @@ describe('CV-010: User Update Endpoint Integration', () => {
       firstName: '', // Empty name should fail validation
     };
 
-    (apiClient.put as jest.Mock).mockRejectedValueOnce({
+    mockPut.mockRejectedValueOnce({
       response: {
         status: 400,
         data: {
@@ -200,7 +218,7 @@ describe('CV-010: User Update Endpoint Integration', () => {
     adminService.updateUser(mockUserId, { firstName: 'Test' }).catch(() => {});
     
     // Verify the correct path was used
-    expect(apiClient.put).toHaveBeenCalledWith(
+    expect(mockPut).toHaveBeenCalledWith(
       expectedPath,
       expect.any(Object)
     );
@@ -218,12 +236,12 @@ describe('CV-010: Endpoint Contract Alignment', () => {
       roleIds: ['123e4567-e89b-12d3-a456-426614174001' as UUID],
     };
 
-    (apiClient.put as jest.Mock).mockResolvedValueOnce({ data: {} });
+    mockPut.mockResolvedValueOnce({ status: 'success' as const, data: {} });
 
     await adminService.updateUser(mockUserId, request).catch(() => {});
 
     // Verify the request body matches backend expectations
-    expect(apiClient.put).toHaveBeenCalledWith(
+    expect(mockPut).toHaveBeenCalledWith(
       expect.any(String),
       {
         firstName: 'John',
@@ -253,7 +271,7 @@ describe('CV-010: Endpoint Contract Alignment', () => {
       roles: ['admin', 'user'],
     };
 
-    (apiClient.put as jest.Mock).mockResolvedValueOnce({ data: backendResponse });
+    mockPut.mockResolvedValueOnce({ status: 'success' as const, data: backendResponse });
 
     const result = await adminService.updateUser(mockUserId, { firstName: 'John' });
 

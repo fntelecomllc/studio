@@ -270,6 +270,11 @@ export function transformCampaignApiResponse(
   const startTime = performance.now();
   
   try {
+    // Check for null or undefined data
+    if (response.data === null || response.data === undefined) {
+      throw new Error('Invalid campaign response format');
+    }
+    
     const result = validateApiResponse(response, validateCampaignResponse, 'campaign');
     
     // Record transformation performance

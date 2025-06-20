@@ -193,7 +193,9 @@ class AdminService {
       return transformed;
     } catch (error) {
       console.error('[AdminService] Failed to update user:', error);
-      throw transformErrorResponse(error, 500, `${this.basePath}/users/${userId}`);
+      // Don't hardcode status code, let transformErrorResponse extract it from the error
+      const transformed = transformErrorResponse(error, undefined, `${this.basePath}/users/${userId}`);
+      throw new ApiError(transformed);
     }
   }
 

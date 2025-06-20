@@ -31,21 +31,22 @@ export type IPAddress = string & { readonly __brand: 'IPAddress' };
 // ============================================
 
 export enum CampaignStatus {
-  PENDING = 'pending',
-  QUEUED = 'queued',
-  RUNNING = 'running',
-  PAUSING = 'pausing',
-  PAUSED = 'paused',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  CANCELLED = 'cancelled'
-  // NOTE: 'archived' is NOT a valid status in backend
+  PENDING = 'Pending',
+  QUEUED = 'Queued',
+  RUNNING = 'Running',
+  PAUSING = 'Pausing',
+  PAUSED = 'Paused',
+  COMPLETED = 'Completed',
+  FAILED = 'Failed',
+  ARCHIVED = 'Archived',
+  CANCELLED = 'Cancelled'
+  // NOTE: 'archived' was added to match backend
 }
 
 export enum CampaignType {
-  DOMAIN_GENERATION = 'domain_generation',
-  DNS_VALIDATION = 'dns_validation',
-  HTTP_KEYWORD_VALIDATION = 'http_keyword_validation'
+  DOMAIN_GENERATION = 'DomainGeneration',
+  DNS_VALIDATION = 'DNSValidation',
+  HTTP_KEYWORD_VALIDATION = 'HTTPKeywordValidation'
   // NOTE: 'keyword_validate' is deprecated and should not be used
 }
 
@@ -55,8 +56,8 @@ export enum HTTPSourceType {
 }
 
 export enum PersonaType {
-  DNS = 'dns',
-  HTTP = 'http'
+  DNS = 'DNS',
+  HTTP = 'HTTP'
 }
 
 export enum ProxyProtocol {

@@ -1,0 +1,130 @@
+{
+  "effect": {
+    "refinement": (data, ctx)=>{
+    // Validation to ensure appropriate params are provided for each campaign type
+    switch(data.campaignType){
+        case "domain_generation":
+            if (!data.domainGenerationParams) {
+                ctx.addIssue({
+                    code: _zod.z.ZodIssueCode.custom,
+                    message: "Domain generation parameters are required for domain_generation campaigns",
+                    path: [
+                        "domainGenerationParams"
+                    ]
+                });
+            }
+            if (data.dnsValidationParams || data.httpKeywordParams) {
+                ctx.addIssue({
+                    code: _zod.z.ZodIssueCode.custom,
+                    message: "Only domainGenerationParams should be provided for domain_generation campaigns",
+                    path: [
+                        "campaignType"
+                    ]
+                });
+            }
+            break;
+        case "dns_validation":
+            if (!data.dnsValidationParams) {
+                ctx.addIssue({
+                    code: _zod.z.ZodIssueCode.custom,
+                    message: "DNS validation parameters are required for dns_validation campaigns",
+                    path: [
+                        "dnsValidationParams"
+                    ]
+                });
+            }
+            if (data.domainGenerationParams || data.httpKeywordParams) {
+                ctx.addIssue({
+                    code: _zod.z.ZodIssueCode.custom,
+                    message: "Only dnsValidationParams should be provided for dns_validation campaigns",
+                    path: [
+                        "campaignType"
+                    ]
+                });
+            }
+            break;
+        case "http_keyword_validation":
+            if (!data.httpKeywordParams) {
+                ctx.addIssue({
+                    code: _zod.z.ZodIssueCode.custom,
+                    message: "HTTP keyword parameters are required for http_keyword_validation campaigns",
+                    path: [
+                        "httpKeywordParams"
+                    ]
+                });
+            }
+            if (data.domainGenerationParams || data.dnsValidationParams) {
+                ctx.addIssue({
+                    code: _zod.z.ZodIssueCode.custom,
+                    message: "Only httpKeywordParams should be provided for http_keyword_validation campaigns",
+                    path: [
+                        "campaignType"
+                    ]
+                });
+            }
+            break;
+    }
+    // Additional validation for HTTP keyword campaigns
+    if (data.campaignType === "http_keyword_validation" && data.httpKeywordParams) {
+        const { keywordSetIds, adHocKeywords } = data.httpKeywordParams;
+        if ((!keywordSetIds || keywordSetIds.length === 0) && (!adHocKeywords || adHocKeywords.length === 0)) {
+            ctx.addIssue({
+                code: _zod.z.ZodIssueCode.custom,
+                message: "Either keywordSetIds or adHocKeywords must be provided",
+                path: [
+                    "httpKeywordParams"
+                ]
+            });
+        }
+    }
+},
+    "type": "refinement"
+  },
+  "schema": {
+    "and": function () { [native code] },
+    "array": function () { [native code] },
+    "augment": extend(augmentation) {
+        return new ZodObject({
+            ...this._def,
+            shape: () => ({
+                ...this._def.shape(),
+                ...augmentation,
+            }),
+        });
+    },
+    "brand": function () { [native code] },
+    "catch": function () { [native code] },
+    "default": function () { [native code] },
+    "describe": function () { [native code] },
+    "isNullable": function () { [native code] },
+    "isOptional": function () { [native code] },
+    "nonstrict": passthrough() {
+        return new ZodObject({
+            ...this._def,
+            unknownKeys: "passthrough",
+        });
+    },
+    "nullable": function () { [native code] },
+    "nullish": function () { [native code] },
+    "optional": function () { [native code] },
+    "or": function () { [native code] },
+    "parse": function () { [native code] },
+    "parseAsync": function () { [native code] },
+    "pipe": function () { [native code] },
+    "promise": function () { [native code] },
+    "readonly": function () { [native code] },
+    "refine": function () { [native code] },
+    "refinement": function () { [native code] },
+    "safeParse": function () { [native code] },
+    "safeParseAsync": function () { [native code] },
+    "spa": function () { [native code] },
+    "superRefine": function () { [native code] },
+    "transform": function () { [native code] },
+    "~standard": {
+      "validate": (data) => this["~validate"](data),
+      "vendor": "zod",
+      "version": 1
+    }
+  },
+  "typeName": "ZodEffects"
+}

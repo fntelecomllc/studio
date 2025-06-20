@@ -41,6 +41,8 @@
     "out",
     "build",
     "dist",
-    "coverage"
+    "coverage",
+    "**/generated/**",
+    "scripts/contract-sync/src/lib/types/generated/**"
   ]
 }

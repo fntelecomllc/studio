@@ -8,7 +8,7 @@ import { Home, Target, Users, Settings, Zap, Database, Shield, LogOut } from 'lu
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { MemoryMonitor } from '@/lib/hooks/useMemoryMonitoring';
-import { websocketService } from '@/lib/services/websocketService.simple';
+import { websocketService } from '@/lib/websocket/enhancedWebSocketClient';
 
 interface AppLayoutProps {
   children: React.ReactNode;

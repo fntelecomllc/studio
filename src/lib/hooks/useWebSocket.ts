@@ -1,12 +1,17 @@
 /**
- * React Hook for Simple WebSocket Integration
- * 
+ * React Hook for Enhanced WebSocket Integration
+ *
  * Provides easy-to-use React hooks for WebSocket connections
- * that work directly with the simplified WebSocket service.
+ * that work with the enhanced WebSocket client with SafeBigInt support.
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { websocketService, type WebSocketMessage, type MessageHandler, type ErrorHandler } from '@/lib/services/websocketService.simple';
+import {
+  enhancedWebSocketClient as websocketService,
+  type WebSocketMessage,
+  type MessageHandler,
+  type ErrorHandler
+} from '@/lib/websocket/enhancedWebSocketClient';
 
 // Hook state type
 interface WebSocketState {

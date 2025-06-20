@@ -21,11 +21,11 @@ describe('CV-008: GeneratedDomain offsetIndex SafeBigInt Fix', () => {
 
       // TypeScript should enforce that offsetIndex is SafeBigInt (bigint)
       expect(typeof domain.offsetIndex).toBe('bigint');
-      expect(domain.offsetIndex).toBeInstanceOf(BigInt);
+      // BigInt is a primitive type, not a constructor
     });
 
     it('should handle large offsetIndex values beyond Number.MAX_SAFE_INTEGER', () => {
-      const largeOffset = '18446744073709551615'; // Max uint64
+      const largeOffset = '9223372036854775807'; // Max int64 (not uint64)
       const domain: ModelsGeneratedDomain = {
         id: '123e4567-e89b-12d3-a456-426614174000',
         generationCampaignId: '223e4567-e89b-12d3-a456-426614174000',
@@ -170,8 +170,8 @@ describe('CV-008: GeneratedDomain offsetIndex SafeBigInt Fix', () => {
 
       const transformed = rawDomains.map(transformToModelsGeneratedDomain);
 
-      expect(transformed[0].offsetIndex).toBe(BigInt(1));
-      expect(transformed[1].offsetIndex).toBe(BigInt('9007199254740993'));
+      expect(transformed[0]?.offsetIndex).toBe(BigInt(1));
+      expect(transformed[1]?.offsetIndex).toBe(BigInt('9007199254740993'));
       expect(transformed.every(d => typeof d.offsetIndex === 'bigint')).toBe(true);
     });
   });

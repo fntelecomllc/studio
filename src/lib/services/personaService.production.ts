@@ -1,6 +1,6 @@
 // src/lib/services/personaService.production.ts
 // CRITICAL SECURITY FIX: Type-safe persona service with configuration validation
-// Replaces personaService.ts with production-ready implementation
+// Updated to use unified persona API endpoints
 
 import { apiClient } from './apiClient.production';
 import { 
@@ -102,7 +102,7 @@ export async function createHttpPersona(payload: CreateHttpPersonaPayload): Prom
       isEnabled: payload.isEnabled ?? true
     };
 
-    const response = await apiClient.post<BackendPersonaResponse>('/api/v2/personas/http', requestBody);
+    const response = await apiClient.post<BackendPersonaResponse>('/api/v2/personas', requestBody);
     if (!response.data) {
       throw new Error('No response data received');
     }
@@ -129,7 +129,7 @@ export async function updateHttpPersona(
       requestBody.configDetails = validateHttpPersonaConfig(payload.configDetails) as unknown as Record<string, unknown>;
     }
 
-    const response = await apiClient.put<BackendPersonaResponse>(`/api/v2/personas/http/${personaId}`, requestBody);
+    const response = await apiClient.put<BackendPersonaResponse>(`/api/v2/personas/${personaId}`, requestBody);
     if (!response.data) {
       throw new Error('No response data received');
     }
@@ -155,7 +155,7 @@ export async function createDnsPersona(payload: CreateDnsPersonaPayload): Promis
       isEnabled: payload.isEnabled ?? true
     };
 
-    const response = await apiClient.post<BackendPersonaResponse>('/api/v2/personas/dns', requestBody);
+    const response = await apiClient.post<BackendPersonaResponse>('/api/v2/personas', requestBody);
     if (!response.data) {
       throw new Error('No response data received');
     }
@@ -182,7 +182,7 @@ export async function updateDnsPersona(
       requestBody.configDetails = validateDnsPersonaConfig(payload.configDetails) as unknown as Record<string, unknown>;
     }
 
-    const response = await apiClient.put<BackendPersonaResponse>(`/api/v2/personas/dns/${personaId}`, requestBody);
+    const response = await apiClient.put<BackendPersonaResponse>(`/api/v2/personas/${personaId}`, requestBody);
     if (!response.data) {
       throw new Error('No response data received');
     }
@@ -280,6 +280,14 @@ export async function getDnsPersonaById(personaId: string): Promise<DnsPersona> 
   return persona as DnsPersona;
 }
 
+export async function deleteHttpPersona(personaId: string): Promise<void> {
+  return deletePersona(personaId);
+}
+
+export async function deleteDnsPersona(personaId: string): Promise<void> {
+  return deletePersona(personaId);
+}
+
 // Default export for easier importing
 const personaServiceExports = {
   // HTTP operations
@@ -287,12 +295,14 @@ const personaServiceExports = {
   updateHttpPersona,
   listHttpPersonas,
   getHttpPersonaById,
+  deleteHttpPersona,
   
   // DNS operations
   createDnsPersona,
   updateDnsPersona,
   listDnsPersonas,
   getDnsPersonaById,
+  deleteDnsPersona,
   
   // General operations
   getPersonas,

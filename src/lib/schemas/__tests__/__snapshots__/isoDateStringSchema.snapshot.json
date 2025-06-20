@@ -1,0 +1,56 @@
+{
+  "effect": {
+    "transform": function createISODateString(value) {
+    const dateString = value instanceof Date ? value.toISOString() : value;
+    if (!isValidISODate(dateString)) {
+        throw new Error(`Invalid ISO date format: ${dateString}`);
+    }
+    return dateString;
+},
+    "type": "transform"
+  },
+  "errorMap": (iss, ctx) => {
+        const { message } = params;
+        if (iss.code === "invalid_enum_value") {
+            return { message: message ?? ctx.defaultError };
+        }
+        if (typeof ctx.data === "undefined") {
+            return { message: message ?? required_error ?? ctx.defaultError };
+        }
+        if (iss.code !== "invalid_type")
+            return { message: ctx.defaultError };
+        return { message: message ?? invalid_type_error ?? ctx.defaultError };
+    },
+  "schema": {
+    "and": function () { [native code] },
+    "array": function () { [native code] },
+    "brand": function () { [native code] },
+    "catch": function () { [native code] },
+    "default": function () { [native code] },
+    "describe": function () { [native code] },
+    "isNullable": function () { [native code] },
+    "isOptional": function () { [native code] },
+    "nullable": function () { [native code] },
+    "nullish": function () { [native code] },
+    "optional": function () { [native code] },
+    "or": function () { [native code] },
+    "parse": function () { [native code] },
+    "parseAsync": function () { [native code] },
+    "pipe": function () { [native code] },
+    "promise": function () { [native code] },
+    "readonly": function () { [native code] },
+    "refine": function () { [native code] },
+    "refinement": function () { [native code] },
+    "safeParse": function () { [native code] },
+    "safeParseAsync": function () { [native code] },
+    "spa": function () { [native code] },
+    "superRefine": function () { [native code] },
+    "transform": function () { [native code] },
+    "~standard": {
+      "validate": (data) => this["~validate"](data),
+      "vendor": "zod",
+      "version": 1
+    }
+  },
+  "typeName": "ZodEffects"
+}

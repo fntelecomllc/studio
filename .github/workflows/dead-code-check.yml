@@ -1,0 +1,202 @@
+name: Dead Code Detection
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run weekly on Sunday at midnight
+    - cron: '0 0 * * 0'
+
+jobs:
+  detect-dead-code:
+    runs-on: ubuntu-latest
+    name: Detect Dead Code
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm install -g ts-prune knip
+          
+      - name: Run ts-prune for TypeScript dead code
+        id: ts-prune
+        run: |
+          echo "Running ts-prune..."
+          ts-prune --project tsconfig.json --ignore "**/*.test.ts|**/*.spec.ts|**/__tests__/**|**/tests/**|**/*.d.ts" > ts-prune-report.txt || true
+          
+          # Count dead code instances
+          DEAD_CODE_COUNT=$(grep -c "is not used" ts-prune-report.txt || echo "0")
+          echo "dead_code_count=$DEAD_CODE_COUNT" >> $GITHUB_OUTPUT
+          
+          # Calculate percentage (assuming ~10000 total exports as baseline)
+          TOTAL_EXPORTS=10000
+          DEAD_CODE_PERCENTAGE=$(awk "BEGIN {printf \"%.2f\", ($DEAD_CODE_COUNT / $TOTAL_EXPORTS) * 100}")
+          echo "dead_code_percentage=$DEAD_CODE_PERCENTAGE" >> $GITHUB_OUTPUT
+          
+          echo "Found $DEAD_CODE_COUNT dead code instances ($DEAD_CODE_PERCENTAGE%)"
+          
+      - name: Run knip for comprehensive analysis
+        id: knip
+        run: |
+          echo "Running knip..."
+          cat > knip.config.json << 'EOF'
+          {
+            "entry": [
+              "src/app/**/*.{ts,tsx}",
+              "src/pages/**/*.{ts,tsx}",
+              "scripts/**/*.{ts,js}",
+              "backend/cmd/**/*.go"
+            ],
+            "project": ["src/**/*.{ts,tsx}"],
+            "ignore": [
+              "**/*.test.{ts,tsx}",
+              "**/*.spec.{ts,tsx}",
+              "**/__tests__/**",
+              "**/tests/**",
+              "**/*.d.ts",
+              "**/node_modules/**",
+              "**/coverage/**",
+              "**/dist/**",
+              "**/build/**",
+              ".next/**"
+            ],
+            "ignoreDependencies": [
+              "@types/*",
+              "eslint-*",
+              "prettier",
+              "husky",
+              "lint-staged"
+            ]
+          }
+          EOF
+          
+          npx knip --config knip.config.json --reporter json > knip-report.json || true
+          
+          # Parse knip results
+          UNUSED_FILES=$(jq '.files | length' knip-report.json 2>/dev/null || echo "0")
+          UNUSED_DEPS=$(jq '.dependencies | length' knip-report.json 2>/dev/null || echo "0")
+          UNUSED_EXPORTS=$(jq '.exports | length' knip-report.json 2>/dev/null || echo "0")
+          
+          echo "unused_files=$UNUSED_FILES" >> $GITHUB_OUTPUT
+          echo "unused_deps=$UNUSED_DEPS" >> $GITHUB_OUTPUT
+          echo "unused_exports=$UNUSED_EXPORTS" >> $GITHUB_OUTPUT
+          
+      - name: Generate Dead Code Report
+        run: |
+          cat > dead-code-report.md << EOF
+          # Dead Code Detection Report
+          
+          ## Summary
+          - **Dead Code Instances**: ${{ steps.ts-prune.outputs.dead_code_count }}
+          - **Dead Code Ratio**: ${{ steps.ts-prune.outputs.dead_code_percentage }}%
+          - **Target**: <0.1%
+          - **Status**: ${{ steps.ts-prune.outputs.dead_code_percentage < '0.1' && '✅ PASS' || '❌ FAIL' }}
+          
+          ## Detailed Analysis (Knip)
+          - Unused Files: ${{ steps.knip.outputs.unused_files }}
+          - Unused Dependencies: ${{ steps.knip.outputs.unused_deps }}
+          - Unused Exports: ${{ steps.knip.outputs.unused_exports }}
+          
+          ## ts-prune Results
+          \`\`\`
+          $(head -50 ts-prune-report.txt)
+          \`\`\`
+          
+          ## Actions Required
+          ${{ steps.ts-prune.outputs.dead_code_percentage >= '0.1' && '⚠️ Dead code ratio exceeds 0.1% threshold. Please review and remove unused code.' || '✅ Dead code ratio is within acceptable limits.' }}
+          
+          ## Files to Review
+          $(grep "is not used" ts-prune-report.txt | head -20 || echo "No dead code found")
+          EOF
+          
+      - name: Check dead code threshold
+        run: |
+          PERCENTAGE=${{ steps.ts-prune.outputs.dead_code_percentage }}
+          if (( $(echo "$PERCENTAGE >= 0.1" | bc -l) )); then
+            echo "❌ Dead code ratio ($PERCENTAGE%) exceeds 0.1% threshold"
+            exit 1
+          else
+            echo "✅ Dead code ratio ($PERCENTAGE%) is within acceptable limits"
+          fi
+          
+      - name: Upload dead code reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dead-code-reports
+          path: |
+            ts-prune-report.txt
+            knip-report.json
+            dead-code-report.md
+            
+      - name: Comment PR with dead code report
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('dead-code-report.md', 'utf8');
+            
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Dead Code Detection Report')
+            );
+            
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: report
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: report
+              });
+            }
+            
+      - name: Backend dead code analysis
+        run: |
+          echo "Analyzing Go dead code..."
+          cd backend
+          
+          # Install deadcode tool
+          go install golang.org/x/tools/cmd/deadcode@latest
+          
+          # Run deadcode analysis
+          deadcode -test ./... > ../go-deadcode-report.txt || true
+          
+          # Count dead functions
+          DEAD_FUNCS=$(grep -c "is dead code" ../go-deadcode-report.txt || echo "0")
+          echo "Found $DEAD_FUNCS dead functions in Go code"
+          
+          # Append to report
+          echo "" >> ../dead-code-report.md
+          echo "## Go Dead Code Analysis" >> ../dead-code-report.md
+          echo "- Dead Functions: $DEAD_FUNCS" >> ../dead-code-report.md
+          echo "\`\`\`" >> ../dead-code-report.md
+          head -20 ../go-deadcode-report.txt >> ../dead-code-report.md
+          echo "\`\`\`" >> ../dead-code-report.md

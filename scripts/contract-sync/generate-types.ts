@@ -157,9 +157,19 @@ import {
       
       if (model.fields) {
         model.fields.forEach((field: any) => {
+          // Skip invalid field names
+          if (!field.name || field.name === '-' || field.jsonTag === '-') {
+            return;
+          }
+          
           const tsType = this.goTypeToTypeScript(field.type, field.isPointer);
           const optional = field.isPointer || !field.required ? '?' : '';
-          const fieldName = field.jsonTag || this.toCamelCase(field.name);
+          const fieldName = (field.jsonTag && field.jsonTag !== '-') ? field.jsonTag : this.toCamelCase(field.name);
+          
+          // Skip if fieldName is still invalid
+          if (!fieldName || fieldName === '-') {
+            return;
+          }
           
           // Add JSDoc if needed
           if (field.type === 'int64') {
@@ -299,9 +309,12 @@ import * as Models from './generated-models';
     modelsWithInt64.forEach((model: any) => {
       const int64Fields = model.fields!
         .filter((f: any) => f.type === 'int64')
+        .filter((f: any) => f.jsonTag && f.jsonTag !== '-')
         .map((f: any) => f.jsonTag || this.toCamelCase(f.name));
       
-      content += `  ${this.toCamelCase(model.name)}: [${int64Fields.map((f: string) => `'${f}'`).join(', ')}],\n`;
+      if (int64Fields.length > 0) {
+        content += `  ${this.toCamelCase(model.name)}: [${int64Fields.map((f: string) => `'${f}'`).join(', ')}],\n`;
+      }
     });
     
     content += `} as const;\n\n`;
@@ -309,6 +322,11 @@ import * as Models from './generated-models';
     // Generate transform functions for each model
     modelsWithInt64.forEach((model: any) => {
       const camelName = this.toCamelCase(model.name);
+      const int64Fields = model.fields!
+        .filter((f: any) => f.type === 'int64')
+        .filter((f: any) => f.jsonTag && f.jsonTag !== '-');
+      
+      if (int64Fields.length === 0) return;
       
       content += `/**\n`;
       content += ` * Transform raw ${model.name} response\n`;
@@ -320,7 +338,6 @@ import * as Models from './generated-models';
       content += `    ...raw,\n`;
       
       // Override int64 fields
-      const int64Fields = model.fields!.filter((f: any) => f.type === 'int64');
       int64Fields.forEach((field: any) => {
         const fieldName = field.jsonTag || this.toCamelCase(field.name);
         content += `    ${fieldName}: int64Transformed.${fieldName} as SafeBigInt,\n`;
@@ -332,11 +349,18 @@ import * as Models from './generated-models';
 
     // Generate serialization functions
     modelsWithInt64.forEach((model: any) => {
+      const camelName = this.toCamelCase(model.name);
+      const int64Fields = model.fields!
+        .filter((f: any) => f.type === 'int64')
+        .filter((f: any) => f.jsonTag && f.jsonTag !== '-');
+      
+      if (int64Fields.length === 0) return;
+      
       content += `/**\n`;
       content += ` * Prepare ${model.name} for API request\n`;
       content += ` */\n`;
       content += `export function serialize${model.name}(data: Partial<Models.${model.name}>): Record<string, unknown> {\n`;
-      content += `  return prepareForSerialization(data, INT64_FIELDS.${this.toCamelCase(model.name)});\n`;
+      content += `  return prepareForSerialization(data, INT64_FIELDS.${camelName});\n`;
       content += `}\n\n`;
     });
 
@@ -385,6 +409,25 @@ import * as Models from './generated-models';
    * Convert Go type to TypeScript type
    */
   private goTypeToTypeScript(goType: string, isPointer: boolean): string {
+    // Handle array types
+    if (goType.startsWith('[]')) {
+      const elementType = goType.substring(2);
+      const tsElementType = this.goTypeToTypeScript(elementType, false);
+      return `${tsElementType}[]`;
+    }
+
+    // Handle map types
+    if (goType.startsWith('map[')) {
+      const match = goType.match(/map\[([^\]]+)\](.+)/);
+      if (match && match[2]) {
+        const keyType = match[1];
+        const valueType = match[2];
+        const tsValueType = this.goTypeToTypeScript(valueType, false);
+        return `Record<string, ${tsValueType}>`;
+      }
+      return 'Record<string, unknown>';
+    }
+
     const typeMap: Record<string, string> = {
       'string': 'string',
       'int': 'number',
@@ -395,15 +438,37 @@ import * as Models from './generated-models';
       'bool': 'boolean',
       'time.Time': 'ISODateString',
       'uuid.UUID': 'UUID',
+      'uuid.NullUUID': 'UUID',
       'json.RawMessage': 'Record<string, unknown>',
-      '[]string': 'string[]',
-      '[]byte': 'string'
+      'interface': 'Record<string, unknown>',
+      'interface{}': 'unknown',
+      '[]byte': 'string',
+      'net.IP': 'IPAddress',
+      'sql.NullString': 'string',
+      'sql.NullInt32': 'number',
+      'sql.NullInt64': 'SafeBigInt',
+      'sql.NullBool': 'boolean',
+      'sql.NullFloat64': 'number',
+      'sql.NullTime': 'ISODateString'
     };
 
-    // Check if it's an enum
-    const enumType = this.contracts.enums.find((e: any) => e.name === goType);
+    // Check if it's an enum type ending with 'Enum'
+    if (goType.endsWith('Enum')) {
+      return goType;
+    }
+
+    // Check if it's an enum without the Enum suffix
+    const enumType = this.contracts.enums.find((e: any) => 
+      e.name === goType || `${e.name}Enum` === goType
+    );
     if (enumType) {
-      return `${goType}Enum`;
+      return `${enumType.name}Enum`;
+    }
+
+    // Check if it's a known model type
+    const modelType = this.contracts.models.find((m: any) => m.name === goType);
+    if (modelType) {
+      return goType;
     }
 
     return typeMap[goType] || goType;
@@ -480,7 +545,8 @@ async function main() {
   }
 }
 
-if (require.main === module) {
+// Check if running as main module
+if (import.meta.url === `file://${process.argv[1]}`) {
   main();
 }
 

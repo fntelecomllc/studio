@@ -8,7 +8,7 @@
 import React, { useState } from 'react';
 import { useCampaignWebSocket, useCampaignMessages } from '@/lib/hooks/useWebSocket';
 import { CampaignWebSocketIndicator } from '@/components/websocket/WebSocketStatus.simple';
-import type { WebSocketMessage } from '@/lib/services/websocketService.simple';
+import type { WebSocketMessage } from '@/lib/websocket/enhancedWebSocketClient';
 
 interface CampaignProgressProps {
   campaignId: string;

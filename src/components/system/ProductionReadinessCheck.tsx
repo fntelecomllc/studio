@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, AlertCircle, RefreshCw, Loader2, Shield, Wifi, Database, Key } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { websocketService, type WebSocketMessage } from '@/lib/services/websocketService.simple';
+import { websocketService, type WebSocketMessage } from '@/lib/websocket/enhancedWebSocketClient';
 import { cn } from '@/lib/utils';
 
 // HMR SAFE: Direct fetch implementation to avoid environment.ts import chain

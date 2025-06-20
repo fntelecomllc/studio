@@ -1,0 +1,82 @@
+{
+  "effect": {
+    "refinement": (data, ctx)=>{
+    // Conditional validation based on campaign type
+    if (data.campaignType === 'domain_generation' && !data.domainGenerationParams) {
+        ctx.addIssue({
+            code: _zod.z.ZodIssueCode.custom,
+            message: 'Domain generation parameters required for domain_generation campaign',
+            path: [
+                'domainGenerationParams'
+            ]
+        });
+    }
+    if (data.campaignType === 'dns_validation' && !data.dnsValidationParams) {
+        ctx.addIssue({
+            code: _zod.z.ZodIssueCode.custom,
+            message: 'DNS validation parameters required for dns_validation campaign',
+            path: [
+                'dnsValidationParams'
+            ]
+        });
+    }
+    if (data.campaignType === 'http_keyword_validation' && !data.httpKeywordParams) {
+        ctx.addIssue({
+            code: _zod.z.ZodIssueCode.custom,
+            message: 'HTTP keyword parameters required for http_keyword_validation campaign',
+            path: [
+                'httpKeywordParams'
+            ]
+        });
+    }
+},
+    "type": "refinement"
+  },
+  "schema": {
+    "and": function () { [native code] },
+    "array": function () { [native code] },
+    "augment": extend(augmentation) {
+        return new ZodObject({
+            ...this._def,
+            shape: () => ({
+                ...this._def.shape(),
+                ...augmentation,
+            }),
+        });
+    },
+    "brand": function () { [native code] },
+    "catch": function () { [native code] },
+    "default": function () { [native code] },
+    "describe": function () { [native code] },
+    "isNullable": function () { [native code] },
+    "isOptional": function () { [native code] },
+    "nonstrict": passthrough() {
+        return new ZodObject({
+            ...this._def,
+            unknownKeys: "passthrough",
+        });
+    },
+    "nullable": function () { [native code] },
+    "nullish": function () { [native code] },
+    "optional": function () { [native code] },
+    "or": function () { [native code] },
+    "parse": function () { [native code] },
+    "parseAsync": function () { [native code] },
+    "pipe": function () { [native code] },
+    "promise": function () { [native code] },
+    "readonly": function () { [native code] },
+    "refine": function () { [native code] },
+    "refinement": function () { [native code] },
+    "safeParse": function () { [native code] },
+    "safeParseAsync": function () { [native code] },
+    "spa": function () { [native code] },
+    "superRefine": function () { [native code] },
+    "transform": function () { [native code] },
+    "~standard": {
+      "validate": (data) => this["~validate"](data),
+      "vendor": "zod",
+      "version": 1
+    }
+  },
+  "typeName": "ZodEffects"
+}

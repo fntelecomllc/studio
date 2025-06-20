@@ -1,0 +1,1153 @@
+{
+  "timestamp": "2025-06-20T18:50:11.386Z",
+  "registry": {
+    "CampaignSelectedType": [
+      "domain_generation",
+      "dns_validation",
+      "http_keyword_validation",
+      "lead_generation"
+    ],
+    "CampaignPhase": [
+      "idle",
+      "domain_generation",
+      "dns_validation",
+      "http_validation",
+      "lead_generation",
+      "completed",
+      "failed"
+    ],
+    "CampaignPhaseStatus": [
+      "pending",
+      "running",
+      "completed",
+      "failed",
+      "idle",
+      "paused"
+    ],
+    "DomainGenerationPattern": [
+      "prefix_variable",
+      "suffix_variable",
+      "both_variable"
+    ],
+    "DomainSourceType": [
+      "upload",
+      "campaign_output",
+      "current_campaign_output",
+      "none"
+    ],
+    "UserRole": [
+      "admin",
+      "user",
+      "viewer",
+      "operator"
+    ],
+    "AuthProvider": [
+      "local",
+      "oauth",
+      "saml"
+    ],
+    "ProxyProtocol": [
+      "http",
+      "https",
+      "socks4",
+      "socks5"
+    ],
+    "ProxyStatus": [
+      "active",
+      "inactive",
+      "testing",
+      "failed"
+    ],
+    "PersonaType": [
+      "dns",
+      "http"
+    ],
+    "HttpMethod": [
+      "GET",
+      "POST",
+      "PUT",
+      "DELETE",
+      "PATCH",
+      "HEAD",
+      "OPTIONS"
+    ],
+    "KeywordRuleType": [
+      "string",
+      "regex"
+    ],
+    "SourceType": [
+      "DomainGeneration",
+      "DNSValidation"
+    ]
+  },
+  "frontend": {
+    "campaignSelectedType": [
+      "domain_generation",
+      "dns_validation",
+      "http_keyword_validation",
+      "lead_generation"
+    ],
+    "campaignPhase": [
+      "idle",
+      "domain_generation",
+      "dns_validation",
+      "http_validation",
+      "lead_generation",
+      "completed",
+      "failed"
+    ],
+    "campaignPhaseStatus": [
+      "pending",
+      "running",
+      "completed",
+      "failed",
+      "idle",
+      "paused"
+    ],
+    "domainGenerationPattern": [
+      "prefix_variable",
+      "suffix_variable",
+      "both_variable"
+    ],
+    "domainSourceType": [
+      "upload",
+      "campaign_output",
+      "current_campaign_output",
+      "none"
+    ],
+    "campaignDetailResponse": [
+      "success",
+      "error"
+    ],
+    "campaignCreationResponse": [
+      "success",
+      "error"
+    ],
+    "campaignUpdateResponse": [
+      "success",
+      "error"
+    ],
+    "campaignDeleteResponse": [
+      "success",
+      "error"
+    ],
+    "campaignOperationResponse": [
+      "success",
+      "error"
+    ],
+    "dnsValidationCampaignDetailResponse": [
+      "success",
+      "error"
+    ],
+    "dnsValidationCampaignCreationResponse": [
+      "success",
+      "error"
+    ],
+    "dnsValidationCampaignUpdateResponse": [
+      "success",
+      "error"
+    ],
+    "dnsCampaignOperationResponse": [
+      "success",
+      "error"
+    ],
+    "httpValidationCampaignDetailResponse": [
+      "success",
+      "error"
+    ],
+    "httpValidationCampaignCreationResponse": [
+      "success",
+      "error"
+    ],
+    "httpValidationCampaignUpdateResponse": [
+      "success",
+      "error"
+    ],
+    "httpCampaignOperationResponse": [
+      "success",
+      "error"
+    ],
+    "WebSocketMessageType": [
+      "campaign.progress",
+      "campaign.status",
+      "domain.result",
+      "system.status",
+      "error",
+      "campaign_created",
+      "campaign_started",
+      "campaign_progress",
+      "campaign_completed",
+      "campaign_failed",
+      "campaign_paused",
+      "campaign_resumed",
+      "system_notification",
+      "system_error",
+      "proxy_status_changed",
+      "proxy_health_check",
+      "persona_status_changed"
+    ],
+    "CampaignStatus": [
+      "Pending",
+      "Queued",
+      "Running",
+      "Pausing",
+      "Paused",
+      "Completed",
+      "Failed",
+      "Archived",
+      "Cancelled"
+    ],
+    "CampaignType": [
+      "DomainGeneration",
+      "DNSValidation",
+      "HTTPKeywordValidation"
+    ],
+    "HTTPSourceType": [
+      "DomainGeneration",
+      "DNSValidation"
+    ],
+    "PersonaType": [
+      "DNS",
+      "HTTP"
+    ],
+    "ProxyProtocol": [
+      "http",
+      "https",
+      "socks5",
+      "socks4"
+    ],
+    "DomainPatternType": [
+      "fixed",
+      "variable",
+      "hybrid"
+    ],
+    "JobStatus": [
+      "pending",
+      "processing",
+      "completed",
+      "failed",
+      "retrying"
+    ],
+    "ModelsCampaignTypeEnum": [
+      "domain_generation",
+      "dns_validation",
+      "http_keyword_validation"
+    ],
+    "ModelsCampaignStatusEnum": [
+      "pending",
+      "queued",
+      "running",
+      "pausing",
+      "paused",
+      "completed",
+      "failed",
+      "cancelled",
+      "archived"
+    ],
+    "ModelsPersonaTypeEnum": [
+      "dns",
+      "http"
+    ],
+    "ModelsProxyProtocolEnum": [
+      "http",
+      "https",
+      "socks5",
+      "socks4"
+    ],
+    "ModelsKeywordRuleTypeEnum": [
+      "string",
+      "regex"
+    ]
+  },
+  "backend": {},
+  "issues": [
+    {
+      "type": "missing",
+      "enum": "CampaignSelectedType",
+      "value": "domain_generation",
+      "message": "Missing required enum value 'domain_generation' in CampaignSelectedType",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignSelectedType",
+      "value": "dns_validation",
+      "message": "Missing required enum value 'dns_validation' in CampaignSelectedType",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignSelectedType",
+      "value": "http_keyword_validation",
+      "message": "Missing required enum value 'http_keyword_validation' in CampaignSelectedType",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignSelectedType",
+      "value": "lead_generation",
+      "message": "Missing required enum value 'lead_generation' in CampaignSelectedType",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhase",
+      "value": "idle",
+      "message": "Missing required enum value 'idle' in CampaignPhase",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhase",
+      "value": "domain_generation",
+      "message": "Missing required enum value 'domain_generation' in CampaignPhase",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhase",
+      "value": "dns_validation",
+      "message": "Missing required enum value 'dns_validation' in CampaignPhase",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhase",
+      "value": "http_validation",
+      "message": "Missing required enum value 'http_validation' in CampaignPhase",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhase",
+      "value": "lead_generation",
+      "message": "Missing required enum value 'lead_generation' in CampaignPhase",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhase",
+      "value": "completed",
+      "message": "Missing required enum value 'completed' in CampaignPhase",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhase",
+      "value": "failed",
+      "message": "Missing required enum value 'failed' in CampaignPhase",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhaseStatus",
+      "value": "pending",
+      "message": "Missing required enum value 'pending' in CampaignPhaseStatus",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhaseStatus",
+      "value": "running",
+      "message": "Missing required enum value 'running' in CampaignPhaseStatus",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhaseStatus",
+      "value": "completed",
+      "message": "Missing required enum value 'completed' in CampaignPhaseStatus",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhaseStatus",
+      "value": "failed",
+      "message": "Missing required enum value 'failed' in CampaignPhaseStatus",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhaseStatus",
+      "value": "idle",
+      "message": "Missing required enum value 'idle' in CampaignPhaseStatus",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhaseStatus",
+      "value": "paused",
+      "message": "Missing required enum value 'paused' in CampaignPhaseStatus",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "DomainGenerationPattern",
+      "value": "prefix_variable",
+      "message": "Missing required enum value 'prefix_variable' in DomainGenerationPattern",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "DomainGenerationPattern",
+      "value": "suffix_variable",
+      "message": "Missing required enum value 'suffix_variable' in DomainGenerationPattern",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "DomainGenerationPattern",
+      "value": "both_variable",
+      "message": "Missing required enum value 'both_variable' in DomainGenerationPattern",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "DomainSourceType",
+      "value": "upload",
+      "message": "Missing required enum value 'upload' in DomainSourceType",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "DomainSourceType",
+      "value": "campaign_output",
+      "message": "Missing required enum value 'campaign_output' in DomainSourceType",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "DomainSourceType",
+      "value": "current_campaign_output",
+      "message": "Missing required enum value 'current_campaign_output' in DomainSourceType",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "DomainSourceType",
+      "value": "none",
+      "message": "Missing required enum value 'none' in DomainSourceType",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "UserRole",
+      "value": "admin",
+      "message": "Missing required enum value 'admin' in UserRole",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "UserRole",
+      "value": "user",
+      "message": "Missing required enum value 'user' in UserRole",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "UserRole",
+      "value": "viewer",
+      "message": "Missing required enum value 'viewer' in UserRole",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "UserRole",
+      "value": "operator",
+      "message": "Missing required enum value 'operator' in UserRole",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "AuthProvider",
+      "value": "local",
+      "message": "Missing required enum value 'local' in AuthProvider",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "AuthProvider",
+      "value": "oauth",
+      "message": "Missing required enum value 'oauth' in AuthProvider",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "AuthProvider",
+      "value": "saml",
+      "message": "Missing required enum value 'saml' in AuthProvider",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "ProxyStatus",
+      "value": "active",
+      "message": "Missing required enum value 'active' in ProxyStatus",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "ProxyStatus",
+      "value": "inactive",
+      "message": "Missing required enum value 'inactive' in ProxyStatus",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "ProxyStatus",
+      "value": "testing",
+      "message": "Missing required enum value 'testing' in ProxyStatus",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "ProxyStatus",
+      "value": "failed",
+      "message": "Missing required enum value 'failed' in ProxyStatus",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "PersonaType",
+      "value": "dns",
+      "message": "Missing required enum value 'dns' in PersonaType",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "PersonaType",
+      "value": "http",
+      "message": "Missing required enum value 'http' in PersonaType",
+      "side": "frontend"
+    },
+    {
+      "type": "extra",
+      "enum": "PersonaType",
+      "value": "DNS",
+      "message": "Unexpected enum value 'DNS' in PersonaType (not in registry)",
+      "side": "frontend"
+    },
+    {
+      "type": "extra",
+      "enum": "PersonaType",
+      "value": "HTTP",
+      "message": "Unexpected enum value 'HTTP' in PersonaType (not in registry)",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "HttpMethod",
+      "value": "GET",
+      "message": "Missing required enum value 'GET' in HttpMethod",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "HttpMethod",
+      "value": "POST",
+      "message": "Missing required enum value 'POST' in HttpMethod",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "HttpMethod",
+      "value": "PUT",
+      "message": "Missing required enum value 'PUT' in HttpMethod",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "HttpMethod",
+      "value": "DELETE",
+      "message": "Missing required enum value 'DELETE' in HttpMethod",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "HttpMethod",
+      "value": "PATCH",
+      "message": "Missing required enum value 'PATCH' in HttpMethod",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "HttpMethod",
+      "value": "HEAD",
+      "message": "Missing required enum value 'HEAD' in HttpMethod",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "HttpMethod",
+      "value": "OPTIONS",
+      "message": "Missing required enum value 'OPTIONS' in HttpMethod",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "KeywordRuleType",
+      "value": "string",
+      "message": "Missing required enum value 'string' in KeywordRuleType",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "KeywordRuleType",
+      "value": "regex",
+      "message": "Missing required enum value 'regex' in KeywordRuleType",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "SourceType",
+      "value": "DomainGeneration",
+      "message": "Missing required enum value 'DomainGeneration' in SourceType",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "SourceType",
+      "value": "DNSValidation",
+      "message": "Missing required enum value 'DNSValidation' in SourceType",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "campaignSelectedType",
+      "message": "Enum 'campaignSelectedType' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "campaignPhase",
+      "message": "Enum 'campaignPhase' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "campaignPhaseStatus",
+      "message": "Enum 'campaignPhaseStatus' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "domainGenerationPattern",
+      "message": "Enum 'domainGenerationPattern' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "domainSourceType",
+      "message": "Enum 'domainSourceType' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "campaignDetailResponse",
+      "message": "Enum 'campaignDetailResponse' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "campaignCreationResponse",
+      "message": "Enum 'campaignCreationResponse' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "campaignUpdateResponse",
+      "message": "Enum 'campaignUpdateResponse' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "campaignDeleteResponse",
+      "message": "Enum 'campaignDeleteResponse' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "campaignOperationResponse",
+      "message": "Enum 'campaignOperationResponse' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "dnsValidationCampaignDetailResponse",
+      "message": "Enum 'dnsValidationCampaignDetailResponse' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "dnsValidationCampaignCreationResponse",
+      "message": "Enum 'dnsValidationCampaignCreationResponse' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "dnsValidationCampaignUpdateResponse",
+      "message": "Enum 'dnsValidationCampaignUpdateResponse' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "dnsCampaignOperationResponse",
+      "message": "Enum 'dnsCampaignOperationResponse' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "httpValidationCampaignDetailResponse",
+      "message": "Enum 'httpValidationCampaignDetailResponse' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "httpValidationCampaignCreationResponse",
+      "message": "Enum 'httpValidationCampaignCreationResponse' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "httpValidationCampaignUpdateResponse",
+      "message": "Enum 'httpValidationCampaignUpdateResponse' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "httpCampaignOperationResponse",
+      "message": "Enum 'httpCampaignOperationResponse' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "WebSocketMessageType",
+      "message": "Enum 'WebSocketMessageType' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "CampaignStatus",
+      "message": "Enum 'CampaignStatus' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "CampaignType",
+      "message": "Enum 'CampaignType' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "HTTPSourceType",
+      "message": "Enum 'HTTPSourceType' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "DomainPatternType",
+      "message": "Enum 'DomainPatternType' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "JobStatus",
+      "message": "Enum 'JobStatus' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "ModelsCampaignTypeEnum",
+      "message": "Enum 'ModelsCampaignTypeEnum' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "ModelsCampaignStatusEnum",
+      "message": "Enum 'ModelsCampaignStatusEnum' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "ModelsPersonaTypeEnum",
+      "message": "Enum 'ModelsPersonaTypeEnum' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "ModelsProxyProtocolEnum",
+      "message": "Enum 'ModelsProxyProtocolEnum' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "unregistered",
+      "enum": "ModelsKeywordRuleTypeEnum",
+      "message": "Enum 'ModelsKeywordRuleTypeEnum' is not registered in the enum registry",
+      "side": "frontend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignSelectedType",
+      "value": "domain_generation",
+      "message": "Missing required enum value 'domain_generation' in CampaignSelectedType",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignSelectedType",
+      "value": "dns_validation",
+      "message": "Missing required enum value 'dns_validation' in CampaignSelectedType",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignSelectedType",
+      "value": "http_keyword_validation",
+      "message": "Missing required enum value 'http_keyword_validation' in CampaignSelectedType",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignSelectedType",
+      "value": "lead_generation",
+      "message": "Missing required enum value 'lead_generation' in CampaignSelectedType",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhase",
+      "value": "idle",
+      "message": "Missing required enum value 'idle' in CampaignPhase",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhase",
+      "value": "domain_generation",
+      "message": "Missing required enum value 'domain_generation' in CampaignPhase",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhase",
+      "value": "dns_validation",
+      "message": "Missing required enum value 'dns_validation' in CampaignPhase",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhase",
+      "value": "http_validation",
+      "message": "Missing required enum value 'http_validation' in CampaignPhase",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhase",
+      "value": "lead_generation",
+      "message": "Missing required enum value 'lead_generation' in CampaignPhase",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhase",
+      "value": "completed",
+      "message": "Missing required enum value 'completed' in CampaignPhase",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhase",
+      "value": "failed",
+      "message": "Missing required enum value 'failed' in CampaignPhase",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhaseStatus",
+      "value": "pending",
+      "message": "Missing required enum value 'pending' in CampaignPhaseStatus",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhaseStatus",
+      "value": "running",
+      "message": "Missing required enum value 'running' in CampaignPhaseStatus",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhaseStatus",
+      "value": "completed",
+      "message": "Missing required enum value 'completed' in CampaignPhaseStatus",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhaseStatus",
+      "value": "failed",
+      "message": "Missing required enum value 'failed' in CampaignPhaseStatus",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhaseStatus",
+      "value": "idle",
+      "message": "Missing required enum value 'idle' in CampaignPhaseStatus",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "CampaignPhaseStatus",
+      "value": "paused",
+      "message": "Missing required enum value 'paused' in CampaignPhaseStatus",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "DomainGenerationPattern",
+      "value": "prefix_variable",
+      "message": "Missing required enum value 'prefix_variable' in DomainGenerationPattern",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "DomainGenerationPattern",
+      "value": "suffix_variable",
+      "message": "Missing required enum value 'suffix_variable' in DomainGenerationPattern",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "DomainGenerationPattern",
+      "value": "both_variable",
+      "message": "Missing required enum value 'both_variable' in DomainGenerationPattern",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "DomainSourceType",
+      "value": "upload",
+      "message": "Missing required enum value 'upload' in DomainSourceType",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "DomainSourceType",
+      "value": "campaign_output",
+      "message": "Missing required enum value 'campaign_output' in DomainSourceType",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "DomainSourceType",
+      "value": "current_campaign_output",
+      "message": "Missing required enum value 'current_campaign_output' in DomainSourceType",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "DomainSourceType",
+      "value": "none",
+      "message": "Missing required enum value 'none' in DomainSourceType",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "UserRole",
+      "value": "admin",
+      "message": "Missing required enum value 'admin' in UserRole",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "UserRole",
+      "value": "user",
+      "message": "Missing required enum value 'user' in UserRole",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "UserRole",
+      "value": "viewer",
+      "message": "Missing required enum value 'viewer' in UserRole",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "UserRole",
+      "value": "operator",
+      "message": "Missing required enum value 'operator' in UserRole",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "AuthProvider",
+      "value": "local",
+      "message": "Missing required enum value 'local' in AuthProvider",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "AuthProvider",
+      "value": "oauth",
+      "message": "Missing required enum value 'oauth' in AuthProvider",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "AuthProvider",
+      "value": "saml",
+      "message": "Missing required enum value 'saml' in AuthProvider",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "ProxyProtocol",
+      "value": "http",
+      "message": "Missing required enum value 'http' in ProxyProtocol",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "ProxyProtocol",
+      "value": "https",
+      "message": "Missing required enum value 'https' in ProxyProtocol",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "ProxyProtocol",
+      "value": "socks4",
+      "message": "Missing required enum value 'socks4' in ProxyProtocol",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "ProxyProtocol",
+      "value": "socks5",
+      "message": "Missing required enum value 'socks5' in ProxyProtocol",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "ProxyStatus",
+      "value": "active",
+      "message": "Missing required enum value 'active' in ProxyStatus",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "ProxyStatus",
+      "value": "inactive",
+      "message": "Missing required enum value 'inactive' in ProxyStatus",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "ProxyStatus",
+      "value": "testing",
+      "message": "Missing required enum value 'testing' in ProxyStatus",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "ProxyStatus",
+      "value": "failed",
+      "message": "Missing required enum value 'failed' in ProxyStatus",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "PersonaType",
+      "value": "dns",
+      "message": "Missing required enum value 'dns' in PersonaType",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "PersonaType",
+      "value": "http",
+      "message": "Missing required enum value 'http' in PersonaType",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "HttpMethod",
+      "value": "GET",
+      "message": "Missing required enum value 'GET' in HttpMethod",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "HttpMethod",
+      "value": "POST",
+      "message": "Missing required enum value 'POST' in HttpMethod",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "HttpMethod",
+      "value": "PUT",
+      "message": "Missing required enum value 'PUT' in HttpMethod",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "HttpMethod",
+      "value": "DELETE",
+      "message": "Missing required enum value 'DELETE' in HttpMethod",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "HttpMethod",
+      "value": "PATCH",
+      "message": "Missing required enum value 'PATCH' in HttpMethod",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "HttpMethod",
+      "value": "HEAD",
+      "message": "Missing required enum value 'HEAD' in HttpMethod",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "HttpMethod",
+      "value": "OPTIONS",
+      "message": "Missing required enum value 'OPTIONS' in HttpMethod",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "KeywordRuleType",
+      "value": "string",
+      "message": "Missing required enum value 'string' in KeywordRuleType",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "KeywordRuleType",
+      "value": "regex",
+      "message": "Missing required enum value 'regex' in KeywordRuleType",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "SourceType",
+      "value": "DomainGeneration",
+      "message": "Missing required enum value 'DomainGeneration' in SourceType",
+      "side": "backend"
+    },
+    {
+      "type": "missing",
+      "enum": "SourceType",
+      "value": "DNSValidation",
+      "message": "Missing required enum value 'DNSValidation' in SourceType",
+      "side": "backend"
+    }
+  ]
+}

@@ -1,0 +1,3577 @@
+{
+  "models": [
+    {
+      "name": "UserAPI",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "uuid.UUID",
+          "jsonTag": "id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Email",
+          "type": "string",
+          "jsonTag": "email",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "EmailVerified",
+          "type": "bool",
+          "jsonTag": "emailVerified",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "FirstName",
+          "type": "string",
+          "jsonTag": "firstName",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "LastName",
+          "type": "string",
+          "jsonTag": "lastName",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "AvatarURL",
+          "type": "string",
+          "jsonTag": "avatarUrl",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "IsLocked",
+          "type": "bool",
+          "jsonTag": "isLocked",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "LastLoginAt",
+          "type": "time.Time",
+          "jsonTag": "lastLoginAt",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "LastLoginIP",
+          "type": "string",
+          "jsonTag": "lastLoginIp",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "MustChangePassword",
+          "type": "bool",
+          "jsonTag": "mustChangePassword",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "MFAEnabled",
+          "type": "bool",
+          "jsonTag": "mfaEnabled",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "MFALastUsedAt",
+          "type": "time.Time",
+          "jsonTag": "mfaLastUsedAt",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "CreatedAt",
+          "type": "time.Time",
+          "jsonTag": "createdAt",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "UpdatedAt",
+          "type": "time.Time",
+          "jsonTag": "updatedAt",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Name",
+          "type": "string",
+          "jsonTag": "name",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Roles",
+          "type": "[]string",
+          "jsonTag": "roles",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Permissions",
+          "type": "[]string",
+          "jsonTag": "permissions",
+          "required": true,
+          "isPointer": false
+        }
+      ],
+      "file": "api_models.go"
+    },
+    {
+      "name": "LoginResponseAPI",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "Success",
+          "type": "bool",
+          "jsonTag": "success",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "User",
+          "type": "UserAPI",
+          "jsonTag": "user",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "Error",
+          "type": "string",
+          "jsonTag": "error",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "RequiresCaptcha",
+          "type": "bool",
+          "jsonTag": "requires_captcha",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "SessionID",
+          "type": "string",
+          "jsonTag": "sessionId",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "ExpiresAt",
+          "type": "string",
+          "jsonTag": "expiresAt",
+          "required": false,
+          "isPointer": false
+        }
+      ],
+      "file": "api_models.go"
+    },
+    {
+      "name": "CampaignAPI",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "uuid.UUID",
+          "jsonTag": "id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Name",
+          "type": "string",
+          "jsonTag": "name",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "CampaignType",
+          "type": "CampaignTypeEnum",
+          "jsonTag": "campaignType",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Status",
+          "type": "CampaignStatusEnum",
+          "jsonTag": "status",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "UserID",
+          "type": "uuid.UUID",
+          "jsonTag": "userId",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "CreatedAt",
+          "type": "time.Time",
+          "jsonTag": "createdAt",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "UpdatedAt",
+          "type": "time.Time",
+          "jsonTag": "updatedAt",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "StartedAt",
+          "type": "time.Time",
+          "jsonTag": "startedAt",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "CompletedAt",
+          "type": "time.Time",
+          "jsonTag": "completedAt",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "ProgressPercentage",
+          "type": "float64",
+          "jsonTag": "progressPercentage",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "TotalItems",
+          "type": "int64",
+          "jsonTag": "totalItems",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "ProcessedItems",
+          "type": "int64",
+          "jsonTag": "processedItems",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "SuccessfulItems",
+          "type": "int64",
+          "jsonTag": "successfulItems",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "FailedItems",
+          "type": "int64",
+          "jsonTag": "failedItems",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "ErrorMessage",
+          "type": "string",
+          "jsonTag": "errorMessage",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "Metadata",
+          "type": "interface",
+          "required": true,
+          "isPointer": false
+        }
+      ],
+      "file": "api_models.go"
+    },
+    {
+      "name": "User",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "uuid.UUID",
+          "jsonTag": "id",
+          "dbTag": "id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Email",
+          "type": "string",
+          "jsonTag": "email",
+          "dbTag": "email",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "EmailVerified",
+          "type": "bool",
+          "jsonTag": "emailVerified",
+          "dbTag": "email_verified",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "EmailVerificationToken",
+          "type": "string",
+          "jsonTag": "-",
+          "dbTag": "email_verification_token",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "EmailVerificationExpires",
+          "type": "time.Time",
+          "jsonTag": "-",
+          "dbTag": "email_verification_expires_at",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "PasswordHash",
+          "type": "string",
+          "jsonTag": "-",
+          "dbTag": "password_hash",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "PasswordPepperVersion",
+          "type": "int",
+          "jsonTag": "-",
+          "dbTag": "password_pepper_version",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "FirstName",
+          "type": "string",
+          "jsonTag": "firstName",
+          "dbTag": "first_name",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "LastName",
+          "type": "string",
+          "jsonTag": "lastName",
+          "dbTag": "last_name",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "AvatarURL",
+          "type": "string",
+          "jsonTag": "avatarUrl",
+          "dbTag": "avatar_url",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "IsActive",
+          "type": "bool",
+          "jsonTag": "isActive",
+          "dbTag": "is_active",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "IsLocked",
+          "type": "bool",
+          "jsonTag": "isLocked",
+          "dbTag": "is_locked",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "FailedLoginAttempts",
+          "type": "int",
+          "jsonTag": "-",
+          "dbTag": "failed_login_attempts",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "LockedUntil",
+          "type": "time.Time",
+          "jsonTag": "-",
+          "dbTag": "locked_until",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "LastLoginAt",
+          "type": "time.Time",
+          "jsonTag": "lastLoginAt",
+          "dbTag": "last_login_at",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "LastLoginIP",
+          "type": "net.IP",
+          "jsonTag": "lastLoginIp",
+          "dbTag": "last_login_ip",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "PasswordChangedAt",
+          "type": "time.Time",
+          "jsonTag": "-",
+          "dbTag": "password_changed_at",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "MustChangePassword",
+          "type": "bool",
+          "jsonTag": "mustChangePassword",
+          "dbTag": "must_change_password",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "MFAEnabled",
+          "type": "bool",
+          "jsonTag": "mfaEnabled",
+          "dbTag": "mfa_enabled",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "MFASecretEncrypted",
+          "type": "[]byte",
+          "jsonTag": "-",
+          "dbTag": "mfa_secret_encrypted",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "MFABackupCodesEncrypted",
+          "type": "[]byte",
+          "jsonTag": "-",
+          "dbTag": "mfa_backup_codes_encrypted",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "MFALastUsedAt",
+          "type": "time.Time",
+          "jsonTag": "mfaLastUsedAt",
+          "dbTag": "mfa_last_used_at",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "EncryptedFields",
+          "type": "string",
+          "jsonTag": "-",
+          "dbTag": "encrypted_fields",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "SecurityQuestionsEncrypted",
+          "type": "[]byte",
+          "jsonTag": "-",
+          "dbTag": "security_questions_encrypted",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "CreatedAt",
+          "type": "time.Time",
+          "jsonTag": "createdAt",
+          "dbTag": "created_at",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "UpdatedAt",
+          "type": "time.Time",
+          "jsonTag": "updatedAt",
+          "dbTag": "updated_at",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Name",
+          "type": "string",
+          "jsonTag": "name",
+          "dbTag": "-",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "Roles",
+          "type": "[]Role",
+          "jsonTag": "roles",
+          "dbTag": "-",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "Permissions",
+          "type": "[]Permission",
+          "jsonTag": "permissions",
+          "dbTag": "-",
+          "required": false,
+          "isPointer": false
+        }
+      ],
+      "file": "auth_models.go"
+    },
+    {
+      "name": "Session",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "string",
+          "jsonTag": "id",
+          "dbTag": "id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "UserID",
+          "type": "uuid.UUID",
+          "jsonTag": "userId",
+          "dbTag": "user_id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "IPAddress",
+          "type": "string",
+          "jsonTag": "ipAddress",
+          "dbTag": "ip_address",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "UserAgent",
+          "type": "string",
+          "jsonTag": "userAgent",
+          "dbTag": "user_agent",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "UserAgentHash",
+          "type": "string",
+          "jsonTag": "userAgentHash",
+          "dbTag": "user_agent_hash",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "SessionFingerprint",
+          "type": "string",
+          "jsonTag": "sessionFingerprint",
+          "dbTag": "session_fingerprint",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "BrowserFingerprint",
+          "type": "string",
+          "jsonTag": "browserFingerprint",
+          "dbTag": "browser_fingerprint",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "ScreenResolution",
+          "type": "string",
+          "jsonTag": "screenResolution",
+          "dbTag": "screen_resolution",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "IsActive",
+          "type": "bool",
+          "jsonTag": "isActive",
+          "dbTag": "is_active",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "ExpiresAt",
+          "type": "time.Time",
+          "jsonTag": "expiresAt",
+          "dbTag": "expires_at",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "LastActivityAt",
+          "type": "time.Time",
+          "jsonTag": "lastActivityAt",
+          "dbTag": "last_activity_at",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "CreatedAt",
+          "type": "time.Time",
+          "jsonTag": "createdAt",
+          "dbTag": "created_at",
+          "required": true,
+          "isPointer": false
+        }
+      ],
+      "file": "auth_models.go"
+    },
+    {
+      "name": "Role",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "uuid.UUID",
+          "jsonTag": "id",
+          "dbTag": "id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Name",
+          "type": "string",
+          "jsonTag": "name",
+          "dbTag": "name",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "DisplayName",
+          "type": "string",
+          "jsonTag": "displayName",
+          "dbTag": "display_name",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Description",
+          "type": "string",
+          "jsonTag": "description",
+          "dbTag": "description",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "IsSystemRole",
+          "type": "bool",
+          "jsonTag": "isSystemRole",
+          "dbTag": "is_system_role",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "CreatedAt",
+          "type": "time.Time",
+          "jsonTag": "createdAt",
+          "dbTag": "created_at",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "UpdatedAt",
+          "type": "time.Time",
+          "jsonTag": "updatedAt",
+          "dbTag": "updated_at",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Permissions",
+          "type": "[]Permission",
+          "jsonTag": "permissions",
+          "dbTag": "-",
+          "required": false,
+          "isPointer": false
+        }
+      ],
+      "file": "auth_models.go"
+    },
+    {
+      "name": "Permission",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "uuid.UUID",
+          "jsonTag": "id",
+          "dbTag": "id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Name",
+          "type": "string",
+          "jsonTag": "name",
+          "dbTag": "name",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "DisplayName",
+          "type": "string",
+          "jsonTag": "displayName",
+          "dbTag": "display_name",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Description",
+          "type": "string",
+          "jsonTag": "description",
+          "dbTag": "description",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "Resource",
+          "type": "string",
+          "jsonTag": "resource",
+          "dbTag": "resource",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Action",
+          "type": "string",
+          "jsonTag": "action",
+          "dbTag": "action",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "CreatedAt",
+          "type": "time.Time",
+          "jsonTag": "createdAt",
+          "dbTag": "created_at",
+          "required": true,
+          "isPointer": false
+        }
+      ],
+      "file": "auth_models.go"
+    },
+    {
+      "name": "UserRole",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "UserID",
+          "type": "uuid.UUID",
+          "jsonTag": "userId",
+          "dbTag": "user_id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "RoleID",
+          "type": "uuid.UUID",
+          "jsonTag": "roleId",
+          "dbTag": "role_id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "AssignedBy",
+          "type": "uuid.UUID",
+          "jsonTag": "assignedBy",
+          "dbTag": "assigned_by",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "AssignedAt",
+          "type": "time.Time",
+          "jsonTag": "assignedAt",
+          "dbTag": "assigned_at",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "ExpiresAt",
+          "type": "time.Time",
+          "jsonTag": "expiresAt",
+          "dbTag": "expires_at",
+          "required": false,
+          "isPointer": true
+        }
+      ],
+      "file": "auth_models.go"
+    },
+    {
+      "name": "RolePermission",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "RoleID",
+          "type": "uuid.UUID",
+          "jsonTag": "roleId",
+          "dbTag": "role_id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "PermissionID",
+          "type": "uuid.UUID",
+          "jsonTag": "permissionId",
+          "dbTag": "permission_id",
+          "required": true,
+          "isPointer": false
+        }
+      ],
+      "file": "auth_models.go"
+    },
+    {
+      "name": "AuthAuditLog",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "int64",
+          "jsonTag": "id",
+          "dbTag": "id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "UserID",
+          "type": "uuid.UUID",
+          "jsonTag": "userId",
+          "dbTag": "user_id",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "SessionID",
+          "type": "string",
+          "jsonTag": "sessionId",
+          "dbTag": "session_id",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "EventType",
+          "type": "string",
+          "jsonTag": "eventType",
+          "dbTag": "event_type",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "EventStatus",
+          "type": "string",
+          "jsonTag": "eventStatus",
+          "dbTag": "event_status",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "IPAddress",
+          "type": "string",
+          "jsonTag": "ipAddress",
+          "dbTag": "ip_address",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "UserAgent",
+          "type": "string",
+          "jsonTag": "userAgent",
+          "dbTag": "user_agent",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "SessionFingerprint",
+          "type": "string",
+          "jsonTag": "sessionFingerprint",
+          "dbTag": "session_fingerprint",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "SecurityFlags",
+          "type": "string",
+          "jsonTag": "securityFlags",
+          "dbTag": "security_flags",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "Details",
+          "type": "string",
+          "jsonTag": "details",
+          "dbTag": "details",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "RiskScore",
+          "type": "int",
+          "jsonTag": "riskScore",
+          "dbTag": "risk_score",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "CreatedAt",
+          "type": "time.Time",
+          "jsonTag": "createdAt",
+          "dbTag": "created_at",
+          "required": true,
+          "isPointer": false
+        }
+      ],
+      "file": "auth_models.go"
+    },
+    {
+      "name": "RateLimit",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "int64",
+          "jsonTag": "id",
+          "dbTag": "id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Identifier",
+          "type": "string",
+          "jsonTag": "identifier",
+          "dbTag": "identifier",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Action",
+          "type": "string",
+          "jsonTag": "action",
+          "dbTag": "action",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Attempts",
+          "type": "int",
+          "jsonTag": "attempts",
+          "dbTag": "attempts",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "WindowStart",
+          "type": "time.Time",
+          "jsonTag": "windowStart",
+          "dbTag": "window_start",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "BlockedUntil",
+          "type": "time.Time",
+          "jsonTag": "blockedUntil",
+          "dbTag": "blocked_until",
+          "required": false,
+          "isPointer": true
+        }
+      ],
+      "file": "auth_models.go"
+    },
+    {
+      "name": "LoginRequest",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "Email",
+          "type": "string",
+          "jsonTag": "email",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Password",
+          "type": "string",
+          "jsonTag": "password",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "RememberMe",
+          "type": "bool",
+          "jsonTag": "rememberMe",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "CaptchaToken",
+          "type": "string",
+          "jsonTag": "captchaToken",
+          "required": true,
+          "isPointer": false
+        }
+      ],
+      "file": "auth_models.go"
+    },
+    {
+      "name": "LoginResponse",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "Success",
+          "type": "bool",
+          "jsonTag": "success",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "User",
+          "type": "User",
+          "jsonTag": "user",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "Error",
+          "type": "string",
+          "jsonTag": "error",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "RequiresCaptcha",
+          "type": "bool",
+          "jsonTag": "requires_captcha",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "SessionID",
+          "type": "string",
+          "jsonTag": "sessionId",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "ExpiresAt",
+          "type": "string",
+          "jsonTag": "expiresAt",
+          "required": false,
+          "isPointer": false
+        }
+      ],
+      "file": "auth_models.go"
+    },
+    {
+      "name": "ChangePasswordRequest",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "CurrentPassword",
+          "type": "string",
+          "jsonTag": "currentPassword",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "NewPassword",
+          "type": "string",
+          "jsonTag": "newPassword",
+          "required": true,
+          "isPointer": false
+        }
+      ],
+      "file": "auth_models.go"
+    },
+    {
+      "name": "CreateUserRequest",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "Email",
+          "type": "string",
+          "jsonTag": "email",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "FirstName",
+          "type": "string",
+          "jsonTag": "firstName",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "LastName",
+          "type": "string",
+          "jsonTag": "lastName",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Password",
+          "type": "string",
+          "jsonTag": "password",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "RoleIDs",
+          "type": "[]uuid.UUID",
+          "jsonTag": "roleIds",
+          "required": true,
+          "isPointer": false
+        }
+      ],
+      "file": "auth_models.go"
+    },
+    {
+      "name": "UpdateUserRequest",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "FirstName",
+          "type": "string",
+          "jsonTag": "firstName",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "LastName",
+          "type": "string",
+          "jsonTag": "lastName",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "IsActive",
+          "type": "bool",
+          "jsonTag": "isActive",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "RoleIDs",
+          "type": "[]uuid.UUID",
+          "jsonTag": "roleIds",
+          "required": true,
+          "isPointer": false
+        }
+      ],
+      "file": "auth_models.go"
+    },
+    {
+      "name": "AuthResult",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "Success",
+          "type": "bool",
+          "jsonTag": "success",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Error",
+          "type": "string",
+          "jsonTag": "error",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "User",
+          "type": "User",
+          "jsonTag": "user",
+          "required": false,
+          "isPointer": true
+        }
+      ],
+      "file": "auth_models.go"
+    },
+    {
+      "name": "SecurityContext",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "UserID",
+          "type": "uuid.UUID",
+          "jsonTag": "userId",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "SessionID",
+          "type": "string",
+          "jsonTag": "sessionId",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "LastActivity",
+          "type": "time.Time",
+          "jsonTag": "lastActivity",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "SessionExpiry",
+          "type": "time.Time",
+          "jsonTag": "sessionExpiry",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "RequiresPasswordChange",
+          "type": "bool",
+          "jsonTag": "requiresPasswordChange",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "RiskScore",
+          "type": "int",
+          "jsonTag": "riskScore",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Permissions",
+          "type": "[]string",
+          "jsonTag": "permissions",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Roles",
+          "type": "[]string",
+          "jsonTag": "roles",
+          "required": true,
+          "isPointer": false
+        }
+      ],
+      "file": "auth_models.go"
+    },
+    {
+      "name": "ErrorResponse",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "Status",
+          "type": "string",
+          "jsonTag": "status",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Message",
+          "type": "string",
+          "jsonTag": "message",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Code",
+          "type": "int",
+          "jsonTag": "code",
+          "required": false,
+          "isPointer": false
+        }
+      ],
+      "file": "auth_models.go"
+    },
+    {
+      "name": "GeneralErrorResponse",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "Error",
+          "type": "string",
+          "jsonTag": "error",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Details",
+          "type": "string",
+          "jsonTag": "details",
+          "required": false,
+          "isPointer": false
+        }
+      ],
+      "file": "common.go"
+    },
+    {
+      "name": "DNSConfigDetails",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "Resolvers",
+          "type": "[]string",
+          "jsonTag": "resolvers",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "UseSystemResolvers",
+          "type": "bool",
+          "jsonTag": "useSystemResolvers",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "QueryTimeoutSeconds",
+          "type": "int",
+          "jsonTag": "queryTimeoutSeconds",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "MaxDomainsPerRequest",
+          "type": "int",
+          "jsonTag": "maxDomainsPerRequest",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "ResolverStrategy",
+          "type": "string",
+          "jsonTag": "resolverStrategy",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "ResolversWeighted",
+          "type": "map[string]int",
+          "jsonTag": "resolversWeighted",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "ResolversPreferredOrder",
+          "type": "[]string",
+          "jsonTag": "resolversPreferredOrder",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "ConcurrentQueriesPerDomain",
+          "type": "int",
+          "jsonTag": "concurrentQueriesPerDomain",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "QueryDelayMinMs",
+          "type": "int",
+          "jsonTag": "queryDelayMinMs",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "QueryDelayMaxMs",
+          "type": "int",
+          "jsonTag": "queryDelayMaxMs",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "MaxConcurrentGoroutines",
+          "type": "int",
+          "jsonTag": "maxConcurrentGoroutines",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "RateLimitDps",
+          "type": "float64",
+          "jsonTag": "rateLimitDps",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "RateLimitBurst",
+          "type": "int",
+          "jsonTag": "rateLimitBurst",
+          "required": true,
+          "isPointer": false
+        }
+      ],
+      "file": "models.go"
+    },
+    {
+      "name": "HTTPTLSClientHello",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "MinVersion",
+          "type": "string",
+          "jsonTag": "minVersion",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "MaxVersion",
+          "type": "string",
+          "jsonTag": "maxVersion",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "CipherSuites",
+          "type": "[]string",
+          "jsonTag": "cipherSuites",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "CurvePreferences",
+          "type": "[]string",
+          "jsonTag": "curvePreferences",
+          "required": false,
+          "isPointer": false
+        }
+      ],
+      "file": "models.go"
+    },
+    {
+      "name": "HTTP2Settings",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "Enabled",
+          "type": "bool",
+          "jsonTag": "enabled",
+          "required": true,
+          "isPointer": false
+        }
+      ],
+      "file": "models.go"
+    },
+    {
+      "name": "HTTPCookieHandling",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "Mode",
+          "type": "string",
+          "jsonTag": "mode",
+          "required": false,
+          "isPointer": false
+        }
+      ],
+      "file": "models.go"
+    },
+    {
+      "name": "HTTPConfigDetails",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "UserAgent",
+          "type": "string",
+          "jsonTag": "userAgent",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Headers",
+          "type": "map[string]string",
+          "jsonTag": "headers",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "HeaderOrder",
+          "type": "[]string",
+          "jsonTag": "headerOrder",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "TLSClientHello",
+          "type": "HTTPTLSClientHello",
+          "jsonTag": "tlsClientHello",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "HTTP2Settings",
+          "type": "HTTP2Settings",
+          "jsonTag": "http2Settings",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "CookieHandling",
+          "type": "HTTPCookieHandling",
+          "jsonTag": "cookieHandling",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "RequestTimeoutSeconds",
+          "type": "int",
+          "jsonTag": "requestTimeoutSeconds",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "FollowRedirects",
+          "type": "bool",
+          "jsonTag": "followRedirects",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "AllowedStatusCodes",
+          "type": "[]int",
+          "jsonTag": "allowedStatusCodes",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "RateLimitDps",
+          "type": "float64",
+          "jsonTag": "rateLimitDps",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "RateLimitBurst",
+          "type": "int",
+          "jsonTag": "rateLimitBurst",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "Notes",
+          "type": "string",
+          "jsonTag": "notes",
+          "required": false,
+          "isPointer": false
+        }
+      ],
+      "file": "models.go"
+    },
+    {
+      "name": "Persona",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "uuid.UUID",
+          "jsonTag": "id",
+          "dbTag": "id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Name",
+          "type": "string",
+          "jsonTag": "name",
+          "dbTag": "name",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "PersonaType",
+          "type": "PersonaTypeEnum",
+          "jsonTag": "personaType",
+          "dbTag": "persona_type",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Description",
+          "type": "sql.NullString",
+          "jsonTag": "description",
+          "dbTag": "description",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "ConfigDetails",
+          "type": "json.RawMessage",
+          "jsonTag": "configDetails",
+          "dbTag": "config_details",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "IsEnabled",
+          "type": "bool",
+          "jsonTag": "isEnabled",
+          "dbTag": "is_enabled",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "CreatedAt",
+          "type": "time.Time",
+          "jsonTag": "createdAt",
+          "dbTag": "created_at",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "UpdatedAt",
+          "type": "time.Time",
+          "jsonTag": "updatedAt",
+          "dbTag": "updated_at",
+          "required": true,
+          "isPointer": false
+        }
+      ],
+      "file": "models.go"
+    },
+    {
+      "name": "Proxy",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "uuid.UUID",
+          "jsonTag": "id",
+          "dbTag": "id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Name",
+          "type": "string",
+          "jsonTag": "name",
+          "dbTag": "name",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Description",
+          "type": "sql.NullString",
+          "jsonTag": "description",
+          "dbTag": "description",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "Address",
+          "type": "string",
+          "jsonTag": "address",
+          "dbTag": "address",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Protocol",
+          "type": "ProxyProtocolEnum",
+          "jsonTag": "protocol",
+          "dbTag": "protocol",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "Username",
+          "type": "sql.NullString",
+          "jsonTag": "username",
+          "dbTag": "username",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "PasswordHash",
+          "type": "sql.NullString",
+          "jsonTag": "-",
+          "dbTag": "password_hash",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Host",
+          "type": "sql.NullString",
+          "jsonTag": "host",
+          "dbTag": "host",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "Port",
+          "type": "sql.NullInt32",
+          "jsonTag": "port",
+          "dbTag": "port",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "IsEnabled",
+          "type": "bool",
+          "jsonTag": "isEnabled",
+          "dbTag": "is_enabled",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "IsHealthy",
+          "type": "bool",
+          "jsonTag": "isHealthy",
+          "dbTag": "is_healthy",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "LastStatus",
+          "type": "sql.NullString",
+          "jsonTag": "lastStatus",
+          "dbTag": "last_status",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "LastCheckedAt",
+          "type": "sql.NullTime",
+          "jsonTag": "lastCheckedAt",
+          "dbTag": "last_checked_at",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "LatencyMs",
+          "type": "sql.NullInt32",
+          "jsonTag": "latencyMs",
+          "dbTag": "latency_ms",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "City",
+          "type": "sql.NullString",
+          "jsonTag": "city",
+          "dbTag": "city",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "CountryCode",
+          "type": "sql.NullString",
+          "jsonTag": "countryCode",
+          "dbTag": "country_code",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "Provider",
+          "type": "sql.NullString",
+          "jsonTag": "provider",
+          "dbTag": "provider",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "CreatedAt",
+          "type": "time.Time",
+          "jsonTag": "createdAt",
+          "dbTag": "created_at",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "UpdatedAt",
+          "type": "time.Time",
+          "jsonTag": "updatedAt",
+          "dbTag": "updated_at",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "InputUsername",
+          "type": "sql.NullString",
+          "jsonTag": "inputUsername",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "InputPassword",
+          "type": "sql.NullString",
+          "jsonTag": "inputPassword",
+          "required": false,
+          "isPointer": false
+        }
+      ],
+      "file": "models.go"
+    },
+    {
+      "name": "KeywordSet",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "uuid.UUID",
+          "jsonTag": "id",
+          "dbTag": "id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Name",
+          "type": "string",
+          "jsonTag": "name",
+          "dbTag": "name",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Description",
+          "type": "sql.NullString",
+          "jsonTag": "description",
+          "dbTag": "description",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "IsEnabled",
+          "type": "bool",
+          "jsonTag": "isEnabled",
+          "dbTag": "is_enabled",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "CreatedAt",
+          "type": "time.Time",
+          "jsonTag": "createdAt",
+          "dbTag": "created_at",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "UpdatedAt",
+          "type": "time.Time",
+          "jsonTag": "updatedAt",
+          "dbTag": "updated_at",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Rules",
+          "type": "[]KeywordRule",
+          "jsonTag": "rules",
+          "dbTag": "rules",
+          "required": false,
+          "isPointer": true
+        }
+      ],
+      "file": "models.go"
+    },
+    {
+      "name": "KeywordRule",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "uuid.UUID",
+          "jsonTag": "id",
+          "dbTag": "id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "KeywordSetID",
+          "type": "uuid.UUID",
+          "jsonTag": "keywordSetId",
+          "dbTag": "keyword_set_id",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "Pattern",
+          "type": "string",
+          "jsonTag": "pattern",
+          "dbTag": "pattern",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "RuleType",
+          "type": "KeywordRuleTypeEnum",
+          "jsonTag": "ruleType",
+          "dbTag": "rule_type",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "IsCaseSensitive",
+          "type": "bool",
+          "jsonTag": "isCaseSensitive",
+          "dbTag": "is_case_sensitive",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Category",
+          "type": "sql.NullString",
+          "jsonTag": "category",
+          "dbTag": "category",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "ContextChars",
+          "type": "int",
+          "jsonTag": "contextChars",
+          "dbTag": "context_chars",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "CreatedAt",
+          "type": "time.Time",
+          "jsonTag": "createdAt",
+          "dbTag": "created_at",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "UpdatedAt",
+          "type": "time.Time",
+          "jsonTag": "updatedAt",
+          "dbTag": "updated_at",
+          "required": true,
+          "isPointer": false
+        }
+      ],
+      "file": "models.go"
+    },
+    {
+      "name": "Campaign",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "uuid.UUID",
+          "jsonTag": "id",
+          "dbTag": "id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Name",
+          "type": "string",
+          "jsonTag": "name",
+          "dbTag": "name",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "CampaignType",
+          "type": "CampaignTypeEnum",
+          "jsonTag": "campaignType",
+          "dbTag": "campaign_type",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Status",
+          "type": "CampaignStatusEnum",
+          "jsonTag": "status",
+          "dbTag": "status",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "UserID",
+          "type": "uuid.UUID",
+          "jsonTag": "userId",
+          "dbTag": "user_id",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "CreatedAt",
+          "type": "time.Time",
+          "jsonTag": "createdAt",
+          "dbTag": "created_at",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "UpdatedAt",
+          "type": "time.Time",
+          "jsonTag": "updatedAt",
+          "dbTag": "updated_at",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "StartedAt",
+          "type": "time.Time",
+          "jsonTag": "startedAt",
+          "dbTag": "started_at",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "CompletedAt",
+          "type": "time.Time",
+          "jsonTag": "completedAt",
+          "dbTag": "completed_at",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "ProgressPercentage",
+          "type": "float64",
+          "jsonTag": "progressPercentage",
+          "dbTag": "progress_percentage",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "TotalItems",
+          "type": "int64",
+          "jsonTag": "totalItems",
+          "dbTag": "total_items",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "ProcessedItems",
+          "type": "int64",
+          "jsonTag": "processedItems",
+          "dbTag": "processed_items",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "ErrorMessage",
+          "type": "string",
+          "jsonTag": "errorMessage",
+          "dbTag": "error_message",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "SuccessfulItems",
+          "type": "int64",
+          "jsonTag": "successfulItems",
+          "dbTag": "successful_items",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "FailedItems",
+          "type": "int64",
+          "jsonTag": "failedItems",
+          "dbTag": "failed_items",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "Metadata",
+          "type": "json.RawMessage",
+          "jsonTag": "metadata",
+          "dbTag": "metadata",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "EstimatedCompletionAt",
+          "type": "time.Time",
+          "jsonTag": "estimatedCompletionAt",
+          "dbTag": "estimated_completion_at",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "AvgProcessingRate",
+          "type": "float64",
+          "jsonTag": "avgProcessingRate",
+          "dbTag": "avg_processing_rate",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "LastHeartbeatAt",
+          "type": "time.Time",
+          "jsonTag": "lastHeartbeatAt",
+          "dbTag": "last_heartbeat_at",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "DomainGenerationParams",
+          "type": "DomainGenerationCampaignParams",
+          "jsonTag": "domainGenerationParams",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "DNSValidationParams",
+          "type": "DNSValidationCampaignParams",
+          "jsonTag": "dnsValidationParams",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "HTTPKeywordValidationParams",
+          "type": "HTTPKeywordCampaignParams",
+          "jsonTag": "httpKeywordValidationParams",
+          "required": false,
+          "isPointer": true
+        }
+      ],
+      "file": "models.go"
+    },
+    {
+      "name": "DomainGenerationCampaignParams",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "CampaignID",
+          "type": "uuid.UUID",
+          "jsonTag": "-",
+          "dbTag": "campaign_id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "PatternType",
+          "type": "string",
+          "jsonTag": "patternType",
+          "dbTag": "pattern_type",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "VariableLength",
+          "type": "int",
+          "jsonTag": "variableLength",
+          "dbTag": "variable_length",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "CharacterSet",
+          "type": "string",
+          "jsonTag": "characterSet",
+          "dbTag": "character_set",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "ConstantString",
+          "type": "string",
+          "jsonTag": "constantString",
+          "dbTag": "constant_string",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "TLD",
+          "type": "string",
+          "jsonTag": "tld",
+          "dbTag": "tld",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "NumDomainsToGenerate",
+          "type": "int",
+          "jsonTag": "numDomainsToGenerate",
+          "dbTag": "num_domains_to_generate",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "TotalPossibleCombinations",
+          "type": "int64",
+          "jsonTag": "totalPossibleCombinations",
+          "dbTag": "total_possible_combinations",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "CurrentOffset",
+          "type": "int64",
+          "jsonTag": "currentOffset",
+          "dbTag": "current_offset",
+          "required": true,
+          "isPointer": false
+        }
+      ],
+      "file": "models.go"
+    },
+    {
+      "name": "NormalizedDomainGenerationParams",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "PatternType",
+          "type": "string",
+          "jsonTag": "patternType",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "VariableLength",
+          "type": "int",
+          "jsonTag": "variableLength",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "CharacterSet",
+          "type": "string",
+          "jsonTag": "characterSet",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "ConstantString",
+          "type": "string",
+          "jsonTag": "constantString",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "TLD",
+          "type": "string",
+          "jsonTag": "tld",
+          "required": true,
+          "isPointer": false
+        }
+      ],
+      "file": "models.go"
+    },
+    {
+      "name": "DomainGenerationConfigState",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "ConfigHash",
+          "type": "string",
+          "jsonTag": "configHash",
+          "dbTag": "config_hash",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "LastOffset",
+          "type": "int64",
+          "jsonTag": "lastOffset",
+          "dbTag": "last_offset",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "ConfigDetails",
+          "type": "json.RawMessage",
+          "jsonTag": "configDetails",
+          "dbTag": "config_details",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "UpdatedAt",
+          "type": "time.Time",
+          "jsonTag": "updatedAt",
+          "dbTag": "updated_at",
+          "required": true,
+          "isPointer": false
+        }
+      ],
+      "file": "models.go"
+    },
+    {
+      "name": "GeneratedDomain",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "uuid.UUID",
+          "jsonTag": "id",
+          "dbTag": "id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "GenerationCampaignID",
+          "type": "uuid.UUID",
+          "jsonTag": "generationCampaignId",
+          "dbTag": "domain_generation_campaign_id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "DomainName",
+          "type": "string",
+          "jsonTag": "domainName",
+          "dbTag": "domain_name",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "OffsetIndex",
+          "type": "int64",
+          "jsonTag": "offsetIndex",
+          "dbTag": "offset_index",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "GeneratedAt",
+          "type": "time.Time",
+          "jsonTag": "generatedAt",
+          "dbTag": "generated_at",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "SourceKeyword",
+          "type": "sql.NullString",
+          "jsonTag": "sourceKeyword",
+          "dbTag": "source_keyword",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "SourcePattern",
+          "type": "sql.NullString",
+          "jsonTag": "sourcePattern",
+          "dbTag": "source_pattern",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "TLD",
+          "type": "sql.NullString",
+          "jsonTag": "tld",
+          "dbTag": "tld",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "CreatedAt",
+          "type": "time.Time",
+          "jsonTag": "createdAt",
+          "dbTag": "created_at",
+          "required": true,
+          "isPointer": false
+        }
+      ],
+      "file": "models.go"
+    },
+    {
+      "name": "DNSValidationCampaignParams",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "CampaignID",
+          "type": "uuid.UUID",
+          "jsonTag": "-",
+          "dbTag": "campaign_id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "SourceGenerationCampaignID",
+          "type": "uuid.UUID",
+          "jsonTag": "sourceGenerationCampaignId",
+          "dbTag": "source_generation_campaign_id",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "PersonaIDs",
+          "type": "[]uuid.UUID",
+          "jsonTag": "personaIds",
+          "dbTag": "persona_ids",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "RotationIntervalSeconds",
+          "type": "int",
+          "jsonTag": "rotationIntervalSeconds",
+          "dbTag": "rotation_interval_seconds",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "ProcessingSpeedPerMinute",
+          "type": "int",
+          "jsonTag": "processingSpeedPerMinute",
+          "dbTag": "processing_speed_per_minute",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "BatchSize",
+          "type": "int",
+          "jsonTag": "batchSize",
+          "dbTag": "batch_size",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "RetryAttempts",
+          "type": "int",
+          "jsonTag": "retryAttempts",
+          "dbTag": "retry_attempts",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "Metadata",
+          "type": "json.RawMessage",
+          "jsonTag": "metadata",
+          "dbTag": "metadata",
+          "required": false,
+          "isPointer": true
+        }
+      ],
+      "file": "models.go"
+    },
+    {
+      "name": "DNSValidationResult",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "uuid.UUID",
+          "jsonTag": "id",
+          "dbTag": "id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "DNSCampaignID",
+          "type": "uuid.UUID",
+          "jsonTag": "dnsCampaignId",
+          "dbTag": "dns_campaign_id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "GeneratedDomainID",
+          "type": "uuid.NullUUID",
+          "jsonTag": "generatedDomainId",
+          "dbTag": "generated_domain_id",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "DomainName",
+          "type": "string",
+          "jsonTag": "domainName",
+          "dbTag": "domain_name",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "ValidationStatus",
+          "type": "string",
+          "jsonTag": "validationStatus",
+          "dbTag": "validation_status",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "DNSRecords",
+          "type": "json.RawMessage",
+          "jsonTag": "dnsRecords",
+          "dbTag": "dns_records",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "ValidatedByPersonaID",
+          "type": "uuid.NullUUID",
+          "jsonTag": "validatedByPersonaId",
+          "dbTag": "validated_by_persona_id",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "Attempts",
+          "type": "int",
+          "jsonTag": "attempts",
+          "dbTag": "attempts",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "LastCheckedAt",
+          "type": "time.Time",
+          "jsonTag": "lastCheckedAt",
+          "dbTag": "last_checked_at",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "CreatedAt",
+          "type": "time.Time",
+          "jsonTag": "createdAt",
+          "dbTag": "created_at",
+          "required": true,
+          "isPointer": false
+        }
+      ],
+      "file": "models.go"
+    },
+    {
+      "name": "HTTPKeywordCampaignParams",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "CampaignID",
+          "type": "uuid.UUID",
+          "jsonTag": "-",
+          "dbTag": "campaign_id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "SourceCampaignID",
+          "type": "uuid.UUID",
+          "jsonTag": "sourceCampaignId",
+          "dbTag": "source_campaign_id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "SourceType",
+          "type": "string",
+          "jsonTag": "sourceType",
+          "dbTag": "source_type",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "KeywordSetIDs",
+          "type": "[]uuid.UUID",
+          "jsonTag": "keywordSetIds",
+          "dbTag": "keyword_set_ids",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "AdHocKeywords",
+          "type": "[]string",
+          "jsonTag": "adHocKeywords",
+          "dbTag": "ad_hoc_keywords",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "PersonaIDs",
+          "type": "[]uuid.UUID",
+          "jsonTag": "personaIds",
+          "dbTag": "persona_ids",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "ProxyIDs",
+          "type": "[]uuid.UUID",
+          "jsonTag": "proxyIds",
+          "dbTag": "proxy_ids",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "ProxyPoolID",
+          "type": "uuid.NullUUID",
+          "jsonTag": "proxyPoolId",
+          "dbTag": "proxy_pool_id",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "ProxySelectionStrategy",
+          "type": "string",
+          "jsonTag": "proxySelectionStrategy",
+          "dbTag": "proxy_selection_strategy",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "RotationIntervalSeconds",
+          "type": "int",
+          "jsonTag": "rotationIntervalSeconds",
+          "dbTag": "rotation_interval_seconds",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "ProcessingSpeedPerMinute",
+          "type": "int",
+          "jsonTag": "processingSpeedPerMinute",
+          "dbTag": "processing_speed_per_minute",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "BatchSize",
+          "type": "int",
+          "jsonTag": "batchSize",
+          "dbTag": "batch_size",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "RetryAttempts",
+          "type": "int",
+          "jsonTag": "retryAttempts",
+          "dbTag": "retry_attempts",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "TargetHTTPPorts",
+          "type": "[]int",
+          "jsonTag": "targetHttpPorts",
+          "dbTag": "target_http_ports",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "LastProcessedDomainName",
+          "type": "string",
+          "jsonTag": "lastProcessedDomainName",
+          "dbTag": "last_processed_domain_name",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "Metadata",
+          "type": "json.RawMessage",
+          "jsonTag": "metadata",
+          "dbTag": "metadata",
+          "required": false,
+          "isPointer": true
+        }
+      ],
+      "file": "models.go"
+    },
+    {
+      "name": "HTTPKeywordResult",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "uuid.UUID",
+          "jsonTag": "id",
+          "dbTag": "id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "HTTPKeywordCampaignID",
+          "type": "uuid.UUID",
+          "jsonTag": "httpKeywordCampaignId",
+          "dbTag": "http_keyword_campaign_id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "DNSResultID",
+          "type": "uuid.NullUUID",
+          "jsonTag": "dnsResultId",
+          "dbTag": "dns_result_id",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "DomainName",
+          "type": "string",
+          "jsonTag": "domainName",
+          "dbTag": "domain_name",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "ValidationStatus",
+          "type": "string",
+          "jsonTag": "validationStatus",
+          "dbTag": "validation_status",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "HTTPStatusCode",
+          "type": "int32",
+          "jsonTag": "httpStatusCode",
+          "dbTag": "http_status_code",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "ResponseHeaders",
+          "type": "json.RawMessage",
+          "jsonTag": "responseHeaders",
+          "dbTag": "response_headers",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "PageTitle",
+          "type": "string",
+          "jsonTag": "pageTitle",
+          "dbTag": "page_title",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "ExtractedContentSnippet",
+          "type": "string",
+          "jsonTag": "extractedContentSnippet",
+          "dbTag": "extracted_content_snippet",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "FoundKeywordsFromSets",
+          "type": "json.RawMessage",
+          "jsonTag": "foundKeywordsFromSets",
+          "dbTag": "found_keywords_from_sets",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "FoundAdHocKeywords",
+          "type": "[]string",
+          "jsonTag": "foundAdHocKeywords",
+          "dbTag": "found_ad_hoc_keywords",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "ContentHash",
+          "type": "string",
+          "jsonTag": "contentHash",
+          "dbTag": "content_hash",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "ValidatedByPersonaID",
+          "type": "uuid.NullUUID",
+          "jsonTag": "validatedByPersonaId",
+          "dbTag": "validated_by_persona_id",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "UsedProxyID",
+          "type": "uuid.NullUUID",
+          "jsonTag": "usedProxyId",
+          "dbTag": "used_proxy_id",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "Attempts",
+          "type": "int",
+          "jsonTag": "attempts",
+          "dbTag": "attempts",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "LastCheckedAt",
+          "type": "time.Time",
+          "jsonTag": "lastCheckedAt",
+          "dbTag": "last_checked_at",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "CreatedAt",
+          "type": "time.Time",
+          "jsonTag": "createdAt",
+          "dbTag": "created_at",
+          "required": true,
+          "isPointer": false
+        }
+      ],
+      "file": "models.go"
+    },
+    {
+      "name": "AuditLog",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "uuid.UUID",
+          "jsonTag": "id",
+          "dbTag": "id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Timestamp",
+          "type": "time.Time",
+          "jsonTag": "timestamp",
+          "dbTag": "timestamp",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "UserID",
+          "type": "uuid.NullUUID",
+          "jsonTag": "userId",
+          "dbTag": "user_id",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "Action",
+          "type": "string",
+          "jsonTag": "action",
+          "dbTag": "action",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "EntityType",
+          "type": "sql.NullString",
+          "jsonTag": "entityType",
+          "dbTag": "entity_type",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "EntityID",
+          "type": "uuid.NullUUID",
+          "jsonTag": "entityId",
+          "dbTag": "entity_id",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "Details",
+          "type": "json.RawMessage",
+          "jsonTag": "details",
+          "dbTag": "details",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "ClientIP",
+          "type": "sql.NullString",
+          "jsonTag": "clientIp",
+          "dbTag": "client_ip",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "UserAgent",
+          "type": "sql.NullString",
+          "jsonTag": "userAgent",
+          "dbTag": "user_agent",
+          "required": false,
+          "isPointer": false
+        }
+      ],
+      "file": "models.go"
+    },
+    {
+      "name": "CampaignJob",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "uuid.UUID",
+          "jsonTag": "id",
+          "dbTag": "id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "CampaignID",
+          "type": "uuid.UUID",
+          "jsonTag": "campaignId",
+          "dbTag": "campaign_id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "JobType",
+          "type": "CampaignTypeEnum",
+          "jsonTag": "jobType",
+          "dbTag": "job_type",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Status",
+          "type": "CampaignJobStatusEnum",
+          "jsonTag": "status",
+          "dbTag": "status",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "ScheduledAt",
+          "type": "time.Time",
+          "jsonTag": "scheduledAt",
+          "dbTag": "scheduled_at",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "JobPayload",
+          "type": "json.RawMessage",
+          "jsonTag": "jobPayload",
+          "dbTag": "job_payload",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "Attempts",
+          "type": "int",
+          "jsonTag": "attempts",
+          "dbTag": "attempts",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "MaxAttempts",
+          "type": "int",
+          "jsonTag": "maxAttempts",
+          "dbTag": "max_attempts",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "LastError",
+          "type": "sql.NullString",
+          "jsonTag": "lastError",
+          "dbTag": "last_error",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "LastAttemptedAt",
+          "type": "sql.NullTime",
+          "jsonTag": "lastAttemptedAt",
+          "dbTag": "last_attempted_at",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "ProcessingServerID",
+          "type": "sql.NullString",
+          "jsonTag": "processingServerId",
+          "dbTag": "processing_server_id",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "CreatedAt",
+          "type": "time.Time",
+          "jsonTag": "createdAt",
+          "dbTag": "created_at",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "UpdatedAt",
+          "type": "time.Time",
+          "jsonTag": "updatedAt",
+          "dbTag": "updated_at",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "NextExecutionAt",
+          "type": "sql.NullTime",
+          "jsonTag": "nextExecutionAt",
+          "dbTag": "next_execution_at",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "LockedAt",
+          "type": "sql.NullTime",
+          "jsonTag": "lockedAt",
+          "dbTag": "locked_at",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "LockedBy",
+          "type": "sql.NullString",
+          "jsonTag": "lockedBy",
+          "dbTag": "locked_by",
+          "required": false,
+          "isPointer": false
+        }
+      ],
+      "file": "models.go"
+    },
+    {
+      "name": "ProxyPool",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "uuid.UUID",
+          "jsonTag": "id",
+          "dbTag": "id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Name",
+          "type": "string",
+          "jsonTag": "name",
+          "dbTag": "name",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Description",
+          "type": "sql.NullString",
+          "jsonTag": "description",
+          "dbTag": "description",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "IsEnabled",
+          "type": "bool",
+          "jsonTag": "isEnabled",
+          "dbTag": "is_enabled",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "PoolStrategy",
+          "type": "sql.NullString",
+          "jsonTag": "poolStrategy",
+          "dbTag": "pool_strategy",
+          "required": false,
+          "isPointer": false
+        },
+        {
+          "name": "HealthCheckEnabled",
+          "type": "bool",
+          "jsonTag": "healthCheckEnabled",
+          "dbTag": "health_check_enabled",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "HealthCheckIntervalSeconds",
+          "type": "int",
+          "jsonTag": "healthCheckIntervalSeconds",
+          "dbTag": "health_check_interval_seconds",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "MaxRetries",
+          "type": "int",
+          "jsonTag": "maxRetries",
+          "dbTag": "max_retries",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "TimeoutSeconds",
+          "type": "int",
+          "jsonTag": "timeoutSeconds",
+          "dbTag": "timeout_seconds",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "CreatedAt",
+          "type": "time.Time",
+          "jsonTag": "createdAt",
+          "dbTag": "created_at",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "UpdatedAt",
+          "type": "time.Time",
+          "jsonTag": "updatedAt",
+          "dbTag": "updated_at",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Proxies",
+          "type": "[]Proxy",
+          "jsonTag": "proxies",
+          "dbTag": "-",
+          "required": false,
+          "isPointer": false
+        }
+      ],
+      "file": "models.go"
+    },
+    {
+      "name": "ProxyPoolMembership",
+      "package": "models",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "PoolID",
+          "type": "uuid.UUID",
+          "jsonTag": "poolId",
+          "dbTag": "pool_id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "ProxyID",
+          "type": "uuid.UUID",
+          "jsonTag": "proxyId",
+          "dbTag": "proxy_id",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "Weight",
+          "type": "int",
+          "jsonTag": "weight",
+          "dbTag": "weight",
+          "required": false,
+          "isPointer": true
+        },
+        {
+          "name": "IsActive",
+          "type": "bool",
+          "jsonTag": "isActive",
+          "dbTag": "is_active",
+          "required": true,
+          "isPointer": false
+        },
+        {
+          "name": "AddedAt",
+          "type": "time.Time",
+          "jsonTag": "addedAt",
+          "dbTag": "added_at",
+          "required": true,
+          "isPointer": false
+        }
+      ],
+      "file": "models.go"
+    },
+    {
+      "name": "of",
+      "package": "models",
+      "kind": "type",
+      "underlying": "campaign",
+      "file": "models.go"
+    },
+    {
+      "name": "CampaignTypeEnum",
+      "package": "models",
+      "kind": "type",
+      "underlying": "string",
+      "file": "models.go"
+    },
+    {
+      "name": "CampaignStatusEnum",
+      "package": "models",
+      "kind": "type",
+      "underlying": "string",
+      "file": "models.go"
+    },
+    {
+      "name": "of",
+      "package": "models",
+      "kind": "type",
+      "underlying": "persona",
+      "file": "models.go"
+    },
+    {
+      "name": "PersonaTypeEnum",
+      "package": "models",
+      "kind": "type",
+      "underlying": "string",
+      "file": "models.go"
+    },
+    {
+      "name": "ProxyProtocolEnum",
+      "package": "models",
+      "kind": "type",
+      "underlying": "string",
+      "file": "models.go"
+    },
+    {
+      "name": "of",
+      "package": "models",
+      "kind": "type",
+      "underlying": "keyword",
+      "file": "models.go"
+    },
+    {
+      "name": "KeywordRuleTypeEnum",
+      "package": "models",
+      "kind": "type",
+      "underlying": "string",
+      "file": "models.go"
+    },
+    {
+      "name": "CampaignJobStatusEnum",
+      "package": "models",
+      "kind": "type",
+      "underlying": "string",
+      "file": "models.go"
+    },
+    {
+      "name": "ValidationStatusEnum",
+      "package": "models",
+      "kind": "type",
+      "underlying": "string",
+      "file": "models.go"
+    },
+    {
+      "name": "DNSValidationStatusEnum",
+      "package": "models",
+      "kind": "type",
+      "underlying": "string",
+      "file": "models.go"
+    },
+    {
+      "name": "HTTPValidationStatusEnum",
+      "package": "models",
+      "kind": "type",
+      "underlying": "string",
+      "file": "models.go"
+    },
+    {
+      "name": "in",
+      "package": "models",
+      "kind": "type",
+      "underlying": "database",
+      "file": "models.go"
+    },
+    {
+      "name": "to",
+      "package": "models",
+      "kind": "type",
+      "underlying": "match",
+      "file": "models.go"
+    }
+  ],
+  "enums": [
+    {
+      "name": "CampaignType",
+      "values": [
+        "DomainGeneration",
+        "DNSValidation",
+        "HTTPKeywordValidation"
+      ],
+      "package": "models",
+      "file": "models.go"
+    },
+    {
+      "name": "CampaignStatus",
+      "values": [
+        "Pending",
+        "Queued",
+        "Running",
+        "Pausing",
+        "Paused",
+        "Completed",
+        "Failed",
+        "Archived",
+        "Cancelled"
+      ],
+      "package": "models",
+      "file": "models.go"
+    },
+    {
+      "name": "PersonaType",
+      "values": [
+        "DNS",
+        "HTTP"
+      ],
+      "package": "models",
+      "file": "models.go"
+    },
+    {
+      "name": "ProxyProtocol",
+      "values": [
+        "http",
+        "https",
+        "socks5",
+        "socks4"
+      ],
+      "package": "models",
+      "file": "models.go"
+    }
+  ],
+  "endpoints": [
+    {
+      "method": "router",
+      "path": "GET",
+      "handler": "/api/v2/ws"
+    },
+    {
+      "method": "router",
+      "path": "GET",
+      "handler": "/ping"
+    },
+    {
+      "method": "router",
+      "path": "GET",
+      "handler": "/swagger/*any"
+    },
+    {
+      "method": "POST",
+      "path": "/login",
+      "handler": "rateLimitMiddleware"
+    },
+    {
+      "method": "POST",
+      "path": "/logout",
+      "handler": "authHandler"
+    },
+    {
+      "method": "POST",
+      "path": "/refresh",
+      "handler": "authHandler"
+    },
+    {
+      "method": "GET",
+      "path": "/users",
+      "handler": "apiHandler"
+    },
+    {
+      "method": "POST",
+      "path": "/users",
+      "handler": "apiHandler"
+    },
+    {
+      "method": "GET",
+      "path": "/users/:userId",
+      "handler": "apiHandler"
+    },
+    {
+      "method": "PUT",
+      "path": "/users/:userId",
+      "handler": "apiHandler"
+    },
+    {
+      "method": "DELETE",
+      "path": "/users/:userId",
+      "handler": "apiHandler"
+    },
+    {
+      "method": "GET",
+      "path": "/me",
+      "handler": "authHandler"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/permissions",
+      "handler": "authHandler"
+    },
+    {
+      "method": "POST",
+      "path": "/change-password",
+      "handler": "authHandler"
+    },
+    {
+      "method": "GET",
+      "path": "/:id",
+      "handler": "authMiddleware"
+    },
+    {
+      "method": "PUT",
+      "path": "/:id",
+      "handler": "authMiddleware"
+    },
+    {
+      "method": "DELETE",
+      "path": "/:id",
+      "handler": "authMiddleware"
+    },
+    {
+      "method": "POST",
+      "path": "/:id/test",
+      "handler": "authMiddleware"
+    },
+    {
+      "method": "PUT",
+      "path": "/:personaId",
+      "handler": "authMiddleware"
+    },
+    {
+      "method": "DELETE",
+      "path": "/:personaId",
+      "handler": "authMiddleware"
+    },
+    {
+      "method": "PUT",
+      "path": "/:personaId",
+      "handler": "authMiddleware"
+    },
+    {
+      "method": "DELETE",
+      "path": "/:personaId",
+      "handler": "authMiddleware"
+    },
+    {
+      "method": "GET",
+      "path": "/status",
+      "handler": "authMiddleware"
+    },
+    {
+      "method": "PUT",
+      "path": "/:proxyId",
+      "handler": "authMiddleware"
+    },
+    {
+      "method": "DELETE",
+      "path": "/:proxyId",
+      "handler": "authMiddleware"
+    },
+    {
+      "method": "POST",
+      "path": "/:proxyId/test",
+      "handler": "authMiddleware"
+    },
+    {
+      "method": "POST",
+      "path": "/:proxyId/health-check",
+      "handler": "authMiddleware"
+    },
+    {
+      "method": "POST",
+      "path": "/health-check",
+      "handler": "authMiddleware"
+    },
+    {
+      "method": "GET",
+      "path": "/dns",
+      "handler": "apiHandler"
+    },
+    {
+      "method": "POST",
+      "path": "/dns",
+      "handler": "apiHandler"
+    },
+    {
+      "method": "GET",
+      "path": "/http",
+      "handler": "apiHandler"
+    },
+    {
+      "method": "POST",
+      "path": "/http",
+      "handler": "apiHandler"
+    },
+    {
+      "method": "GET",
+      "path": "/logging",
+      "handler": "apiHandler"
+    },
+    {
+      "method": "POST",
+      "path": "/logging",
+      "handler": "apiHandler"
+    },
+    {
+      "method": "GET",
+      "path": "/server",
+      "handler": "apiHandler"
+    },
+    {
+      "method": "PUT",
+      "path": "/server",
+      "handler": "apiHandler"
+    },
+    {
+      "method": "GET",
+      "path": "/:setId",
+      "handler": "authMiddleware"
+    },
+    {
+      "method": "PUT",
+      "path": "/:setId",
+      "handler": "authMiddleware"
+    },
+    {
+      "method": "DELETE",
+      "path": "/:setId",
+      "handler": "authMiddleware"
+    },
+    {
+      "method": "GET",
+      "path": "/stream",
+      "handler": "apiHandler"
+    },
+    {
+      "method": "GET",
+      "path": "/broadcast-test",
+      "handler": "func"
+    }
+  ],
+  "timestamp": "2025-06-20T15:22:11.891Z",
+  "goVersion": "go version go1.22.3 linux/amd64"
+}

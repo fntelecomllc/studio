@@ -333,29 +333,13 @@ func main() {
 		// Persona routes with permission-based access control
 		personaGroup := apiV2.Group("/personas")
 		{
-			// Unified persona endpoints (preferred)
+			// Unified persona endpoints
 			personaGroup.GET("", authMiddleware.RequirePermission("personas:read"), apiHandler.ListAllPersonasGin)
 			personaGroup.POST("", authMiddleware.RequirePermission("personas:create"), apiHandler.CreatePersonaGin)
 			personaGroup.GET("/:id", authMiddleware.RequirePermission("personas:read"), apiHandler.GetPersonaByIDGin)
 			personaGroup.PUT("/:id", authMiddleware.RequirePermission("personas:update"), apiHandler.UpdatePersonaGin)
 			personaGroup.DELETE("/:id", authMiddleware.RequirePermission("personas:delete"), apiHandler.DeletePersonaGin)
 			personaGroup.POST("/:id/test", authMiddleware.RequirePermission("personas:read"), apiHandler.TestPersonaGin)
-
-			// Type-specific endpoints (backward compatibility)
-			dnsPersonaGroup := personaGroup.Group("/dns")
-			{
-				dnsPersonaGroup.POST("", authMiddleware.RequirePermission("personas:create"), apiHandler.CreateDNSPersonaGin)
-				dnsPersonaGroup.GET("", authMiddleware.RequirePermission("personas:read"), apiHandler.ListDNSPersonasGin)
-				dnsPersonaGroup.PUT("/:personaId", authMiddleware.RequirePermission("personas:update"), apiHandler.UpdateDNSPersonaGin)
-				dnsPersonaGroup.DELETE("/:personaId", authMiddleware.RequirePermission("personas:delete"), apiHandler.DeleteDNSPersonaGin)
-			}
-			httpPersonaGroup := personaGroup.Group("/http")
-			{
-				httpPersonaGroup.POST("", authMiddleware.RequirePermission("personas:create"), apiHandler.CreateHTTPPersonaGin)
-				httpPersonaGroup.GET("", authMiddleware.RequirePermission("personas:read"), apiHandler.ListHTTPPersonasGin)
-				httpPersonaGroup.PUT("/:personaId", authMiddleware.RequirePermission("personas:update"), apiHandler.UpdateHTTPPersonaGin)
-				httpPersonaGroup.DELETE("/:personaId", authMiddleware.RequirePermission("personas:delete"), apiHandler.DeleteHTTPPersonaGin)
-			}
 		}
 
 		// Proxy routes with permission-based access control

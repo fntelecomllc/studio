@@ -16,7 +16,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getCampaigns, deleteCampaign, pauseCampaign, resumeCampaign, cancelCampaign as stopCampaign } from '@/lib/services/campaignService.production';
 import { normalizeStatus, isActiveStatus } from '@/lib/utils/statusMapping';
 import { adaptWebSocketMessage } from '@/lib/utils/websocketMessageAdapter';
-import type { WebSocketMessage } from '@/lib/services/websocketService.simple';
+import type { WebSocketMessage } from '@/lib/websocket/enhancedWebSocketClient';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOptimisticUpdate, useLoadingState, useStateSubscription } from '@/lib/state/stateManager';
@@ -58,7 +58,7 @@ function CampaignsPageContent() {
     const connectWebSocket = async () => {
       try {
         // Import the WebSocket service dynamically to avoid SSR issues
-        const { websocketService } = await import('@/lib/services/websocketService.simple');
+        const { websocketService } = await import('@/lib/websocket/enhancedWebSocketClient');
         
         if (!isMountedRef.current) return;
         

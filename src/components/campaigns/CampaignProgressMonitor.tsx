@@ -7,9 +7,9 @@ import { Progress } from '@/components/ui/progress';
 import { AlertCircle, CheckCircle, Clock, Pause, Wifi, WifiOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { websocketService } from '@/lib/services/websocketService.simple';
+import { websocketService } from '@/lib/websocket/enhancedWebSocketClient';
 import type { CampaignViewModel, CampaignPhase, CampaignStatus } from '@/lib/types';
-import type { WebSocketMessage } from '@/lib/services/websocketService.simple';
+import type { WebSocketMessage } from '@/lib/websocket/enhancedWebSocketClient';
 import { normalizeStatus, getStatusColor } from '@/lib/utils/statusMapping';
 import { adaptWebSocketMessage } from '@/lib/utils/websocketMessageAdapter';
 
@@ -97,7 +97,7 @@ const CampaignProgressMonitor = memo(({
   }), [campaign.id, campaign.currentPhase, campaign.phaseStatus, campaign.status]);
 
   // Optimized WebSocket message handler with stable dependencies
-  const handleWebSocketMessage = useCallback((message: import('@/lib/services/websocketService.simple').CampaignProgressMessage) => {
+  const handleWebSocketMessage = useCallback((message: import('@/lib/websocket/enhancedWebSocketClient').WebSocketMessage) => {
     setConnectionHealth(prev => ({ ...prev, lastHeartbeat: new Date() }));
     
     console.log(`[CampaignProgressMonitor] Received WebSocket message:`, message);
@@ -124,13 +124,14 @@ const CampaignProgressMonitor = memo(({
         break;
 
       case 'progress':
-        if (typeof message.data.progress === 'number') {
+        const progressValue = message.data.progress;
+        if (typeof progressValue === 'number') {
           setRealtimeData(prev => ({
             ...prev,
-            currentProgress: message.data.progress!,
+            currentProgress: progressValue,
             lastActivity: new Date()
           }));
-          onCampaignUpdate?.({ progress: message.data.progress });
+          onCampaignUpdate?.({ progress: progressValue });
         }
         break;
 

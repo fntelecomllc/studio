@@ -91,8 +91,7 @@ class GoContractExtractor {
     // Extract API endpoints
     await this.extractEndpoints();
     
-    // Extract enums
-    await this.extractEnums();
+    // Note: extractEnums is called during parseGoFile, not as a separate step
 
     return this.contracts;
   }
@@ -121,13 +120,15 @@ class GoContractExtractor {
    * Parse Go file and extract type definitions
    */
   private parseGoFile(content: string, filename: string, pkg: string) {
-    // Extract struct definitions
-    const structRegex = /type\s+(\w+)\s+struct\s*{([^}]+)}/g;
+    // Extract struct definitions with better regex that handles multi-line
+    const structRegex = /type\s+(\w+)\s+struct\s*{([^}]+)}/gs;
     let match;
 
     while ((match = structRegex.exec(content)) !== null) {
       const typeName = match[1];
       const body = match[2];
+      
+      if (!typeName || !body) continue;
       
       const fields = this.parseStructFields(body);
       
@@ -142,36 +143,71 @@ class GoContractExtractor {
 
     // Extract type aliases
     const typeRegex = /type\s+(\w+)\s+(\w+)/g;
-    content.match(typeRegex)?.forEach(typeDecl => {
-      const parts = typeDecl.split(/\s+/);
-      if (parts.length >= 3 && !typeDecl.includes('struct')) {
+    while ((match = typeRegex.exec(content)) !== null) {
+      const name = match[1];
+      const underlying = match[2];
+      
+      // Skip if it's a struct definition
+      if (content.includes(`type ${name} struct`)) continue;
+      
+      if (name && underlying) {
         this.contracts.models.push({
-          name: parts[1],
+          name,
           package: pkg,
           kind: 'type',
-          underlying: parts[2],
+          underlying,
           file: filename
         });
       }
-    });
+    }
 
     // Extract constants (potential enums)
     this.extractConstants(content, filename, pkg);
   }
 
   /**
-   * Parse struct fields
+   * Parse struct fields with improved parsing
    */
   private parseStructFields(body: string): GoField[] {
     const fields: GoField[] = [];
-    const fieldRegex = /(\w+)\s+(\*?)([^\s`]+)\s*(`[^`]*`)?/g;
+    
+    // Remove comments from the body
+    const cleanBody = body
+      .split('\n')
+      .map(line => {
+        // Remove single line comments
+        const commentIndex = line.indexOf('//');
+        if (commentIndex >= 0) {
+          return line.substring(0, commentIndex);
+        }
+        return line;
+      })
+      .join('\n')
+      // Remove multi-line comments
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+
+    // Improved regex that handles field definitions more accurately
+    // Matches: FieldName [*]Type `tags`
+    const fieldRegex = /^\s*(\w+)\s+(\*?)([a-zA-Z0-9_.\[\]]+(?:\s*\{[^}]*\})?)\s*(`[^`]*`)?/gm;
     let match;
 
-    while ((match = fieldRegex.exec(body)) !== null) {
+    while ((match = fieldRegex.exec(cleanBody)) !== null) {
       const fieldName = match[1];
       const isPointer = match[2] === '*';
       const fieldType = match[3];
       const tags = match[4] || '';
+      
+      // Skip if field name is a Go keyword or doesn't look like a valid field
+      const goKeywords = ['type', 'struct', 'interface', 'func', 'var', 'const', 'package', 'import', 'return', 'if', 'else', 'for', 'range', 'switch', 'case', 'default', 'break', 'continue', 'goto', 'defer', 'go', 'select', 'chan', 'map'];
+      if (!fieldName || !fieldType || goKeywords.includes(fieldName.toLowerCase())) {
+        continue;
+      }
+
+      // Skip embedded structs without tags (anonymous fields)
+      if (!tags && fieldType.match(/^[A-Z]/)) {
+        // This might be an embedded struct, skip for now
+        continue;
+      }
 
       // Parse tags
       const jsonTag = this.parseTag(tags, 'json');
@@ -182,8 +218,8 @@ class GoContractExtractor {
 
       fields.push({
         name: fieldName,
-        type: fieldType,
-        jsonTag: jsonTag?.split(',')[0] || fieldName,
+        type: fieldType.trim(),
+        jsonTag: jsonTag?.split(',')[0] || undefined,
         dbTag,
         required,
         isPointer
@@ -213,8 +249,9 @@ class GoContractExtractor {
     while ((match = constBlockRegex.exec(content)) !== null) {
       const block = match[1];
       
+      if (!block) continue;
+      
       // Check if this is an enum pattern
-      const enumPattern = /(\w+)Enum/;
       const lines = block.split('\n').map(l => l.trim()).filter(l => l);
       
       const enumMap = new Map<string, string[]>();
@@ -224,6 +261,8 @@ class GoContractExtractor {
         if (constMatch) {
           const constName = constMatch[1];
           const constValue = constMatch[2];
+          
+          if (!constName || !constValue) return;
           
           // Try to determine enum type from name
           const enumType = this.inferEnumType(constName);
@@ -251,7 +290,7 @@ class GoContractExtractor {
   /**
    * Infer enum type from constant name
    */
-  private inferEnumType(constName: string): string | null {
+  private inferEnumType(constName: string): string | undefined {
     const patterns = [
       { regex: /^CampaignStatus/, type: 'CampaignStatus' },
       { regex: /^CampaignType/, type: 'CampaignType' },
@@ -268,7 +307,7 @@ class GoContractExtractor {
       }
     }
 
-    return null;
+    return undefined;
   }
 
   /**
@@ -312,15 +351,27 @@ class GoContractExtractor {
     routePatterns.forEach(pattern => {
       let match;
       while ((match = pattern.exec(content)) !== null) {
-        const method = match[1] === 'router' ? match[1] : match[2];
-        const path = match[1] === 'router' ? match[2] : match[3];
-        const handler = match[1] === 'router' ? match[3] : match[4];
-
-        this.contracts.endpoints.push({
-          method,
-          path,
-          handler
-        });
+        let method: string | undefined;
+        let path: string | undefined;
+        let handler: string | undefined;
+        
+        if (match[1] === 'router') {
+          method = match[1];
+          path = match[2];
+          handler = match[3];
+        } else {
+          method = match[2];
+          path = match[3];
+          handler = match[4];
+        }
+        
+        if (method && path && handler) {
+          this.contracts.endpoints.push({
+            method,
+            path,
+            handler
+          });
+        }
       }
     });
   }
@@ -520,8 +571,10 @@ async function main() {
   }
 }
 
-if (require.main === module) {
+// Check if running as main module
+if (import.meta.url === `file://${process.argv[1]}`) {
   main();
 }
 
-export { GoContractExtractor, ExtractedContracts };
+export { GoContractExtractor };
+export type { ExtractedContracts };

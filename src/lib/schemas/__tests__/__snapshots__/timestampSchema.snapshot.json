@@ -1,0 +1,13 @@
+{
+  "checks": [
+    {
+      "kind": "datetime",
+      "local": false,
+      "message": "Invalid ISO 8601 timestamp format",
+      "offset": false,
+      "precision": null
+    }
+  ],
+  "coerce": false,
+  "typeName": "ZodString"
+}

@@ -1,0 +1,10 @@
+{
+  "checks": [
+    {
+      "kind": "uuid",
+      "message": "Invalid UUID format"
+    }
+  ],
+  "coerce": false,
+  "typeName": "ZodString"
+}

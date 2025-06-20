@@ -1,0 +1,73 @@
+{
+  "effect": {
+    "transform": function createSafeBigInt(value) {
+    let bigIntValue;
+    try {
+        if (typeof value === 'string') {
+            // Handle string representation (from JSON)
+            bigIntValue = BigInt(value);
+        } else if (typeof value === 'number') {
+            // Ensure number is an integer
+            if (!Number.isInteger(value)) {
+                throw new Error(`Value must be an integer, got: ${value}`);
+            }
+            bigIntValue = BigInt(value);
+        } else {
+            bigIntValue = value;
+        }
+        // Validate it's within Go int64 range
+        if (!isValidInt64(bigIntValue)) {
+            throw new Error(`Value ${bigIntValue} exceeds Go int64 range`);
+        }
+        return bigIntValue;
+    } catch (error) {
+        throw new Error(`Failed to create SafeBigInt: ${error instanceof Error ? error.message : String(error)}`);
+    }
+},
+    "type": "transform"
+  },
+  "errorMap": (iss, ctx) => {
+        const { message } = params;
+        if (iss.code === "invalid_enum_value") {
+            return { message: message ?? ctx.defaultError };
+        }
+        if (typeof ctx.data === "undefined") {
+            return { message: message ?? required_error ?? ctx.defaultError };
+        }
+        if (iss.code !== "invalid_type")
+            return { message: ctx.defaultError };
+        return { message: message ?? invalid_type_error ?? ctx.defaultError };
+    },
+  "schema": {
+    "and": function () { [native code] },
+    "array": function () { [native code] },
+    "brand": function () { [native code] },
+    "catch": function () { [native code] },
+    "default": function () { [native code] },
+    "describe": function () { [native code] },
+    "isNullable": function () { [native code] },
+    "isOptional": function () { [native code] },
+    "nullable": function () { [native code] },
+    "nullish": function () { [native code] },
+    "optional": function () { [native code] },
+    "or": function () { [native code] },
+    "parse": function () { [native code] },
+    "parseAsync": function () { [native code] },
+    "pipe": function () { [native code] },
+    "promise": function () { [native code] },
+    "readonly": function () { [native code] },
+    "refine": function () { [native code] },
+    "refinement": function () { [native code] },
+    "safeParse": function () { [native code] },
+    "safeParseAsync": function () { [native code] },
+    "spa": function () { [native code] },
+    "superRefine": function () { [native code] },
+    "transform": function () { [native code] },
+    "~standard": {
+      "validate": (data) => this["~validate"](data),
+      "vendor": "zod",
+      "version": 1
+    }
+  },
+  "typeName": "ZodEffects"
+}

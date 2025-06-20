@@ -12,6 +12,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
+
+// ES module __dirname equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 interface ValidationIssue {
   severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
@@ -118,7 +123,9 @@ class ContractValidator {
       while ((match = interfaceRegex.exec(content)) !== null) {
         const interfaceName = match[1];
         const body = match[2];
-        types.interfaces[interfaceName] = this.parseTypeScriptInterface(body);
+        if (interfaceName && body) {
+          types.interfaces[interfaceName] = this.parseTypeScriptInterface(body);
+        }
       }
 
       // Extract enums
@@ -126,7 +133,9 @@ class ContractValidator {
       while ((match = enumRegex.exec(content)) !== null) {
         const enumName = match[1];
         const body = match[2];
-        types.enums[enumName] = this.parseTypeScriptEnum(body);
+        if (enumName && body) {
+          types.enums[enumName] = this.parseTypeScriptEnum(body);
+        }
       }
     }
 
@@ -144,12 +153,14 @@ class ContractValidator {
     while ((match = fieldRegex.exec(body)) !== null) {
       const fieldName = match[1];
       const optional = match[2] === '?';
-      const fieldType = match[3].trim();
+      const fieldType = match[3]?.trim();
       
-      fields[fieldName] = {
-        type: fieldType,
-        optional
-      };
+      if (fieldName && fieldType) {
+        fields[fieldName] = {
+          type: fieldType,
+          optional
+        };
+      }
     }
 
     return fields;
@@ -164,7 +175,10 @@ class ContractValidator {
     let match;
 
     while ((match = valueRegex.exec(body)) !== null) {
-      values.push(match[1]);
+      const value = match[1];
+      if (value) {
+        values.push(value);
+      }
     }
 
     return values;
@@ -200,16 +214,17 @@ class ContractValidator {
    */
   private validateInt64Fields() {
     const int64Fields = [
-      { model: 'Campaign', fields: ['totalItems', 'processedItems', 'successfulItems', 'failedItems'] },
-      { model: 'DomainGenerationParams', fields: ['totalPossibleCombinations', 'currentOffset'] },
-      { model: 'GeneratedDomain', fields: ['offsetIndex'] }
+      { model: 'Campaign', fields: ['TotalItems', 'ProcessedItems', 'SuccessfulItems', 'FailedItems'] },
+      { model: 'DomainGenerationCampaignParams', fields: ['TotalPossibleCombinations', 'CurrentOffset'] },
+      { model: 'GeneratedDomain', fields: ['OffsetIndex'] }
     ];
 
     int64Fields.forEach(({ model, fields }) => {
       fields.forEach(field => {
-        // Check database type
+        // Convert Go field name (PascalCase) to camelCase for TypeScript and snake_case for DB
+        const tsFieldName = field.charAt(0).toLowerCase() + field.slice(1);
         const dbTable = this.camelToSnake(model);
-        const dbField = this.camelToSnake(field);
+        const dbField = this.camelToSnake(tsFieldName);
         const dbColumn = this.databaseSchema.tables[dbTable]?.columns[dbField];
 
         if (dbColumn && dbColumn.type !== 'bigint') {
@@ -217,7 +232,7 @@ class ContractValidator {
             severity: 'CRITICAL',
             layer: 'database',
             type: 'int64_type_mismatch',
-            field: `${model}.${field}`,
+            field: `${model}.${tsFieldName}`,
             expected: 'bigint',
             actual: dbColumn.type,
             description: `Database column ${dbTable}.${dbField} should be BIGINT for int64 safety`
@@ -226,14 +241,14 @@ class ContractValidator {
 
         // Check TypeScript type
         const tsInterface = this.typeScriptTypes.interfaces[model];
-        if (tsInterface && tsInterface[field]) {
-          const tsType = tsInterface[field].type;
+        if (tsInterface && tsInterface[tsFieldName]) {
+          const tsType = tsInterface[tsFieldName].type;
           if (tsType !== 'SafeBigInt') {
             this.addIssue({
               severity: 'CRITICAL',
               layer: 'frontend',
               type: 'int64_type_mismatch',
-              field: `${model}.${field}`,
+              field: `${model}.${tsFieldName}`,
               expected: 'SafeBigInt',
               actual: tsType,
               description: `TypeScript field should use SafeBigInt for int64 values`
@@ -317,12 +332,12 @@ class ContractValidator {
     // Check for missing critical fields
     const criticalFields = [
       {
-        model: 'DomainGenerationParams',
-        fields: ['totalPossibleCombinations', 'currentOffset']
+        model: 'DomainGenerationCampaignParams',
+        fields: ['TotalPossibleCombinations', 'CurrentOffset']
       },
       {
-        model: 'HTTPKeywordParams',
-        fields: ['sourceType']
+        model: 'HTTPKeywordCampaignParams',
+        fields: ['SourceType']
       }
     ];
 
@@ -344,16 +359,17 @@ class ContractValidator {
           });
         }
 
-        // Check TypeScript interface
-        if (tsInterface && !tsInterface[field]) {
+        // Check TypeScript interface - use camelCase for TS
+        const tsFieldName = field.charAt(0).toLowerCase() + field.slice(1);
+        if (tsInterface && !tsInterface[tsFieldName]) {
           this.addIssue({
             severity: 'CRITICAL',
             layer: 'frontend',
             type: 'missing_required_field',
-            field: `${model}.${field}`,
+            field: `${model}.${tsFieldName}`,
             expected: 'present',
             actual: 'missing',
-            description: `Required field ${field} missing from TypeScript interface ${model}`
+            description: `Required field ${tsFieldName} missing from TypeScript interface ${model}`
           });
         }
       });
@@ -549,7 +565,7 @@ class ContractValidator {
    * Utility: Convert snake_case to camelCase
    */
   private snakeToCamel(str: string): string {
-    return str.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+    return str.replace(/_([a-z])/g, (g, letter) => letter?.toUpperCase() || '');
   }
 }
 
@@ -574,8 +590,10 @@ async function main() {
   }
 }
 
-if (require.main === module) {
+// Check if running as main module
+if (import.meta.url === `file://${process.argv[1]}`) {
   main();
 }
 
-export { ContractValidator, ValidationReport };
+export { ContractValidator };
+export type { ValidationReport };

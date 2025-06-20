@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { websocketService } from '@/lib/services/websocketService.simple';
+import { websocketService } from '@/lib/websocket/enhancedWebSocketClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { logWebSocket } from '@/lib/utils/logger';
 

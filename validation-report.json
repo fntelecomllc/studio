@@ -1,0 +1,157 @@
+{
+  "timestamp": "2025-06-20T18:55:58.044Z",
+  "passed": false,
+  "issueCount": {
+    "critical": 4,
+    "high": 12,
+    "medium": 0,
+    "low": 0
+  },
+  "issues": [
+    {
+      "severity": "HIGH",
+      "layer": "database",
+      "type": "enum_constraint_missing",
+      "field": "campaigns.status",
+      "expected": "Pending",
+      "actual": "missing",
+      "description": "Database constraint missing enum value 'Pending'"
+    },
+    {
+      "severity": "HIGH",
+      "layer": "database",
+      "type": "enum_constraint_missing",
+      "field": "campaigns.status",
+      "expected": "Queued",
+      "actual": "missing",
+      "description": "Database constraint missing enum value 'Queued'"
+    },
+    {
+      "severity": "HIGH",
+      "layer": "database",
+      "type": "enum_constraint_missing",
+      "field": "campaigns.status",
+      "expected": "Running",
+      "actual": "missing",
+      "description": "Database constraint missing enum value 'Running'"
+    },
+    {
+      "severity": "HIGH",
+      "layer": "database",
+      "type": "enum_constraint_missing",
+      "field": "campaigns.status",
+      "expected": "Pausing",
+      "actual": "missing",
+      "description": "Database constraint missing enum value 'Pausing'"
+    },
+    {
+      "severity": "HIGH",
+      "layer": "database",
+      "type": "enum_constraint_missing",
+      "field": "campaigns.status",
+      "expected": "Paused",
+      "actual": "missing",
+      "description": "Database constraint missing enum value 'Paused'"
+    },
+    {
+      "severity": "HIGH",
+      "layer": "database",
+      "type": "enum_constraint_missing",
+      "field": "campaigns.status",
+      "expected": "Completed",
+      "actual": "missing",
+      "description": "Database constraint missing enum value 'Completed'"
+    },
+    {
+      "severity": "HIGH",
+      "layer": "database",
+      "type": "enum_constraint_missing",
+      "field": "campaigns.status",
+      "expected": "Failed",
+      "actual": "missing",
+      "description": "Database constraint missing enum value 'Failed'"
+    },
+    {
+      "severity": "HIGH",
+      "layer": "database",
+      "type": "enum_constraint_missing",
+      "field": "campaigns.status",
+      "expected": "Archived",
+      "actual": "missing",
+      "description": "Database constraint missing enum value 'Archived'"
+    },
+    {
+      "severity": "HIGH",
+      "layer": "database",
+      "type": "enum_constraint_missing",
+      "field": "campaigns.status",
+      "expected": "Cancelled",
+      "actual": "missing",
+      "description": "Database constraint missing enum value 'Cancelled'"
+    },
+    {
+      "severity": "HIGH",
+      "layer": "database",
+      "type": "enum_constraint_missing",
+      "field": "campaigns.campaign_type",
+      "expected": "DomainGeneration",
+      "actual": "missing",
+      "description": "Database constraint missing enum value 'DomainGeneration'"
+    },
+    {
+      "severity": "HIGH",
+      "layer": "database",
+      "type": "enum_constraint_missing",
+      "field": "campaigns.campaign_type",
+      "expected": "DNSValidation",
+      "actual": "missing",
+      "description": "Database constraint missing enum value 'DNSValidation'"
+    },
+    {
+      "severity": "HIGH",
+      "layer": "database",
+      "type": "enum_constraint_missing",
+      "field": "campaigns.campaign_type",
+      "expected": "HTTPKeywordValidation",
+      "actual": "missing",
+      "description": "Database constraint missing enum value 'HTTPKeywordValidation'"
+    },
+    {
+      "severity": "CRITICAL",
+      "layer": "backend",
+      "type": "missing_endpoint",
+      "expected": "GET /api/v2/admin/users",
+      "actual": "missing",
+      "description": "Missing required endpoint: List users"
+    },
+    {
+      "severity": "CRITICAL",
+      "layer": "backend",
+      "type": "missing_endpoint",
+      "expected": "POST /api/v2/admin/users",
+      "actual": "missing",
+      "description": "Missing required endpoint: Create user"
+    },
+    {
+      "severity": "CRITICAL",
+      "layer": "backend",
+      "type": "missing_endpoint",
+      "expected": "PUT /api/v2/admin/users/:id",
+      "actual": "missing",
+      "description": "Missing required endpoint: Update user"
+    },
+    {
+      "severity": "CRITICAL",
+      "layer": "backend",
+      "type": "missing_endpoint",
+      "expected": "DELETE /api/v2/admin/users/:id",
+      "actual": "missing",
+      "description": "Missing required endpoint: Delete user"
+    }
+  ],
+  "recommendations": [
+    "Implement missing user management endpoints in backend",
+    "Set up automated contract validation in CI/CD pipeline",
+    "Use backend as single source of truth for type generation"
+  ]
+}
