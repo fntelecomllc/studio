@@ -250,6 +250,16 @@ class MonitoringService {
     };
   }
 
+  // Performance metric recording
+  public recordCustomMetric(
+    metricName: string,
+    value: number,
+    unit: PerformanceMetric['unit'],
+    metadata?: Record<string, string>
+  ): void {
+    performanceMonitor.recordCustomMetric(metricName, value, unit, metadata);
+  }
+
   // React Component Wrapper for Performance Monitoring
   public wrapComponent<T extends React.ComponentType<Record<string, unknown>>>(
     Component: T,

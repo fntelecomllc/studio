@@ -1,0 +1,156 @@
+Entity,Backend Field (Go),Database Column (PostgreSQL),Frontend Field (TypeScript),Alignment Status,Required Changes
+Campaign,ID (uuid.UUID),id (uuid),id (UUID),✓,None
+Campaign,Name (string),name (text),name (string),✓,None
+Campaign,CampaignType (CampaignTypeEnum),campaign_type (text),campaignType (CampaignType),✓,None
+Campaign,Status (CampaignStatusEnum),status (text),status (CampaignStatus),✗,Frontend has extra 'archived' status
+Campaign,UserID (*uuid.UUID),user_id (uuid),userId (UUID?),✓,None
+Campaign,TotalItems (*int64),total_items (bigint),totalItems (SafeBigInt?),✗,API models use number instead of SafeBigInt
+Campaign,ProcessedItems (*int64),processed_items (bigint),processedItems (SafeBigInt?),✗,API models use number instead of SafeBigInt
+Campaign,SuccessfulItems (*int64),successful_items (bigint),successfulItems (SafeBigInt?),✗,API models use number instead of SafeBigInt
+Campaign,FailedItems (*int64),failed_items (bigint),failedItems (SafeBigInt?),✗,API models use number instead of SafeBigInt
+Campaign,ProgressPercentage (*float64),progress_percentage (double precision),progressPercentage (number?),✓,None
+Campaign,Metadata (*json.RawMessage),metadata (jsonb),metadata (Record<string unknown>?),✓,Type representation differs but compatible
+Campaign,CreatedAt (time.Time),created_at (timestamptz),createdAt (ISODateString),✓,None
+Campaign,UpdatedAt (time.Time),updated_at (timestamptz),updatedAt (ISODateString),✓,None
+Campaign,StartedAt (*time.Time),started_at (timestamptz),startedAt (ISODateString?),✓,None
+Campaign,CompletedAt (*time.Time),completed_at (timestamptz),completedAt (ISODateString?),✓,None
+Campaign,ErrorMessage (*string),error_message (text),errorMessage (string?),✓,None
+Campaign,EstimatedCompletionAt (*time.Time),estimated_completion_at (timestamptz),estimatedCompletionAt (ISODateString?),✓,None
+Campaign,AvgProcessingRate (*float64),avg_processing_rate (double precision),avgProcessingRate (number?),✓,None
+Campaign,LastHeartbeatAt (*time.Time),last_heartbeat_at (timestamptz),lastHeartbeatAt (ISODateString?),✓,None
+User,ID (uuid.UUID),id (uuid),id (UUID),✓,None
+User,Email (string),email (text),email (string),✓,None
+User,EmailVerified (bool),email_verified (boolean),emailVerified (boolean),✓,None
+User,EmailVerificationToken (*string),email_verification_token (text),N/A,✓,Correctly excluded from frontend
+User,PasswordHash (string),password_hash (text),N/A,✓,Correctly excluded from frontend
+User,FirstName (string),first_name (text),firstName (string),✓,None
+User,LastName (string),last_name (text),lastName (string),✓,None
+User,AvatarURL (*string),avatar_url (text),avatarUrl (string?),✓,None
+User,IsActive (bool),is_active (boolean),isActive (boolean),✓,None
+User,IsLocked (bool),is_locked (boolean),isLocked (boolean),✓,None
+User,FailedLoginAttempts (int),failed_login_attempts (integer),N/A,✓,Security field correctly excluded
+User,LastLoginAt (*time.Time),last_login_at (timestamptz),lastLoginAt (ISODateString?),✓,None
+User,LastLoginIP (*net.IP),last_login_ip (inet),lastLoginIp (string?),✓,None
+User,MFAEnabled (bool),mfa_enabled (boolean),mfaEnabled (boolean),✓,None
+User,Roles (complex),auth.user_roles relation,roles (Role[]),✗,API model uses string[] instead of Role[]
+User,Permissions (complex),auth.role_permissions relation,permissions (Permission[]),✗,API model uses string[] instead of Permission[]
+Persona,ID (uuid.UUID),id (uuid),id (UUID),✓,None
+Persona,Name (string),name (text),name (string),✓,None
+Persona,PersonaType (PersonaTypeEnum),persona_type (text),personaType (PersonaType),✓,None
+Persona,Description (sql.NullString),description (text),description (string?),✓,None
+Persona,ConfigDetails (json.RawMessage),config_details (jsonb),configDetails (typed),✓,Frontend adds type safety
+Persona,IsEnabled (bool),is_enabled (boolean),isEnabled (boolean),✓,None
+Persona,CreatedAt (time.Time),created_at (timestamptz),createdAt (ISODateString),✓,None
+Persona,UpdatedAt (time.Time),updated_at (timestamptz),updatedAt (ISODateString),✓,None
+Proxy,ID (uuid.UUID),id (uuid),id (UUID),✓,None
+Proxy,Name (string),name (text),name (string),✓,None
+Proxy,Description (sql.NullString),description (text),description (string?),✓,None
+Proxy,Address (string),address (text),address (string),✓,None
+Proxy,Protocol (*ProxyProtocolEnum),protocol (text),protocol (ProxyProtocol?),✗,Nullability handling differs
+Proxy,Username (sql.NullString),username (text),username (string?),✓,None
+Proxy,PasswordHash (sql.NullString),password_hash (text),N/A,✓,Correctly excluded from frontend
+Proxy,Host (sql.NullString),host (text),host (string?),✓,None
+Proxy,Port (sql.NullInt32),port (integer),port (number?),✗,sql.NullInt32 vs number? handling
+Proxy,IsEnabled (bool),is_enabled (boolean),isEnabled (boolean),✓,None
+Proxy,IsHealthy (bool),is_healthy (boolean),isHealthy (boolean),✓,None
+Proxy,LastStatus (sql.NullString),last_status (text),lastStatus (string?),✓,None
+Proxy,LastCheckedAt (sql.NullTime),last_checked_at (timestamptz),lastTested (ISODateString?),✗,Field name mismatch
+Proxy,LatencyMs (sql.NullInt32),latency_ms (integer),latencyMs (number?),✓,None
+Proxy,City (sql.NullString),city (text),city (string?),✓,None
+Proxy,CountryCode (sql.NullString),country_code (text),countryCode (string?),✓,None
+Proxy,Provider (sql.NullString),provider (text),provider (string?),✓,None
+GeneratedDomain,ID (uuid.UUID),id (uuid),id (UUID),✗,Missing from frontend type
+GeneratedDomain,GenerationCampaignID (uuid.UUID),domain_generation_campaign_id (uuid),generationCampaignId (UUID),✗,Missing from frontend type
+GeneratedDomain,DomainName (string),domain_name (text),domainName (string),✗,Missing from frontend type
+GeneratedDomain,OffsetIndex (int64),offset_index (bigint),offsetIndex (SafeBigInt),✗,Missing from frontend type
+GeneratedDomain,GeneratedAt (time.Time),generated_at (timestamptz),generatedAt (ISODateString),✗,Missing from frontend type
+GeneratedDomain,SourceKeyword (sql.NullString),source_keyword (text),sourceKeyword (string?),✗,Missing from frontend type
+GeneratedDomain,SourcePattern (sql.NullString),source_pattern (text),sourcePattern (string?),✗,Missing from frontend type
+GeneratedDomain,TLD (sql.NullString),tld (text),tld (string?),✗,Missing from frontend type
+KeywordSet,ID (uuid.UUID),id (uuid),id (UUID),✓,None
+KeywordSet,Name (string),name (text),name (string),✓,None
+KeywordSet,Description (sql.NullString),description (text),description (string?),✓,None
+KeywordSet,IsEnabled (bool),is_enabled (boolean),isEnabled (boolean),✓,None
+KeywordSet,Rules (*[]KeywordRule),rules (jsonb),rules (KeywordRule[]?),✓,None
+DNSValidationResult,ID (uuid.UUID),id (uuid),id (UUID),✗,Type not fully defined in frontend
+DNSValidationResult,DNSCampaignID (uuid.UUID),dns_campaign_id (uuid),dnsCampaignId (UUID),✗,Type not fully defined in frontend
+DNSValidationResult,GeneratedDomainID (uuid.NullUUID),generated_domain_id (uuid),generatedDomainId (UUID?),✗,Type not fully defined in frontend
+DNSValidationResult,DomainName (string),domain_name (text),domainName (string),✗,Type not fully defined in frontend
+DNSValidationResult,ValidationStatus (string),validation_status (text),validationStatus (string),✗,Type not fully defined in frontend
+DNSValidationResult,DNSRecords (*json.RawMessage),dns_records (jsonb),dnsRecords (object?),✗,Type not fully defined in frontend
+HTTPKeywordResult,ID (uuid.UUID),id (uuid),id (UUID),✗,Type not fully defined in frontend
+HTTPKeywordResult,HTTPKeywordCampaignID (uuid.UUID),http_keyword_campaign_id (uuid),httpKeywordCampaignId (UUID),✗,Type not fully defined in frontend
+HTTPKeywordResult,DNSResultID (uuid.NullUUID),dns_result_id (uuid),dnsResultId (UUID?),✗,Type not fully defined in frontend
+HTTPKeywordResult,DomainName (string),domain_name (text),domainName (string),✗,Type not fully defined in frontend
+HTTPKeywordResult,ValidationStatus (string),validation_status (text),validationStatus (string),✗,Type not fully defined in frontend
+HTTPKeywordResult,HTTPStatusCode (*int32),http_status_code (integer),httpStatusCode (number?),✗,Type not fully defined in frontend
+HTTPKeywordResult,FoundKeywordsFromSets (*json.RawMessage),found_keywords_from_sets (jsonb),foundKeywordsFromSets (object?),✗,Type not fully defined in frontend
+HTTPKeywordResult,FoundAdHocKeywords (*[]string),found_ad_hoc_keywords (jsonb),foundAdHocKeywords (string[]?),✗,Type not fully defined in frontend
+Session,ID (string),id (text),id (string),✗,Missing security fields in frontend
+Session,UserID (uuid.UUID),user_id (uuid),userId (UUID),✗,Missing security fields in frontend
+Session,IPAddress (*string),ip_address (text),N/A,✗,Missing in frontend Session type
+Session,UserAgent (*string),user_agent (text),N/A,✗,Missing in frontend Session type
+Session,UserAgentHash (*string),user_agent_hash (text),N/A,✗,Missing in frontend Session type
+Session,SessionFingerprint (*string),session_fingerprint (text),N/A,✗,Missing in frontend Session type
+Session,BrowserFingerprint (*string),browser_fingerprint (text),N/A,✗,Missing in frontend Session type
+Session,ScreenResolution (*string),screen_resolution (text),N/A,✗,Missing in frontend Session type
+Session,IsActive (bool),is_active (boolean),isActive (boolean),✗,Missing in frontend Session type
+Session,ExpiresAt (time.Time),expires_at (timestamptz),expiresAt (ISODateString),✗,Missing in frontend Session type
+Role,ID (uuid.UUID),id (uuid),id (UUID),✓,Basic type exists
+Role,Name (string),name (text),name (string),✓,Basic type exists
+Role,DisplayName (string),display_name (text),displayName (string),✗,Missing in API response
+Role,Description (*string),description (text),description (string?),✗,Missing in API response
+Permission,ID (uuid.UUID),id (uuid),id (UUID),✓,Basic type exists
+Permission,Name (string),name (text),name (string),✓,Basic type exists
+Permission,DisplayName (string),display_name (text),displayName (string),✗,Missing in API response
+Permission,Resource (string),resource (text),resource (string),✗,Missing in API response
+Permission,Action (string),action (text),action (string),✗,Missing in API response
+DomainGenerationParams,CampaignID (uuid.UUID),campaign_id (uuid),campaignId (UUID),✓,None
+DomainGenerationParams,PatternType (string),pattern_type (text),patternType (string),✓,None
+DomainGenerationParams,VariableLength (*int),variable_length (integer),variableLength (number),✓,None
+DomainGenerationParams,CharacterSet (*string),character_set (text),characterSet (string),✓,None
+DomainGenerationParams,ConstantString (*string),constant_string (text),constantString (string),✓,None
+DomainGenerationParams,TLD (string),tld (text),tld (string),✓,None
+DomainGenerationParams,NumDomainsToGenerate (int),num_domains_to_generate (integer),numDomainsToGenerate (number?),✓,None
+DomainGenerationParams,TotalPossibleCombinations (int64),total_possible_combinations (bigint),totalPossibleCombinations (number),✗,Should use SafeBigInt
+DomainGenerationParams,CurrentOffset (int64),current_offset (bigint),currentOffset (number),✗,Should use SafeBigInt
+DNSValidationParams,CampaignID (uuid.UUID),campaign_id (uuid),campaignId (UUID),✓,None
+DNSValidationParams,SourceGenerationCampaignID (*uuid.UUID),source_generation_campaign_id (uuid),sourceCampaignId (string),✗,Field name mismatch
+DNSValidationParams,PersonaIDs ([]uuid.UUID),persona_ids (uuid[]),personaIds (string[]),✓,None
+DNSValidationParams,RotationIntervalSeconds (*int),rotation_interval_seconds (integer),rotationIntervalSeconds (number?),✓,None
+DNSValidationParams,ProcessingSpeedPerMinute (*int),processing_speed_per_minute (integer),processingSpeedPerMinute (number?),✓,None
+DNSValidationParams,BatchSize (*int),batch_size (integer),batchSize (number?),✓,None
+DNSValidationParams,RetryAttempts (*int),retry_attempts (integer),retryAttempts (number?),✓,None
+HTTPKeywordParams,CampaignID (uuid.UUID),campaign_id (uuid),campaignId (UUID),✓,None
+HTTPKeywordParams,SourceCampaignID (uuid.UUID),source_campaign_id (uuid),sourceCampaignId (string),✓,None
+HTTPKeywordParams,SourceType (string),source_type (text),sourceType (string),✗,No enum validation in frontend
+HTTPKeywordParams,KeywordSetIDs ([]uuid.UUID),keyword_set_ids (uuid[]),keywordSetIds (string[]?),✓,None
+HTTPKeywordParams,AdHocKeywords (*[]string),ad_hoc_keywords (text[]),adHocKeywords (string[]?),✓,None
+HTTPKeywordParams,PersonaIDs ([]uuid.UUID),persona_ids (uuid[]),personaIds (string[]),✓,None
+HTTPKeywordParams,ProxyIDs (*[]uuid.UUID),proxy_ids (uuid[]),proxyIds (string[]?),✓,None
+HTTPKeywordParams,ProxyPoolID (uuid.NullUUID),proxy_pool_id (uuid),proxyPoolId (string?),✓,None
+HTTPKeywordParams,ProxySelectionStrategy (*string),proxy_selection_strategy (text),proxySelectionStrategy (string?),✓,None
+HTTPKeywordParams,RotationIntervalSeconds (*int),rotation_interval_seconds (integer),rotationIntervalSeconds (number?),✓,None
+HTTPKeywordParams,ProcessingSpeedPerMinute (*int),processing_speed_per_minute (integer),processingSpeedPerMinute (number?),✓,None
+HTTPKeywordParams,BatchSize (*int),batch_size (integer),batchSize (number?),✓,None
+HTTPKeywordParams,RetryAttempts (*int),retry_attempts (integer),retryAttempts (number?),✓,None
+HTTPKeywordParams,TargetHTTPPorts (*[]int),target_http_ports (integer[]),targetHttpPorts (number[]?),✓,None
+HTTPKeywordParams,LastProcessedDomainName (*string),last_processed_domain_name (text),lastProcessedDomainName (string?),✗,Missing from frontend type
+CampaignJob,ID (uuid.UUID),id (uuid),N/A,✗,Not exposed to frontend
+CampaignJob,CampaignID (uuid.UUID),campaign_id (uuid),N/A,✗,Not exposed to frontend
+CampaignJob,JobType (CampaignTypeEnum),job_type (text),N/A,✗,Not exposed to frontend
+CampaignJob,Status (CampaignJobStatusEnum),status (text),N/A,✗,Not exposed to frontend
+AuditLog,ID (uuid.UUID),id (uuid),N/A,✗,Not exposed to frontend
+AuditLog,Timestamp (time.Time),timestamp (timestamptz),N/A,✗,Not exposed to frontend
+AuditLog,UserID (uuid.NullUUID),user_id (uuid),N/A,✗,Not exposed to frontend
+AuditLog,Action (string),action (text),N/A,✗,Not exposed to frontend
+WebSocketMessage,Type (string),N/A,type (string),✗,Structure mismatch
+WebSocketMessage,Timestamp (time.Time),N/A,timestamp (ISODateString),✗,Structure mismatch
+WebSocketMessage,Data (json.RawMessage),N/A,data (unknown?),✗,Structure mismatch
+WebSocketMessage,N/A,N/A,id (UUID),✗,Frontend-only field
+WebSocketMessage,N/A,N/A,sequenceNumber (number),✗,Frontend-only field
+WebSocketMessage,N/A,N/A,message (string?),✗,Frontend-only field
+WebSocketMessage,N/A,N/A,campaignId (UUID?),✗,Frontend-only field
+WebSocketMessage,N/A,N/A,phase (string?),✗,Frontend-only field
+WebSocketMessage,N/A,N/A,status (string?),✗,Frontend-only field
+WebSocketMessage,N/A,N/A,progress (number?),✗,Frontend-only field

@@ -22,11 +22,19 @@ export function validateSafeBigInt(value: unknown): value is SafeBigInt {
   
   if (typeof value === 'string') {
     // Check if it's a valid numeric string
-    return /^\d+$/.test(value) && !isNaN(Number(value));
+    if (!/^\d+$/.test(value)) {
+      return false;
+    }
+    try {
+      const numValue = Number(value);
+      return Number.isSafeInteger(numValue) && numValue >= 0;
+    } catch {
+      return false;
+    }
   }
   
   if (typeof value === 'number') {
-    // Check if it's a safe integer
+    // Check if it's a safe integer and non-negative
     return Number.isSafeInteger(value) && value >= 0;
   }
   
@@ -36,8 +44,22 @@ export function validateSafeBigInt(value: unknown): value is SafeBigInt {
 /**
  * Validates email format
  */
-export function validateEmail(email: string): boolean {
+export function validateEmail(email: unknown): boolean {
+  if (typeof email !== 'string') {
+    return false;
+  }
+  
+  // More strict email validation
+  // - No consecutive dots
+  // - Must have proper domain with TLD
+  // - No spaces allowed
   const emailRegex = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+  
+  // Additional checks
+  if (email.includes('..') || email.includes(' ')) {
+    return false;
+  }
+  
   return emailRegex.test(email);
 }
 
@@ -51,7 +73,11 @@ export function validateNonEmptyString(value: string, minLength: number = 1): bo
 /**
  * Validates URL format
  */
-export function validateURL(url: string): boolean {
+export function validateURL(url: unknown): boolean {
+  if (typeof url !== 'string') {
+    return false;
+  }
+  
   try {
     new URL(url);
     return true;

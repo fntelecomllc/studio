@@ -98,7 +98,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	c.SetCookie(
 		h.config.CookieName,
 		sessionData.ID,
-		int(time.Until(sessionData.ExpiresAt).Seconds()),
+		int(sessionData.ExpiresAt.Sub(time.Now()).Seconds()),
 		h.config.CookiePath,
 		h.config.CookieDomain,
 		h.config.CookieSecure,
@@ -307,7 +307,7 @@ func (h *AuthHandler) RefreshSession(c *gin.Context) {
 	c.SetCookie(
 		h.config.CookieName,
 		sessionID,
-		int(time.Until(newExpiry).Seconds()),
+		int(newExpiry.Sub(time.Now()).Seconds()),
 		h.config.CookiePath,
 		h.config.CookieDomain,
 		h.config.CookieSecure,

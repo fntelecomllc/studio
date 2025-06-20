@@ -1,0 +1,757 @@
+{
+  "metadata": {
+    "phase": 3,
+    "title": "Frontend Type Analysis",
+    "description": "Comprehensive extraction of TypeScript types, interfaces, and API contracts from frontend codebase",
+    "timestamp": "2025-06-19T20:26:44Z",
+    "totalFiles": 29,
+    "categories": {
+      "coreTypes": "Fundamental business entity types",
+      "brandedTypes": "Type-safe branded primitives",
+      "apiModels": "OpenAPI generated models",
+      "schemas": "Zod validation schemas",
+      "services": "Service layer contracts",
+      "contexts": "React context types",
+      "utilities": "Type utilities and transformers"
+    }
+  },
+  "coreTypes": {
+    "Campaign": {
+      "location": "src/lib/types.ts",
+      "fields": {
+        "id": "UUID",
+        "name": "string",
+        "campaignType": "CampaignType",
+        "status": "CampaignStatus",
+        "userId": "UUID?",
+        "totalItems": "SafeBigInt?",
+        "processedItems": "SafeBigInt?",
+        "successfulItems": "SafeBigInt?",
+        "failedItems": "SafeBigInt?",
+        "progressPercentage": "number?",
+        "metadata": "Record<string, unknown>?",
+        "createdAt": "ISODateString",
+        "updatedAt": "ISODateString",
+        "startedAt": "ISODateString?",
+        "completedAt": "ISODateString?",
+        "errorMessage": "string?",
+        "estimatedCompletionAt": "ISODateString?",
+        "avgProcessingRate": "number?",
+        "lastHeartbeatAt": "ISODateString?"
+      }
+    },
+    "User": {
+      "location": "src/lib/types.ts",
+      "fields": {
+        "id": "UUID",
+        "email": "string",
+        "emailVerified": "boolean",
+        "firstName": "string",
+        "lastName": "string",
+        "name": "string?",
+        "avatarUrl": "string?",
+        "isActive": "boolean",
+        "isLocked": "boolean",
+        "lastLoginAt": "ISODateString?",
+        "lastLoginIp": "string?",
+        "mustChangePassword": "boolean",
+        "mfaEnabled": "boolean",
+        "mfaLastUsedAt": "ISODateString?",
+        "createdAt": "ISODateString",
+        "updatedAt": "ISODateString",
+        "roles": "Role[]",
+        "permissions": "Permission[]"
+      }
+    },
+    "Persona": {
+      "location": "src/lib/types.ts",
+      "discriminatedUnion": true,
+      "baseFields": {
+        "id": "UUID",
+        "name": "string",
+        "description": "string?",
+        "personaType": "PersonaType",
+        "isEnabled": "boolean",
+        "status": "string",
+        "lastTested": "ISODateString?",
+        "createdAt": "ISODateString",
+        "updatedAt": "ISODateString"
+      },
+      "variants": {
+        "HttpPersona": {
+          "personaType": "'http'",
+          "configDetails": "HttpPersonaConfig"
+        },
+        "DnsPersona": {
+          "personaType": "'dns'",
+          "configDetails": "DnsPersonaConfig"
+        }
+      }
+    },
+    "Proxy": {
+      "location": "src/lib/types.ts",
+      "fields": {
+        "id": "UUID",
+        "name": "string",
+        "description": "string?",
+        "address": "string",
+        "protocol": "ProxyProtocol?",
+        "username": "string?",
+        "host": "string?",
+        "port": "number?",
+        "isEnabled": "boolean",
+        "isHealthy": "boolean",
+        "lastStatus": "string?",
+        "lastTested": "ISODateString?",
+        "latencyMs": "number?",
+        "city": "string?",
+        "countryCode": "string?",
+        "provider": "string?",
+        "createdAt": "ISODateString",
+        "updatedAt": "ISODateString"
+      }
+    }
+  },
+  "brandedTypes": {
+    "UUID": {
+      "location": "src/lib/types/branded.ts",
+      "brand": "__uuid__",
+      "baseType": "string",
+      "validation": "UUID v4 format",
+      "factory": "createUUID",
+      "guard": "isValidUUID"
+    },
+    "SafeBigInt": {
+      "location": "src/lib/types/branded.ts",
+      "brand": "__safeBigInt__",
+      "baseType": "bigint",
+      "validation": "Non-negative bigint within JS safe integer range",
+      "factory": "createSafeBigInt",
+      "guard": "isValidSafeBigInt"
+    },
+    "ISODateString": {
+      "location": "src/lib/types/branded.ts",
+      "brand": "__isoDateString__",
+      "baseType": "string",
+      "validation": "ISO 8601 date string format",
+      "factory": "createISODateString",
+      "guard": "isValidISODateString"
+    }
+  },
+  "enums": {
+    "CampaignType": {
+      "location": "src/lib/types.ts",
+      "values": ["domain_generation", "dns_validation", "http_keyword_validation"]
+    },
+    "CampaignStatus": {
+      "location": "src/lib/types.ts",
+      "values": ["pending", "queued", "running", "pausing", "paused", "completed", "failed", "archived", "cancelled"]
+    },
+    "CampaignPhase": {
+      "location": "src/lib/types.ts",
+      "values": ["idle", "domain_generation", "dns_validation", "http_keyword_validation", "content_extraction", "ai_analysis", "lead_generation", "completed"]
+    },
+    "PersonaType": {
+      "location": "src/lib/types.ts",
+      "values": ["dns", "http"]
+    },
+    "ProxyProtocol": {
+      "location": "src/lib/types.ts",
+      "values": ["http", "https", "socks5", "socks4"]
+    }
+  },
+  "apiGeneratedModels": {
+    "ModelsCampaignAPI": {
+      "location": "src/lib/api-client/models/models-campaign-api.ts",
+      "fields": {
+        "avgProcessingRate": "number?",
+        "campaignType": "ModelsCampaignTypeEnum?",
+        "completedAt": "string?",
+        "createdAt": "string?",
+        "errorMessage": "string?",
+        "estimatedCompletionAt": "string?",
+        "failedItems": "number?",
+        "id": "string?",
+        "lastHeartbeatAt": "string?",
+        "metadata": "object?",
+        "name": "string?",
+        "processedItems": "number?",
+        "progressPercentage": "number?",
+        "startedAt": "string?",
+        "status": "ModelsCampaignStatusEnum?",
+        "successfulItems": "number?",
+        "totalItems": "number?",
+        "updatedAt": "string?",
+        "userId": "string?"
+      }
+    },
+    "ModelsLoginRequest": {
+      "location": "src/lib/api-client/models/models-login-request.ts",
+      "fields": {
+        "captchaToken": "string?",
+        "email": "string",
+        "password": "string",
+        "rememberMe": "boolean?"
+      }
+    },
+    "ModelsLoginResponseAPI": {
+      "location": "src/lib/api-client/models/models-login-response-api.ts",
+      "fields": {
+        "error": "string?",
+        "expiresAt": "string?",
+        "requires_captcha": "boolean?",
+        "sessionId": "string?",
+        "success": "boolean?",
+        "user": "ModelsUserAPI?"
+      }
+    },
+    "ModelsUserAPI": {
+      "location": "src/lib/api-client/models/models-user-api.ts",
+      "fields": {
+        "avatarUrl": "string?",
+        "createdAt": "string?",
+        "email": "string?",
+        "emailVerified": "boolean?",
+        "firstName": "string?",
+        "id": "string?",
+        "isActive": "boolean?",
+        "isLocked": "boolean?",
+        "lastLoginAt": "string?",
+        "lastLoginIp": "string?",
+        "lastName": "string?",
+        "mfaEnabled": "boolean?",
+        "mfaLastUsedAt": "string?",
+        "mustChangePassword": "boolean?",
+        "name": "string?",
+        "permissions": "Array<string>?",
+        "roles": "Array<string>?",
+        "updatedAt": "string?"
+      }
+    },
+    "ServicesCreateCampaignRequest": {
+      "location": "src/lib/api-client/models/services-create-campaign-request.ts",
+      "fields": {
+        "campaignType": "ServicesCreateCampaignRequestCampaignTypeEnum",
+        "description": "string?",
+        "dnsValidationParams": "ServicesDnsValidationParams?",
+        "domainGenerationParams": "ServicesDomainGenerationParams?",
+        "httpKeywordParams": "ServicesHttpKeywordParams?",
+        "name": "string",
+        "userId": "string?"
+      }
+    }
+  },
+  "apiEndpoints": {
+    "authentication": {
+      "location": "src/lib/api-client/api/authentication-api.ts",
+      "endpoints": {
+        "login": {
+          "method": "POST",
+          "path": "/auth/login",
+          "request": "ModelsLoginRequest",
+          "response": "ModelsLoginResponseAPI",
+          "description": "User login"
+        },
+        "getCurrentUser": {
+          "method": "GET",
+          "path": "/auth/me",
+          "response": "ModelsUserAPI",
+          "description": "Get current user",
+          "auth": "SessionAuth"
+        }
+      }
+    },
+    "campaigns": {
+      "location": "src/lib/api-client/api/campaigns-api.ts",
+      "endpoints": {
+        "listCampaigns": {
+          "method": "GET",
+          "path": "/campaigns",
+          "queryParams": {
+            "limit": "number?",
+            "offset": "number?",
+            "type": "CampaignType?",
+            "status": "CampaignStatus?"
+          },
+          "response": "ModelsCampaignAPI[]",
+          "description": "List campaigns",
+          "auth": "SessionAuth"
+        },
+        "createCampaign": {
+          "method": "POST",
+          "path": "/campaigns",
+          "request": "ServicesCreateCampaignRequest",
+          "response": "ModelsCampaignAPI",
+          "description": "Create a new campaign",
+          "auth": "SessionAuth"
+        }
+      }
+    }
+  },
+  "zodSchemas": {
+    "brandedValidationSchemas": {
+      "location": "src/lib/schemas/brandedValidationSchemas.ts",
+      "schemas": {
+        "uuidSchema": "z.string().refine(isValidUUID)",
+        "safeBigIntSchema": "z.union([z.bigint(), z.number(), z.string()]).transform(toSafeBigInt)",
+        "isoDateStringSchema": "z.string().datetime().transform(toISODateString)",
+        "brandedEmailSchema": "z.string().email().transform(createBrandedEmail)",
+        "brandedUrlSchema": "z.string().url().transform(createBrandedUrl)"
+      }
+    },
+    "campaignSchemas": {
+      "location": "src/lib/schemas/campaignSchemas.ts",
+      "schemas": {
+        "campaignSchema": "Complete campaign validation schema with branded types",
+        "createCampaignRequestSchema": "Campaign creation request validation",
+        "updateCampaignRequestSchema": "Campaign update request validation",
+        "campaignListResponseSchema": "Campaign list response validation",
+        "campaignDetailResponseSchema": "Campaign detail response validation"
+      }
+    },
+    "unifiedCampaignSchema": {
+      "location": "src/lib/schemas/unifiedCampaignSchema.ts",
+      "schemas": {
+        "unifiedCreateCampaignRequestSchema": {
+          "fields": {
+            "campaignType": "enum",
+            "name": "string",
+            "description": "string?",
+            "userId": "uuid?",
+            "domainGenerationParams": "object?",
+            "dnsValidationParams": "object?",
+            "httpKeywordParams": "object?"
+          },
+          "validation": "Type-specific params required based on campaignType"
+        }
+      }
+    }
+  },
+  "websocketContracts": {
+    "WebSocketMessage": {
+      "location": "src/lib/websocket/client.ts",
+      "fields": {
+        "id": "UUID",
+        "timestamp": "ISODateString",
+        "type": "string",
+        "sequenceNumber": "number",
+        "data": "unknown?",
+        "message": "string?",
+        "campaignId": "UUID?",
+        "phase": "string?",
+        "status": "string?",
+        "progress": "number?"
+      }
+    },
+    "CampaignMessage": {
+      "location": "src/lib/services/websocketService.production.ts",
+      "extends": "WebSocketMessage",
+      "fields": {
+        "campaignId": "UUID",
+        "type": "campaign_progress | domain_generated | campaign_complete | campaign_error",
+        "data": {
+          "progress": "number?",
+          "status": "string?",
+          "phase": "string?",
+          "domain": "string?",
+          "error": "string?"
+        }
+      }
+    },
+    "messageSchemas": {
+      "location": "src/lib/schemas/websocketMessageSchema.ts",
+      "types": {
+        "campaignProgressPayloadSchema": "Campaign progress update payload",
+        "campaignStatusPayloadSchema": "Campaign status change payload",
+        "domainResultPayloadSchema": "Domain validation result payload",
+        "systemStatusPayloadSchema": "System health status payload",
+        "errorPayloadSchema": "Error message payload"
+      },
+      "messageTypes": {
+        "CAMPAIGN_PROGRESS": "campaign.progress",
+        "CAMPAIGN_STATUS": "campaign.status",
+        "DOMAIN_RESULT": "domain.result",
+        "SYSTEM_STATUS": "system.status",
+        "ERROR": "error"
+      }
+    }
+  },
+  "serviceContracts": {
+    "authService": {
+      "location": "src/lib/services/authService.ts",
+      "methods": {
+        "login": "(credentials: LoginCredentials) => Promise<{success: boolean, error?: string, fieldErrors?: {[key: string]: string}}>",
+        "logout": "() => Promise<void>",
+        "initialize": "() => Promise<void>",
+        "getCurrentUser": "() => User | null",
+        "hasPermission": "(permission: string) => boolean",
+        "hasRole": "(role: string) => boolean",
+        "updatePassword": "(request: ChangePasswordRequest) => Promise<{success: boolean, error?: string}>",
+        "validatePassword": "(password: string) => Promise<PasswordValidationResult>",
+        "refreshSession": "() => Promise<{success: boolean, error?: string}>"
+      },
+      "state": {
+        "isAuthenticated": "boolean",
+        "user": "User | null",
+        "isLoading": "boolean",
+        "sessionExpiry": "number | null",
+        "availablePermissions": "string[]"
+      }
+    },
+    "campaignService": {
+      "location": "src/lib/services/campaignService.production.ts",
+      "methods": {
+        "getCampaigns": "(filters?: CampaignFilters) => Promise<CampaignsListResponse>",
+        "getCampaignById": "(campaignId: string) => Promise<CampaignDetailResponse>",
+        "createCampaignUnified": "(payload: UnifiedCreateCampaignRequest) => Promise<CampaignCreationResponse>",
+        "startCampaign": "(campaignId: string) => Promise<CampaignOperationResponse>",
+        "pauseCampaign": "(campaignId: string) => Promise<CampaignOperationResponse>",
+        "resumeCampaign": "(campaignId: string) => Promise<CampaignOperationResponse>",
+        "cancelCampaign": "(campaignId: string) => Promise<CampaignOperationResponse>",
+        "deleteCampaign": "(campaignId: string) => Promise<CampaignDeleteResponse>",
+        "getGeneratedDomains": "(campaignId: string, options?: PaginationOptions) => Promise<ApiResponse<GeneratedDomain[]>>",
+        "getDNSValidationResults": "(campaignId: string, options?: PaginationOptions) => Promise<ApiResponse<CampaignValidationItem[]>>",
+        "getHTTPKeywordResults": "(campaignId: string, options?: PaginationOptions) => Promise<ApiResponse<CampaignValidationItem[]>>"
+      }
+    },
+    "personaService": {
+      "location": "src/lib/services/personaService.production.ts",
+      "methods": {
+        "createHttpPersona": "(payload: CreateHttpPersonaPayload) => Promise<HttpPersona>",
+        "updateHttpPersona": "(personaId: string, payload: UpdateHttpPersonaPayload) => Promise<HttpPersona>",
+        "createDnsPersona": "(payload: CreateDnsPersonaPayload) => Promise<DnsPersona>",
+        "updateDnsPersona": "(personaId: string, payload: UpdateDnsPersonaPayload) => Promise<DnsPersona>",
+        "getPersonas": "(filters?: PersonaFilters) => Promise<Persona[]>",
+        "getPersonaById": "(personaId: string) => Promise<Persona>",
+        "deletePersona": "(personaId: string) => Promise<void>",
+        "testPersona": "(personaId: string) => Promise<PersonaActionResponse>"
+      },
+      "security": {
+        "configValidation": "All persona configurations are validated before sending to backend",
+        "deserializationSafety": "Safe deserialization with type validation"
+      }
+    },
+    "websocketService": {
+      "location": "src/lib/services/websocketService.production.ts",
+      "methods": {
+        "connectToCampaign": "(campaignId: string, onMessage: MessageHandler, onError?: ErrorHandler) => () => void",
+        "connectToAllCampaigns": "(onMessage: MessageHandler, onError?: ErrorHandler) => () => void",
+        "disconnect": "(campaignId: string) => void",
+        "disconnectAll": "() => void",
+        "isConnected": "(campaignId: string) => boolean",
+        "getConnectionStatus": "() => Record<string, boolean>",
+        "sendMessage": "(campaignId: string, message: object) => void"
+      },
+      "features": {
+        "authentication": "Session-based via cookies",
+        "reconnection": "Exponential backoff with max 5 attempts",
+        "subscriptions": "Campaign-specific subscriptions"
+      }
+    }
+  },
+  "reactContexts": {
+    "AuthContext": {
+      "location": "src/contexts/AuthContext.tsx",
+      "interface": "AuthContextType",
+      "providers": {
+        "AuthProvider": "Main authentication provider",
+        "ProtectedRoute": "Route protection component",
+        "ConditionalRender": "Permission-based rendering"
+      },
+      "hooks": {
+        "useAuth": "() => AuthContextType",
+        "usePermissions": "() => PermissionHelpers"
+      }
+    },
+    "WebSocketStatusContext": {
+      "location": "src/contexts/WebSocketStatusContext.tsx",
+      "interface": "WebSocketStatusContextType",
+      "state": {
+        "connections": "Record<string, WebSocketConnectionStatus>",
+        "overallStatus": "'healthy' | 'degraded' | 'offline'",
+        "isTestingConnection": "boolean",
+        "lastTestResult": "TestResult?"
+      },
+      "methods": {
+        "testConnection": "() => Promise<boolean>",
+        "getConnectionStatus": "(connectionKey: string) => WebSocketConnectionStatus | null",
+        "isOperationallyConnected": "() => boolean",
+        "refreshStatus": "() => void"
+      }
+    }
+  },
+  "typeTransformers": {
+    "TypeTransformer": {
+      "location": "src/lib/types/transform.ts",
+      "methods": {
+        "toUUID": "(value: string | undefined | null) => UUID | undefined",
+        "toSafeBigInt": "(value: number | string | undefined | null) => SafeBigInt | undefined",
+        "toISODateString": "(value: string | undefined | null) => ISODateString | undefined",
+        "transformUser": "(raw: RawAPIData) => User",
+        "transformCampaign": "(raw: RawAPIData) => Campaign",
+        "transformGeneratedDomain": "(raw: RawAPIData) => RawAPIData",
+        "transformDNSValidationResult": "(raw: RawAPIData) => RawAPIData",
+        "transformHTTPKeywordResult": "(raw: RawAPIData) => RawAPIData",
+        "transformToPersona": "(raw: RawAPIData) => RawAPIData",
+        "transformToProxy": "(raw: RawAPIData) => RawAPIData",
+        "transformArray": "<T>(items: unknown[], transformer: Function) => T[]"
+      }
+    },
+    "campaignTransforms": {
+      "location": "src/lib/utils/campaignTransforms.ts",
+      "methods": {
+        "transformCampaignToViewModel": "(campaign: Campaign) => CampaignViewModel",
+        "transformCampaignsToViewModels": "(campaigns: Campaign[]) => CampaignViewModel[]",
+        "extractCampaignFromViewModel": "(viewModel: CampaignViewModel) => Campaign",
+        "mergeCampaignApiUpdate": "(viewModel: CampaignViewModel, apiUpdate: Partial<Campaign>) => CampaignViewModel"
+      }
+    }
+  },
+  "crossStackSync": {
+    "location": "src/lib/types/cross-stack-sync.ts",
+    "purpose": "Maintain perfect alignment between database schema, backend Go structs, and frontend TypeScript types",
+    "constants": {
+      "ValidationStatus": ["pending", "valid", "invalid", "error", "skipped"],
+      "DNSValidationStatus": ["resolved", "unresolved", "timeout", "error"],
+      "HTTPValidationStatus": ["success", "failed", "timeout", "error"],
+      "CampaignStatus": ["pending", "queued", "running", "pausing", "paused", "completed", "failed", "archived", "cancelled"],
+      "CampaignJobStatus": ["pending", "queued", "running", "processing", "completed", "failed", "retry"],
+      "CampaignType": ["domain_generation", "dns_validation", "http_keyword_validation"],
+      "PersonaType": ["dns", "http"],
+      "ProxyProtocol": ["http", "https", "socks4", "socks5"]
+    },
+    "syncedTypes": {
+      "SessionSecurity": "Matches auth.sessions table",
+      "UserSecurity": "Matches auth.users table",
+      "RoleSecurity": "Matches auth.roles table",
+      "PermissionSecurity": "Matches auth.permissions table",
+      "CampaignSynced": "Matches campaigns table",
+      "GeneratedDomainSynced": "Matches generated_domains table",
+      "PersonaSynced": "Matches personas table",
+      "ProxySynced": "Matches proxies table"
+    }
+  },
+  "validationUtilities": {
+    "typeValidation": {
+      "location": "src/lib/utils/type-validation.ts",
+      "validators": {
+        "validateCampaignType": "(value: unknown) => value is CampaignType",
+        "validateCampaignStatus": "(value: unknown) => value is CampaignStatus",
+        "validatePersonaType": "(value: unknown) => value is PersonaType",
+        "validateProxyProtocol": "(value: unknown) => value is ProxyProtocol",
+        "validateUUID": "(value: unknown) => value is string",
+        "validateISODateTime": "(value: unknown) => value is string",
+        "validateCampaign": "(data: unknown) => data is Campaign",
+        "validateUser": "(data: unknown) => data is User",
+        "validateSession": "(data: unknown) => data is Session"
+      }
+    },
+    "runtimeValidators": {
+      "location": "src/lib/utils/runtime-validators.ts",
+      "classes": {
+        "ValidationError": "Custom error class for validation failures",
+        "RuntimeValidator": "Generic validator class with composition support"
+      },
+      "utilities": {
+        "createValidator": "Factory for creating type-safe validators",
+        "composeValidators": "Compose multiple validators",
+        "validateWithFallback": "Validate with fallback value"
+      }
+    },
+    "statusMapping": {
+      "location": "src/lib/utils/statusMapping.ts",
+      "functions": {
+        "isValidCampaignStatus": "(status: string) => status is CampaignStatus",
+        "normalizeStatus": "(status: unknown) => CampaignStatus",
+        "getStatusDisplayName": "(status: CampaignStatus) => string",
+        "getStatusColor": "(status: CampaignStatus) => string",
+        "isActiveStatus": "(status: CampaignStatus) => boolean",
+        "isTerminalStatus": "(status: CampaignStatus) => boolean",
+        "canStart": "(status: CampaignStatus) => boolean",
+        "canPause": "(status: CampaignStatus) => boolean",
+        "canCancel": "(status: CampaignStatus) => boolean"
+      }
+    }
+  },
+  "apiClient": {
+    "production": {
+      "location": "src/lib/services/apiClient.production.ts",
+      "class": "ProductionApiClient",
+      "features": {
+        "authentication": "Session-based with cookie credentials",
+        "sessionRefresh": "Proactive session refresh with request queueing",
+        "errorHandling": "Unified error response format handling",
+        "retries": "Exponential backoff with configurable retries",
+        "timeout": "Request timeout support"
+      },
+      "methods": {
+        "request": "Generic request method with interceptors",
+        "get": "GET request helper",
+        "post": "POST request helper",
+        "put": "PUT request helper",
+        "patch": "PATCH request helper",
+        "delete": "DELETE request helper"
+      }
+    },
+    "monitored": {
+      "location": "src/lib/api/monitored-api-client.ts",
+      "class": "MonitoredApiClient",
+      "features": {
+        "performanceTracking": "Request duration monitoring",
+        "errorTracking": "API error recording",
+        "requestIds": "Unique request ID generation"
+      }
+    },
+    "wrapper": {
+      "location": "src/lib/api/api-client-wrapper.ts",
+      "purpose": "Runtime validation wrapper for API responses",
+      "features": {
+        "runtimeValidation": "Validate API responses against schemas",
+        "brandedTypes": "Transform raw data to branded types",
+        "errorEnrichment": "Enhanced error messages with validation details"
+      }
+    }
+  },
+  "configurationTypes": {
+    "personaConfigs": {
+      "HttpPersonaConfig": {
+        "location": "src/lib/types.ts",
+        "fields": {
+          "userAgent": "string",
+          "acceptLanguage": "string?",
+          "acceptEncoding": "string?",
+          "customHeaders": "Record<string, string>?",
+          "followRedirects": "boolean?",
+          "maxRedirects": "number?",
+          "timeout": "number?",
+          "proxy": "HttpPersonaProxyConfig?"
+        }
+      },
+      "DnsPersonaConfig": {
+        "location": "src/lib/types.ts",
+        "fields": {
+          "dnsServers": "string[]",
+          "timeout": "number?",
+          "retries": "number?",
+          "protocol": "'udp' | 'tcp' | 'doh'?",
+          "dohUrl": "string?"
+        }
+      }
+    },
+    "campaignParams": {
+      "DomainGenerationParams": {
+        "patternType": "'prefix' | 'suffix' | 'both'",
+        "variableLength": "number",
+        "characterSet": "string",
+        "constantString": "string",
+        "tld": "string",
+        "numDomainsToGenerate": "number?"
+      },
+      "DnsValidationParams": {
+        "sourceCampaignId": "string",
+        "personaIds": "string[]",
+        "rotationIntervalSeconds": "number?",
+        "processingSpeedPerMinute": "number?",
+        "batchSize": "number?",
+        "retryAttempts": "number?"
+      },
+      "HttpKeywordParams": {
+        "sourceCampaignId": "string",
+        "keywordSetIds": "string[]?",
+        "adHocKeywords": "string[]?",
+        "personaIds": "string[]",
+        "proxyPoolId": "string?",
+        "proxySelectionStrategy": "string?",
+        "rotationIntervalSeconds": "number?",
+        "processingSpeedPerMinute": "number?",
+        "batchSize": "number?",
+        "retryAttempts": "number?",
+        "targetHttpPorts": "number[]?"
+      }
+    }
+  },
+  "apiResponseTypes": {
+    "standardResponses": {
+      "ApiResponse<T>": {
+        "status": "'success' | 'error'",
+        "data": "T?",
+        "message": "string?",
+        "errors": "Array<{field?: string, message: string}>?"
+      },
+      "CampaignsListResponse": "ApiResponse<Campaign[]>",
+      "CampaignDetailResponse": "ApiResponse<Campaign>",
+      "CampaignCreationResponse": "ApiResponse<Campaign>",
+      "CampaignOperationResponse": "ApiResponse<Campaign>",
+      "CampaignDeleteResponse": "ApiResponse<null>",
+      "LoginResponse": {
+        "success": "boolean",
+        "user": "User?",
+        "error": "string?",
+        "requires_captcha": "boolean?",
+        "sessionId": "string?",
+        "expiresAt": "string?"
+      }
+    },
+    "unifiedResponses": {
+      "UnifiedErrorResponse": {
+        "success": "false",
+        "error": {
+          "code": "string",
+          "message": "string",
+          "details": "Array<{field?: string, code: string, message: string, context?: unknown}>?",
+          "timestamp": "string",
+          "path": "string?"
+        },
+        "request_id": "string"
+      },
+      "UnifiedSuccessResponse<T>": {
+        "success": "true",
+        "data": "T",
+        "metadata": {
+          "page": "PaginationMetadata?",
+          "rate_limit": "RateLimitMetadata?",
+          "processing": "ProcessingMetadata?",
+          "extra": "Record<string, unknown>?"
+        },
+        "request_id": "string"
+      }
+    }
+  },
+  "typeConsistencyFindings": {
+    "brandedTypeUsage": {
+      "consistent": [
+        "UUID used consistently for all ID fields",
+        "ISODateString used for all timestamp fields",
+        "SafeBigInt used for large numeric counters"
+      ],
+      "transformationPoints": [
+        "API responses transformed in service layer",
+        "WebSocket messages transformed on receipt",
+        "Form data transformed before submission"
+      ]
+    },
+    "enumAlignment": {
+      "campaignStatus": "Frontend and API enums are aligned",
+      "campaignType": "Consistent across all layers",
+      "personaType": "Binary choice (dns/http) consistent",
+      "proxyProtocol": "Standard protocols supported"
+    },
+    "apiContractAlignment": {
+      "openApiGenerated": "Models match OpenAPI spec",
+      "serviceLayer": "Services use consistent request/response types",
+      "validationSchemas": "Zod schemas match TypeScript interfaces"
+    },
+    "potentialIssues": {
+      "legacyFields": [
+        "Some models have both snake_case and camelCase variants",
+        "CampaignViewModel contains UI-specific fields not in base type",
+        "User permissions/roles represented as both strings and objects"
+      ],
+      "typeCoercion": [
+        "Date strings need explicit transformation to branded types",
+        "BigInt serialization requires special handling",
+        "UUID validation needed at runtime boundaries"
+      ]
+    }
+  }
+}

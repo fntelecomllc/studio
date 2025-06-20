@@ -1,41 +1,25 @@
-  /**
- * Simple WebSocket Service for DomainFlow
+/**
+ * Production WebSocket Service for DomainFlow
  * 
- * Focused, lightweight implementation that works directly with the Go backend.
- * Eliminates complexity while maintaining all necessary functionality.
+ * Updated to use correct message structure that matches Go backend exactly.
+ * Eliminates parsing failures by aligning with actual backend format.
  */
 
-import { UUID, ISODateString, createISODateString, createUUID, isValidUUID } from '@/lib/types/branded';
-
-// Simple message types that match backend expectations
-export interface WebSocketMessage {
-  id: UUID;
-  timestamp: ISODateString;
-  type: string;
-  sequenceNumber: number;
-  data?: unknown;
-  message?: string;
-  campaignId?: UUID;
-  phase?: string;
-  status?: string;
-  progress?: number;
-}
-
-export interface CampaignMessage extends WebSocketMessage {
-  campaignId: UUID;
-  type: 'campaign_progress' | 'domain_generated' | 'campaign_complete' | 'campaign_error';
-  data: {
-    progress?: number;
-    status?: string;
-    phase?: string;
-    domain?: string;
-    error?: string;
-    [key: string]: unknown;
-  };
-}
+import { UUID, ISODateString } from '@/lib/types/branded';
+import {
+  WebSocketMessage,
+  WebSocketMessageTypes,
+  parseWebSocketMessage,
+  routeWebSocketMessage,
+  WebSocketHandlers,
+  TypedWebSocketMessage,
+  CampaignProgressMessage,
+  CampaignStatusMessage,
+  DomainGeneratedMessage
+} from '@/lib/types/websocket-types-fixed';
 
 // Event handler types
-export type MessageHandler = (message: WebSocketMessage) => void;
+export type MessageHandler = (message: TypedWebSocketMessage) => void;
 export type ErrorHandler = (error: Event | Error) => void;
 
 interface ConnectionState {
@@ -48,7 +32,7 @@ interface ConnectionState {
   isIntentionalClose: boolean;
 }
 
-class SimpleWebSocketService {
+class ProductionWebSocketService {
   private connections: Map<string, ConnectionState> = new Map();
   private globalConnection: ConnectionState | null = null;
   private maxReconnectAttempts = 5;
@@ -107,19 +91,17 @@ class SimpleWebSocketService {
 
     state.ws.onmessage = (event) => {
       try {
-        const rawMessage = JSON.parse(event.data);
+        // Parse message using the corrected parser
+        const message = parseWebSocketMessage(event.data);
         
-        // Transform to branded types
-        const message: WebSocketMessage = {
-          ...rawMessage,
-          id: isValidUUID(rawMessage.id) ? createUUID(rawMessage.id) : createUUID('00000000-0000-0000-0000-000000000000'),
-          timestamp: rawMessage.timestamp ? createISODateString(rawMessage.timestamp) : createISODateString(new Date().toISOString()),
-          campaignId: rawMessage.campaignId && isValidUUID(rawMessage.campaignId) ? createUUID(rawMessage.campaignId) : undefined,
-        };
+        if (!message) {
+          console.error('[WebSocket] Failed to parse message:', event.data);
+          return;
+        }
         
         console.log(`[WebSocket] Message received:`, message);
         
-        // Call all message handlers
+        // Call all message handlers with the typed message
         state.messageHandlers.forEach(handler => {
           try {
             handler(message);
@@ -128,7 +110,7 @@ class SimpleWebSocketService {
           }
         });
       } catch (error) {
-        console.error('[WebSocket] Failed to parse message:', error, event.data);
+        console.error('[WebSocket] Error processing message:', error, event.data);
       }
     };
 
@@ -165,8 +147,11 @@ class SimpleWebSocketService {
   private sendSubscribeMessage(ws: WebSocket, campaignId: string): void {
     if (ws.readyState === WebSocket.OPEN) {
       const message = {
-        type: 'subscribe_campaign',
-        campaignId: campaignId
+        type: 'subscribe',
+        data: {
+          campaignId: campaignId
+        },
+        timestamp: new Date().toISOString()
       };
       ws.send(JSON.stringify(message));
       console.log(`[WebSocket] Subscribed to campaign: ${campaignId}`);
@@ -179,8 +164,11 @@ class SimpleWebSocketService {
   private sendUnsubscribeMessage(ws: WebSocket, campaignId: string): void {
     if (ws.readyState === WebSocket.OPEN) {
       const message = {
-        type: 'unsubscribe_campaign',
-        campaignId: campaignId
+        type: 'unsubscribe',
+        data: {
+          campaignId: campaignId
+        },
+        timestamp: new Date().toISOString()
       };
       ws.send(JSON.stringify(message));
       console.log(`[WebSocket] Unsubscribed from campaign: ${campaignId}`);
@@ -215,11 +203,11 @@ class SimpleWebSocketService {
   }
 
   /**
-   * Connect to a specific campaign
+   * Connect to a specific campaign with typed handlers
    */
   connectToCampaign(
     campaignId: string, 
-    onMessage: MessageHandler, 
+    handlers: Partial<WebSocketHandlers>,
     onError?: ErrorHandler
   ): () => void {
     const connectionId = `campaign_${campaignId}`;
@@ -241,8 +229,21 @@ class SimpleWebSocketService {
       state.subscriptions.add(campaignId);
     }
 
-    // Add handlers
-    state.messageHandlers.push(onMessage);
+    // Create a message handler that routes to typed handlers
+    const messageHandler: MessageHandler = (message) => {
+      // Filter messages for this specific campaign
+      if ('data' in message && message.data && typeof message.data === 'object' && 'campaignId' in message.data) {
+        const data = message.data as { campaignId: string };
+        if (data.campaignId !== campaignId) {
+          return; // Skip messages for other campaigns
+        }
+      }
+      
+      // Route message to appropriate handler
+      routeWebSocketMessage(message, handlers);
+    };
+    
+    state.messageHandlers.push(messageHandler);
     if (onError) {
       state.errorHandlers.push(onError);
     }
@@ -264,9 +265,9 @@ class SimpleWebSocketService {
   }
 
   /**
-   * Connect to all campaigns (global connection)
+   * Connect to all campaigns with typed handlers
    */
-  connectToAllCampaigns(onMessage: MessageHandler, onError?: ErrorHandler): () => void {
+  connectToAllCampaigns(handlers: Partial<WebSocketHandlers>, onError?: ErrorHandler): () => void {
     if (!this.globalConnection) {
       this.globalConnection = {
         ws: null,
@@ -279,8 +280,12 @@ class SimpleWebSocketService {
       };
     }
 
-    // Add handlers
-    this.globalConnection.messageHandlers.push(onMessage);
+    // Create a message handler that routes to typed handlers
+    const messageHandler: MessageHandler = (message) => {
+      routeWebSocketMessage(message, handlers);
+    };
+    
+    this.globalConnection.messageHandlers.push(messageHandler);
     if (onError) {
       this.globalConnection.errorHandlers.push(onError);
     }
@@ -296,6 +301,25 @@ class SimpleWebSocketService {
     return () => {
       this.disconnectAll();
     };
+  }
+
+  /**
+   * Legacy connect method for backward compatibility
+   */
+  connectToCampaignLegacy(
+    campaignId: string,
+    onMessage: (message: WebSocketMessage) => void,
+    onError?: ErrorHandler
+  ): () => void {
+    // Convert legacy handler to new format
+    const handlers: Partial<WebSocketHandlers> = {
+      onCampaignProgress: (msg) => onMessage(msg),
+      onCampaignStatus: (msg) => onMessage(msg),
+      onDomainGenerated: (msg) => onMessage(msg),
+      onUnknownMessage: (msg) => onMessage(msg)
+    };
+    
+    return this.connectToCampaign(campaignId, handlers, onError);
   }
 
   /**
@@ -376,15 +400,20 @@ class SimpleWebSocketService {
   }
 
   /**
-   * Send a message (if needed for control messages)
+   * Send a raw message (advanced use)
    */
   sendMessage(campaignId: string, message: object): void {
     const connectionId = `campaign_${campaignId}`;
     const state = this.connections.get(connectionId);
     
     if (state?.ws?.readyState === WebSocket.OPEN) {
-      state.ws.send(JSON.stringify(message));
-      console.log(`[WebSocket] Sent message to ${campaignId}:`, message);
+      // Ensure message has correct structure
+      const formattedMessage = {
+        ...message,
+        timestamp: new Date().toISOString()
+      };
+      state.ws.send(JSON.stringify(formattedMessage));
+      console.log(`[WebSocket] Sent message to ${campaignId}:`, formattedMessage);
     } else {
       console.warn(`[WebSocket] Cannot send message - not connected to ${campaignId}`);
     }
@@ -392,10 +421,35 @@ class SimpleWebSocketService {
 }
 
 // Export singleton instance
-export const websocketService = new SimpleWebSocketService();
+export const websocketService = new ProductionWebSocketService();
 
-// Legacy compatibility type for backward compatibility
-export interface CampaignProgressMessage {
+// Re-export types for convenience
+export { WebSocketMessageTypes };
+export type {
+  WebSocketMessage,
+  TypedWebSocketMessage,
+  CampaignProgressMessage,
+  CampaignStatusMessage,
+  DomainGeneratedMessage,
+  WebSocketHandlers
+};
+
+// Legacy export for backward compatibility
+export interface CampaignMessage extends WebSocketMessage {
+  campaignId?: UUID;
+  type: 'campaign_progress' | 'domain_generated' | 'campaign_complete' | 'campaign_error';
+  data: {
+    progress?: number;
+    status?: string;
+    phase?: string;
+    domain?: string;
+    error?: string;
+    [key: string]: unknown;
+  };
+}
+
+// Legacy compatibility for progress messages
+export interface CampaignProgressMessageLegacy {
   type: string;
   campaignId: UUID;
   data: {

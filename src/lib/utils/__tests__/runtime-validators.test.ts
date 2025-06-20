@@ -369,9 +369,9 @@ describe('Runtime Validators', () => {
         status: string;
         maxBudget: number;
       }>({
-        id: validateUUID,
+        id: (v: unknown) => typeof v === 'string' && validateUUID(v),
         name: (v: any) => validateNonEmptyString(v),
-        status: validateCampaignStatus,
+        status: (v: unknown) => typeof v === 'string' && validateCampaignStatus(v),
         maxBudget: (v: any) => validateNumberRange(v, 0, 1000000),
       });
 
@@ -395,7 +395,7 @@ describe('Runtime Validators', () => {
 
     it('should handle arrays of validated objects', () => {
       const userValidator = createObjectValidator<{ id: string; name: string }>({
-        id: validateUUID,
+        id: (v: unknown) => typeof v === 'string' && validateUUID(v),
         name: (v: any) => validateNonEmptyString(v),
       });
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, type Control } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -119,8 +119,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
   });
 
   const { control, formState: { isSubmitting }, watch, setValue } = form;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const typedControl = control as any; // Workaround for TypeScript inference issue
+  const typedControl = control as Control<CampaignFormValues>;
   const selectedCampaignType = watch("selectedType");
 
   // Performance-optimized domain calculation with debouncing and safeguards

@@ -1,9 +1,35 @@
 /**
  * API client wrapper with runtime validation for all responses
+ * Enhanced with SafeBigInt transformation support
  */
 
-import { AxiosResponse } from 'axios';
-import { ValidationError, Validator, deepValidate } from '../utils/runtime-validators';
+import { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
+
+// Extend axios config to include metadata
+declare module 'axios' {
+  interface InternalAxiosRequestConfig {
+    metadata?: {
+      startTime: number;
+    };
+  }
+}
+import { 
+  ValidationResult,
+  ValidationError as ValidatorError,
+  Validator,
+  validateCampaignResponse,
+  validateUserResponse,
+  validateGeneratedDomainResponse,
+  validateArray,
+  RuntimeValidationError,
+  validateOrThrow
+} from '../validation/runtime-validators';
+import {
+  ModelsCampaignAPI,
+  ModelsUserAPI,
+  ModelsGeneratedDomainAPI
+} from '../types/models-aligned';
+import { performanceMonitor } from '../monitoring/performance-monitor';
 
 /**
  * Custom error for API validation failures
@@ -20,45 +46,48 @@ export class ApiValidationError extends Error {
 }
 
 /**
- * Validates API response data against a validator
+ * Validates API response data using a validator
  */
 export function validateApiResponse<T>(
   response: AxiosResponse<unknown>,
   validator: Validator<T>,
   errorContext?: string
 ): T {
+  const startTime = performance.now();
   const { data } = response;
   
-  if (!validator(data)) {
-    throw new ApiValidationError(
-      `API response validation failed${errorContext ? ` for ${errorContext}` : ''}`,
-      data
+  try {
+    const result = validator(data);
+    
+    if (!result.isValid) {
+      const errors = result.errors.map(e => `${e.field}: ${e.message}`);
+      throw new ApiValidationError(
+        `API response validation failed${errorContext ? ` for ${errorContext}` : ''}`,
+        data,
+        errors
+      );
+    }
+    
+    // Record validation performance
+    const duration = performance.now() - startTime;
+    performanceMonitor.recordCustomMetric(
+      'api_validation_duration',
+      duration,
+      'ms',
+      { context: errorContext || 'unknown' }
     );
-  }
-  
-  return data;
-}
-
-/**
- * Validates API response using deep validation schema
- */
-export function validateApiResponseDeep<T>(
-  response: AxiosResponse<unknown>,
-  schema: Record<string, unknown>,
-  errorContext?: string
-): T {
-  const { data } = response;
-  const validation = deepValidate(data, schema);
-  
-  if (!validation.isValid) {
-    throw new ApiValidationError(
-      `API response validation failed${errorContext ? ` for ${errorContext}` : ''}`,
-      data,
-      validation.errors
+    
+    return result.data as T;
+  } catch (error) {
+    // Record validation failure
+    performanceMonitor.recordCustomMetric(
+      'api_validation_failure',
+      1,
+      'count',
+      { context: errorContext || 'unknown', error: error instanceof Error ? error.message : 'unknown' }
     );
+    throw error;
   }
-  
-  return data as T;
 }
 
 /**
@@ -69,15 +98,18 @@ export function validateApiRequest<T>(
   validator: Validator<T>,
   errorContext?: string
 ): T {
-  if (!validator(requestData)) {
-    throw new ValidationError(
+  const result = validator(requestData);
+  
+  if (!result.isValid) {
+    const errors = result.errors.map(e => `${e.field}: ${e.message}`);
+    throw new ApiValidationError(
       `API request validation failed${errorContext ? ` for ${errorContext}` : ''}`,
-      undefined,
-      requestData
+      requestData,
+      errors
     );
   }
   
-  return requestData;
+  return result.data as T;
 }
 
 /**
@@ -100,7 +132,7 @@ export async function validateApiCall<TRequest, TResponse>(
     // Validate response
     return validateApiResponse(response, responseValidator, context);
   } catch (error) {
-    if (error instanceof ApiValidationError || error instanceof ValidationError) {
+    if (error instanceof ApiValidationError || error instanceof RuntimeValidationError) {
       throw error;
     }
     
@@ -145,11 +177,11 @@ export function handleApiValidationError(error: unknown): {
     };
   }
   
-  if (error instanceof ValidationError) {
+  if (error instanceof RuntimeValidationError) {
     return {
       isValidationError: true,
       message: error.message,
-      details: error.field ? [`Field: ${error.field}`] : undefined
+      details: error.errors.map(e => `${e.field}: ${e.message}`)
     };
   }
   
@@ -170,24 +202,25 @@ export function transformAndValidate<TInput, TOutput>(
 ): TOutput {
   try {
     const transformed = transformer(input);
+    const result = validator(transformed);
     
-    if (!validator(transformed)) {
-      throw new ValidationError(
+    if (!result.isValid) {
+      const errors = result.errors.map(e => `${e.field}: ${e.message}`);
+      throw new ApiValidationError(
         `Transformation validation failed${context ? ` for ${context}` : ''}`,
-        undefined,
-        transformed
+        input,
+        errors
       );
     }
     
-    return transformed;
+    return result.data as TOutput;
   } catch (error) {
-    if (error instanceof ValidationError) {
+    if (error instanceof ApiValidationError || error instanceof RuntimeValidationError) {
       throw error;
     }
     
-    throw new ValidationError(
-      `Transformation failed${context ? ` for ${context}` : ''}: ${error}`,
-      undefined,
+    throw new ApiValidationError(
+      `Transformation failed${context ? ` for ${context}` : ''}: ${error instanceof Error ? error.message : 'unknown'}`,
       input
     );
   }
@@ -210,18 +243,10 @@ export function validateArrayResponse<T>(
     );
   }
   
-  const errors: string[] = [];
-  const validatedItems: T[] = [];
+  const arrayResult = validateArray(data, itemValidator);
   
-  data.forEach((item, index) => {
-    if (itemValidator(item)) {
-      validatedItems.push(item);
-    } else {
-      errors.push(`Item at index ${index} failed validation`);
-    }
-  });
-  
-  if (errors.length > 0) {
+  if (!arrayResult.isValid) {
+    const errors = arrayResult.errors.map(e => `${e.field}: ${e.message}`);
     throw new ApiValidationError(
       `Array response validation failed${errorContext ? ` for ${errorContext}` : ''}`,
       data,
@@ -229,5 +254,328 @@ export function validateArrayResponse<T>(
     );
   }
   
-  return validatedItems;
+  return arrayResult.data as T[];
 }
+
+// ============================================================================
+// ENHANCED TRANSFORMATION METHODS FOR INT64 SAFETY WITH VALIDATION
+// ============================================================================
+
+/**
+ * Transform and validate campaign response with SafeBigInt conversion
+ */
+export function transformCampaignApiResponse(
+  response: AxiosResponse<unknown>
+): ModelsCampaignAPI {
+  const startTime = performance.now();
+  
+  try {
+    const result = validateApiResponse(response, validateCampaignResponse, 'campaign');
+    
+    // Record transformation performance
+    const duration = performance.now() - startTime;
+    performanceMonitor.recordCustomMetric(
+      'campaign_transform_duration',
+      duration,
+      'ms'
+    );
+    
+    return result;
+  } catch (error) {
+    // Record transformation failure
+    performanceMonitor.recordCustomMetric(
+      'campaign_transform_failure',
+      1,
+      'count'
+    );
+    throw error;
+  }
+}
+
+/**
+ * Transform and validate campaign array response
+ */
+export function transformCampaignArrayResponse(
+  response: AxiosResponse<unknown>
+): ModelsCampaignAPI[] {
+  return validateArrayResponse(response, validateCampaignResponse, 'campaigns');
+}
+
+/**
+ * Transform and validate user response
+ */
+export function transformUserApiResponse(
+  response: AxiosResponse<unknown>
+): ModelsUserAPI {
+  return validateApiResponse(response, validateUserResponse, 'user');
+}
+
+/**
+ * Transform and validate user array response
+ */
+export function transformUserArrayResponse(
+  response: AxiosResponse<unknown>
+): ModelsUserAPI[] {
+  return validateArrayResponse(response, validateUserResponse, 'users');
+}
+
+/**
+ * Transform and validate generated domain response
+ */
+export function transformGeneratedDomainApiResponse(
+  response: AxiosResponse<unknown>
+): ModelsGeneratedDomainAPI {
+  return validateApiResponse(response, validateGeneratedDomainResponse, 'generated domain');
+}
+
+/**
+ * Transform and validate generated domain array response
+ */
+export function transformGeneratedDomainArrayResponse(
+  response: AxiosResponse<unknown>
+): ModelsGeneratedDomainAPI[] {
+  return validateArrayResponse(response, validateGeneratedDomainResponse, 'generated domains');
+}
+
+// ============================================================================
+// API RESPONSE WRAPPER WITH VALIDATION
+// ============================================================================
+
+/**
+ * Wrapper for API responses with metadata
+ */
+export interface ApiResponse<T> {
+  data: T;
+  status: number;
+  message?: string;
+  timestamp: string;
+  errors?: string[];
+}
+
+/**
+ * Create a validated API response wrapper
+ */
+export function createApiResponse<T>(
+  response: AxiosResponse<unknown>,
+  dataValidator: Validator<T>
+): ApiResponse<T> {
+  const data = validateApiResponse(response, dataValidator);
+  
+  return {
+    data,
+    status: response.status,
+    message: response.statusText,
+    timestamp: new Date().toISOString(),
+    errors: []
+  };
+}
+
+// ============================================================================
+// AXIOS INTERCEPTOR FOR AUTOMATIC TRANSFORMATION AND VALIDATION
+// ============================================================================
+
+/**
+ * Configure axios instance with automatic response transformation and validation
+ * This should be applied to your axios instance used by the API client
+ */
+export function configureAxiosForSafeBigInt(axiosInstance: { 
+  interceptors: { 
+    response: { 
+      use: (
+        onSuccess: (response: AxiosResponse) => AxiosResponse | Promise<AxiosResponse>, 
+        onError: (error: unknown) => Promise<never>
+      ) => void 
+    },
+    request: {
+      use: (
+        onSuccess: (config: InternalAxiosRequestConfig) => InternalAxiosRequestConfig | Promise<InternalAxiosRequestConfig>,
+        onError: (error: unknown) => Promise<never>
+      ) => void
+    }
+  } 
+}): void {
+  // Request interceptor to track API calls
+  axiosInstance.interceptors.request.use(
+    (config) => {
+      // Record API call start
+      const startTime = performance.now();
+      config.metadata = { startTime };
+      return config;
+    },
+    (error) => {
+      return Promise.reject(error);
+    }
+  );
+
+  // Response interceptor to handle int64 transformations and validation
+  axiosInstance.interceptors.response.use(
+    (response: AxiosResponse) => {
+      const url = response.config.url || '';
+      const method = response.config.method || 'unknown';
+      const startTime = response.config.metadata?.startTime || performance.now();
+      const duration = performance.now() - startTime;
+      
+      // Record API call metrics
+      performanceMonitor.recordApiCall(url, method.toUpperCase(), duration, response.status);
+      
+      try {
+        // Campaign endpoints
+        if (url.includes('/campaigns')) {
+          if (Array.isArray(response.data)) {
+            response.data = response.data.map(item => {
+              const result = validateCampaignResponse(item);
+              if (!result.isValid) {
+                throw new ApiValidationError('Invalid campaign data in array', item, 
+                  result.errors.map(e => `${e.field}: ${e.message}`)
+                );
+              }
+              return result.data;
+            });
+          } else if (response.data && typeof response.data === 'object' && 'campaignType' in response.data) {
+            const result = validateCampaignResponse(response.data);
+            if (!result.isValid) {
+              throw new ApiValidationError('Invalid campaign data', response.data,
+                result.errors.map(e => `${e.field}: ${e.message}`)
+              );
+            }
+            response.data = result.data;
+          }
+        }
+        
+        // User endpoints
+        else if (url.includes('/users') || url.includes('/auth')) {
+          if (response.data && typeof response.data === 'object') {
+            if ('user' in response.data && response.data.user) {
+              // Login response
+              const result = validateUserResponse(response.data.user);
+              if (!result.isValid) {
+                throw new ApiValidationError('Invalid user data in auth response', response.data.user,
+                  result.errors.map(e => `${e.field}: ${e.message}`)
+                );
+              }
+              response.data.user = result.data;
+            } else if ('email' in response.data) {
+              // Direct user response
+              const result = validateUserResponse(response.data);
+              if (!result.isValid) {
+                throw new ApiValidationError('Invalid user data', response.data,
+                  result.errors.map(e => `${e.field}: ${e.message}`)
+                );
+              }
+              response.data = result.data;
+            }
+          }
+        }
+        
+        // Generated domains endpoints
+        else if (url.includes('/domains/generated')) {
+          if (Array.isArray(response.data)) {
+            response.data = response.data.map(item => {
+              const result = validateGeneratedDomainResponse(item);
+              if (!result.isValid) {
+                throw new ApiValidationError('Invalid generated domain data in array', item,
+                  result.errors.map(e => `${e.field}: ${e.message}`)
+                );
+              }
+              return result.data;
+            });
+          } else if (response.data && typeof response.data === 'object' && 'offsetIndex' in response.data) {
+            const result = validateGeneratedDomainResponse(response.data);
+            if (!result.isValid) {
+              throw new ApiValidationError('Invalid generated domain data', response.data,
+                result.errors.map(e => `${e.field}: ${e.message}`)
+              );
+            }
+            response.data = result.data;
+          }
+        }
+        
+        return response;
+      } catch (error) {
+        // Log validation errors but don't break the response
+        console.error('Response validation error:', error);
+        if (error instanceof ApiValidationError) {
+          // Add validation errors to response for debugging
+          response.data = {
+            ...response.data,
+            _validationErrors: error.validationErrors
+          };
+        }
+        return response;
+      }
+    },
+    (error: unknown) => {
+      if (error instanceof AxiosError) {
+        const url = error.config?.url || '';
+        const method = error.config?.method || 'unknown';
+        const startTime = error.config?.metadata?.startTime || performance.now();
+        const duration = performance.now() - startTime;
+        const status = error.response?.status || 0;
+        
+        // Record failed API call metrics
+        performanceMonitor.recordApiCall(url, method.toUpperCase(), duration, status);
+      }
+      
+      return Promise.reject(error);
+    }
+  );
+}
+
+// ============================================================================
+// VALIDATION MIDDLEWARE FOR API CLIENT
+// ============================================================================
+
+/**
+ * Create validation middleware for API client methods
+ */
+export function createValidationMiddleware<T extends Record<string, (...args: unknown[]) => unknown>>(
+  apiClient: T,
+  validators: Partial<Record<keyof T, { request?: Validator<unknown>, response?: Validator<unknown> }>>
+): T {
+  const validatedClient = {} as T;
+  
+  for (const [methodName, method] of Object.entries(apiClient)) {
+    if (typeof method === 'function') {
+      const methodValidators = validators[methodName as keyof T];
+      
+      if (methodValidators) {
+        const wrappedMethod = async (...args: unknown[]) => {
+          // Validate request if validator provided
+          if (methodValidators.request && args.length > 0) {
+            const validatedRequest = validateOrThrow(
+              args[0],
+              methodValidators.request,
+              `Invalid request for ${methodName}`
+            );
+            args[0] = validatedRequest;
+          }
+          
+          // Call original method
+          const response = await method.apply(apiClient, args) as AxiosResponse<unknown> | unknown;
+          
+          // Validate response if validator provided and response has data
+          if (methodValidators.response && response && typeof response === 'object' && 'data' in response) {
+            const axiosResponse = response as AxiosResponse<unknown>;
+            const validatedResponse = validateOrThrow(
+              axiosResponse.data,
+              methodValidators.response,
+              `Invalid response from ${methodName}`
+            );
+            axiosResponse.data = validatedResponse;
+          }
+          
+          return response;
+        };
+        (validatedClient as Record<string, unknown>)[methodName] = wrappedMethod;
+      } else {
+        // Keep original method if no validators
+        validatedClient[methodName as keyof T] = method as T[keyof T];
+      }
+    }
+  }
+  
+  return validatedClient;
+}
+
+export type { Validator, ValidationResult, ValidatorError };
+export { RuntimeValidationError };

@@ -41,7 +41,7 @@ export interface MonitoringConfig {
   };
 }
 
-class PerformanceMonitor {
+export class PerformanceMonitor {
   private static instance: PerformanceMonitor;
   private config: MonitoringConfig;
   private buffer: PerformanceReport[] = [];
