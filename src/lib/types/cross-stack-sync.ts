@@ -2,6 +2,8 @@
 // CRITICAL: Cross-stack schema synchronization types
 // This file maintains perfect alignment between database schema, backend Go structs, and frontend TypeScript types
 
+import type { SafeBigInt } from './branded';
+
 // ===== AUTHENTICATION TYPES - SYNCHRONIZED WITH BACKEND =====
 
 // Validation status enums matching backend exactly
@@ -215,7 +217,7 @@ export interface GeneratedDomainSynced {
   sourceKeyword?: string;          // TEXT
   sourcePattern?: string;          // TEXT
   tld?: string;                    // TEXT
-  offsetIndex: number;             // BIGINT NOT NULL DEFAULT 0
+  offsetIndex: SafeBigInt;         // BIGINT NOT NULL DEFAULT 0
   validationStatus: ValidationStatusType; // TEXT DEFAULT 'pending'
   generatedAt: string;             // TIMESTAMPTZ NOT NULL DEFAULT NOW()
   createdAt: string;               // TIMESTAMPTZ NOT NULL DEFAULT NOW()

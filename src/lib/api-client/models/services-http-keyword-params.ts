@@ -82,9 +82,21 @@ export interface ServicesHttpKeywordParams {
     'sourceCampaignId': string;
     /**
      * 
+     * @type {string}
+     * @memberof ServicesHttpKeywordParams
+     */
+    'sourceType': ServicesHttpKeywordParamsSourceTypeEnum;
+    /**
+     * 
      * @type {Array<number>}
      * @memberof ServicesHttpKeywordParams
      */
     'targetHttpPorts'?: Array<number>;
 }
 
+export const ServicesHttpKeywordParamsSourceTypeEnum = {
+    DomainGeneration: 'DomainGeneration',
+    DnsValidation: 'DNSValidation'
+} as const;
+
+export type ServicesHttpKeywordParamsSourceTypeEnum = typeof ServicesHttpKeywordParamsSourceTypeEnum[keyof typeof ServicesHttpKeywordParamsSourceTypeEnum];

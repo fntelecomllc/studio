@@ -84,10 +84,11 @@ export function isValidInt64(value: bigint): boolean {
 }
 
 /**
- * Validate UUID format (v4)
+ * Validate UUID format (any version)
  */
 export function isValidUUID(value: string): value is UUID {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  // Accepts any valid UUID format (v1, v3, v4, v5, etc.)
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   return uuidRegex.test(value);
 }
 
@@ -95,8 +96,16 @@ export function isValidUUID(value: string): value is UUID {
  * Validate ISO 8601 date string
  */
 export function isValidISODate(value: string): boolean {
+  // Check if it can be parsed as a valid date
   const date = new Date(value);
-  return !isNaN(date.getTime()) && date.toISOString() === value;
+  if (isNaN(date.getTime())) {
+    return false;
+  }
+  
+  // Basic ISO 8601 format check (allows various valid formats)
+  // Supports: YYYY-MM-DD, YYYY-MM-DDTHH:mm:ss, YYYY-MM-DDTHH:mm:ss.sssZ, etc.
+  const isoRegex = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?(Z|[+-]\d{2}:\d{2})?)?$/;
+  return isoRegex.test(value);
 }
 
 /**

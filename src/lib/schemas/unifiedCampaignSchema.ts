@@ -21,16 +21,23 @@ export const enhancedDomainGenerationParamsSchema = domainGenerationParamsSchema
 // Enhanced DNS Validation Parameters (missing personaIds from generator)
 export const enhancedDnsValidationParamsSchema = dnsValidationParamsSchema.extend({
   personaIds: z.array(z.string().uuid()).min(1, "At least one persona is required"),
+  // Backend validation alignment for batch and retry fields
+  batchSize: z.number().int().min(1).max(10000).optional(), // Backend: min=1, max=10000
+  retryAttempts: z.number().int().min(0).max(10).optional(), // Backend: min=0, max=10
 });
 
 // Enhanced HTTP Keyword Parameters (missing fields from generator)
 export const enhancedHttpKeywordParamsSchema = httpKeywordParamsSchema.extend({
+  sourceType: z.enum(['DomainGeneration', 'DNSValidation']),  // Required field with PascalCase values
   keywordSetIds: z.array(z.string().uuid()).optional(),
   adHocKeywords: z.array(z.string().min(1)).optional(),
   personaIds: z.array(z.string().uuid()).min(1, "At least one persona is required"),
   proxyPoolId: z.string().uuid().optional(),
   proxySelectionStrategy: z.string().optional(),
   targetHttpPorts: z.array(z.number().int().min(1).max(65535)).optional(),
+  // Backend validation alignment for batch and retry fields
+  batchSize: z.number().int().min(1).max(10000).optional(), // Backend: min=1, max=10000
+  retryAttempts: z.number().int().min(0).max(10).optional(), // Backend: min=0, max=10
 });
 
 // Complete Unified Campaign Creation Request Schema
@@ -156,6 +163,7 @@ export const createUnifiedCampaignPayload = (
     case "http_keyword_validation":
       basePayload.httpKeywordParams = {
         sourceCampaignId: formData.sourceCampaignId as string,
+        sourceType: formData.sourceType as 'DomainGeneration' | 'DNSValidation',  // Required field
         keywordSetIds: formData.keywordSetIds as string[] | undefined,
         adHocKeywords: formData.adHocKeywords as string[] | undefined,
         personaIds: formData.personaIds as string[],

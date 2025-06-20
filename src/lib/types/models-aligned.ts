@@ -203,6 +203,56 @@ export interface ModelsLoginResponseAPI {
 }
 
 /**
+ * Persona API model with correct field names and types
+ *
+ * @description Represents a persona entity for DNS or HTTP validation.
+ * All fields use proper types including UUID branding for type safety.
+ */
+export interface ModelsPersonaAPI {
+  id: UUID;
+  name: string;
+  personaType: 'dns' | 'http';
+  description?: string;
+  configDetails: Record<string, unknown>;
+  isEnabled: boolean;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+  
+  // Frontend-only fields (not in backend)
+  status?: string;
+  lastTested?: ISODateString;
+  lastError?: string;
+  tags?: string[];
+}
+
+/**
+ * Proxy API model with correct field names and types
+ *
+ * @description Represents a proxy entity for HTTP requests.
+ * All fields use proper types including UUID branding for type safety.
+ */
+export interface ModelsProxyAPI {
+  id: UUID;
+  name: string;
+  description?: string;
+  address: string;
+  protocol?: 'http' | 'https' | 'socks5' | 'socks4';
+  username?: string;
+  host?: string;
+  port?: number;
+  isEnabled: boolean;
+  isHealthy: boolean;
+  lastStatus?: string;
+  lastCheckedAt?: ISODateString;
+  latencyMs?: number;
+  city?: string;
+  countryCode?: string;
+  provider?: string;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+/**
  * Login Request
  */
 export interface ModelsLoginRequest {
@@ -536,6 +586,99 @@ export function transformGeneratedDomainResponse(raw: unknown): ModelsGeneratedD
   };
 }
 
+/**
+ * Transform persona response with proper UUID typing
+ *
+ * @description Converts raw API response data into a properly typed ModelsPersonaAPI object.
+ * Ensures UUID fields are properly branded for type safety.
+ *
+ * @param raw - Raw response data from the API
+ * @returns Type-safe persona model
+ *
+ * @example
+ * ```typescript
+ * const apiResponse = {
+ *   id: '550e8400-e29b-41d4-a716-446655440000',
+ *   name: 'DNS Persona 1',
+ *   personaType: 'dns',
+ *   isEnabled: true,
+ *   createdAt: '2024-01-15T10:30:00Z'
+ * };
+ *
+ * const persona = transformPersonaResponse(apiResponse);
+ * // persona.id is now UUID branded type
+ * ```
+ */
+export function transformPersonaResponse(raw: unknown): ModelsPersonaAPI {
+  const data = raw as Record<string, unknown>;
+  return {
+    ...data,
+    id: createUUID(data.id as string),
+    name: data.name as string,
+    personaType: data.personaType as 'dns' | 'http',
+    description: data.description as string | undefined,
+    configDetails: data.configDetails as Record<string, unknown>,
+    isEnabled: data.isEnabled as boolean,
+    createdAt: createISODateString(data.createdAt as string),
+    updatedAt: createISODateString(data.updatedAt as string),
+    
+    // Optional frontend fields
+    status: data.status as string | undefined,
+    lastTested: data.lastTested ? createISODateString(data.lastTested as string) : undefined,
+    lastError: data.lastError as string | undefined,
+    tags: data.tags as string[] | undefined
+  };
+}
+
+/**
+ * Transform proxy response with proper UUID typing
+ *
+ * @description Converts raw API response data into a properly typed ModelsProxyAPI object.
+ * Ensures UUID fields are properly branded for type safety.
+ *
+ * @param raw - Raw response data from the API
+ * @returns Type-safe proxy model
+ *
+ * @example
+ * ```typescript
+ * const apiResponse = {
+ *   id: '123e4567-e89b-12d3-a456-426614174000',
+ *   name: 'US Proxy 1',
+ *   address: 'proxy.example.com:8080',
+ *   protocol: 'http',
+ *   isEnabled: true,
+ *   createdAt: '2024-01-15T10:30:00Z'
+ * };
+ *
+ * const proxy = transformProxyResponse(apiResponse);
+ * // proxy.id is now UUID branded type
+ * ```
+ */
+export function transformProxyResponse(raw: unknown): ModelsProxyAPI {
+  const data = raw as Record<string, unknown>;
+  return {
+    ...data,
+    id: createUUID(data.id as string),
+    name: data.name as string,
+    description: data.description as string | undefined,
+    address: data.address as string,
+    protocol: data.protocol as 'http' | 'https' | 'socks5' | 'socks4' | undefined,
+    username: data.username as string | undefined,
+    host: data.host as string | undefined,
+    port: data.port as number | undefined,
+    isEnabled: data.isEnabled as boolean,
+    isHealthy: data.isHealthy as boolean,
+    lastStatus: data.lastStatus as string | undefined,
+    lastCheckedAt: data.lastCheckedAt ? createISODateString(data.lastCheckedAt as string) : undefined,
+    latencyMs: data.latencyMs as number | undefined,
+    city: data.city as string | undefined,
+    countryCode: data.countryCode as string | undefined,
+    provider: data.provider as string | undefined,
+    createdAt: createISODateString(data.createdAt as string),
+    updatedAt: createISODateString(data.updatedAt as string)
+  };
+}
+
 // ============================================================================
 // ERROR RESPONSE
 // ============================================================================
@@ -553,29 +696,48 @@ export interface ErrorResponse {
 
 /**
  * Migration Steps:
- * 
+ *
  * 1. Replace imports:
  *    - FROM: import { ModelsCampaignAPI } from '@/lib/api-client/models/models-campaign-api';
  *    - TO: import { ModelsCampaignAPI } from '@/lib/types/models-aligned';
- * 
+ *
  * 2. Update API client to use transformers:
  *    ```typescript
+ *    // Campaigns
  *    const response = await apiClient.get('/campaigns');
  *    const campaigns = response.data.map(transformCampaignResponse);
+ *
+ *    // Users
+ *    const userResponse = await apiClient.get('/users/me');
+ *    const user = transformUserResponse(userResponse.data);
+ *
+ *    // Personas
+ *    const personaResponse = await apiClient.get('/personas/dns');
+ *    const personas = personaResponse.data.map(transformPersonaResponse);
+ *
+ *    // Proxies
+ *    const proxyResponse = await apiClient.get('/proxies');
+ *    const proxies = proxyResponse.data.map(transformProxyResponse);
  *    ```
- * 
+ *
  * 3. Update all numeric comparisons to handle SafeBigInt:
  *    ```typescript
  *    // WRONG: if (campaign.totalItems > 1000)
  *    // RIGHT: if (campaign.totalItems && campaign.totalItems > createSafeBigInt(1000))
  *    ```
- * 
+ *
  * 4. Remove all references to 'archived' status
- * 
+ *
  * 5. Fix login response handling:
  *    - Change `response.requires_captcha` to `response.requiresCaptcha`
- * 
+ *
  * 6. Ensure HTTP source types use exact casing:
  *    - 'DomainGeneration' not 'domain_generation'
  *    - 'DNSValidation' not 'dns_validation'
+ *
+ * 7. Use UUID branded types for all entity IDs:
+ *    ```typescript
+ *    // WRONG: const userId: string = user.id;
+ *    // RIGHT: const userId: UUID = user.id;
+ *    ```
  */

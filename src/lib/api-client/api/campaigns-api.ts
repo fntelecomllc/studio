@@ -24,7 +24,7 @@ import { BASE_PATH, COLLECTION_FORMATS, type RequestArgs, BaseAPI, RequiredError
 // @ts-ignore
 import type { ErrorResponse } from '../models';
 // @ts-ignore
-import type { ModelsCampaignAPI } from '../models';
+import type { ModelsCampaignAPIAligned } from '../models/models-campaign-api-aligned';
 // @ts-ignore
 import type { ServicesCreateCampaignRequest } from '../models';
 /**
@@ -143,7 +143,7 @@ export const CampaignsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async campaignsGet(limit?: number, offset?: number, type?: CampaignsGetTypeEnum, status?: CampaignsGetStatusEnum, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<ModelsCampaignAPI>>> {
+        async campaignsGet(limit?: number, offset?: number, type?: CampaignsGetTypeEnum, status?: CampaignsGetStatusEnum, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<ModelsCampaignAPIAligned>>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.campaignsGet(limit, offset, type, status, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['CampaignsApi.campaignsGet']?.[localVarOperationServerIndex]?.url;
@@ -156,7 +156,7 @@ export const CampaignsApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async campaignsPost(servicesCreateCampaignRequest: ServicesCreateCampaignRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelsCampaignAPI>> {
+        async campaignsPost(servicesCreateCampaignRequest: ServicesCreateCampaignRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelsCampaignAPIAligned>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.campaignsPost(servicesCreateCampaignRequest, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['CampaignsApi.campaignsPost']?.[localVarOperationServerIndex]?.url;
@@ -182,7 +182,7 @@ export const CampaignsApiFactory = function (configuration?: Configuration, base
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        campaignsGet(limit?: number, offset?: number, type?: CampaignsGetTypeEnum, status?: CampaignsGetStatusEnum, options?: RawAxiosRequestConfig): AxiosPromise<Array<ModelsCampaignAPI>> {
+        campaignsGet(limit?: number, offset?: number, type?: CampaignsGetTypeEnum, status?: CampaignsGetStatusEnum, options?: RawAxiosRequestConfig): AxiosPromise<Array<ModelsCampaignAPIAligned>> {
             return localVarFp.campaignsGet(limit, offset, type, status, options).then((request) => request(axios, basePath));
         },
         /**
@@ -192,7 +192,7 @@ export const CampaignsApiFactory = function (configuration?: Configuration, base
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        campaignsPost(servicesCreateCampaignRequest: ServicesCreateCampaignRequest, options?: RawAxiosRequestConfig): AxiosPromise<ModelsCampaignAPI> {
+        campaignsPost(servicesCreateCampaignRequest: ServicesCreateCampaignRequest, options?: RawAxiosRequestConfig): AxiosPromise<ModelsCampaignAPIAligned> {
             return localVarFp.campaignsPost(servicesCreateCampaignRequest, options).then((request) => request(axios, basePath));
         },
     };
@@ -215,7 +215,7 @@ export interface CampaignsApiInterface {
      * @throws {RequiredError}
      * @memberof CampaignsApiInterface
      */
-    campaignsGet(limit?: number, offset?: number, type?: CampaignsGetTypeEnum, status?: CampaignsGetStatusEnum, options?: RawAxiosRequestConfig): AxiosPromise<Array<ModelsCampaignAPI>>;
+    campaignsGet(limit?: number, offset?: number, type?: CampaignsGetTypeEnum, status?: CampaignsGetStatusEnum, options?: RawAxiosRequestConfig): AxiosPromise<Array<ModelsCampaignAPIAligned>>;
 
     /**
      * Create a new campaign with specified type and parameters
@@ -225,7 +225,7 @@ export interface CampaignsApiInterface {
      * @throws {RequiredError}
      * @memberof CampaignsApiInterface
      */
-    campaignsPost(servicesCreateCampaignRequest: ServicesCreateCampaignRequest, options?: RawAxiosRequestConfig): AxiosPromise<ModelsCampaignAPI>;
+    campaignsPost(servicesCreateCampaignRequest: ServicesCreateCampaignRequest, options?: RawAxiosRequestConfig): AxiosPromise<ModelsCampaignAPIAligned>;
 
 }
 

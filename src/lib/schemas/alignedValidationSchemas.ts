@@ -145,14 +145,16 @@ export const dnsValidationParamsSchema = z.object({
   personaIds: z.array(uuidSchema).min(1, 'At least one persona required'),
   rotationIntervalSeconds: z.number().int().min(0).optional(),
   processingSpeedPerMinute: z.number().int().min(0).optional(),
-  batchSize: z.number().int().positive().optional(),
-  retryAttempts: z.number().int().min(0).optional(),
+  batchSize: z.number().int().min(1).max(10000).optional(), // Backend: min=1, max=10000
+  retryAttempts: z.number().int().min(0).max(10).optional(), // Backend: min=0, max=10
   metadata: z.record(z.unknown()).optional()
 });
 
 export const httpKeywordParamsSchema = z.object({
   sourceCampaignId: uuidSchema,
-  sourceType: z.string().min(1, 'Source type is required'),
+  sourceType: z.enum(['DomainGeneration', 'DNSValidation'], {
+    errorMap: () => ({ message: 'Source type must be one of: DomainGeneration, DNSValidation' })
+  }),
   keywordSetIds: z.array(uuidSchema).optional(),
   adHocKeywords: z.array(z.string()).optional(),
   personaIds: z.array(uuidSchema).min(1, 'At least one persona required'),
@@ -161,9 +163,9 @@ export const httpKeywordParamsSchema = z.object({
   proxySelectionStrategy: z.string().optional(),
   rotationIntervalSeconds: z.number().int().min(0).optional(),
   processingSpeedPerMinute: z.number().int().min(0).optional(),
-  batchSize: z.number().int().positive().optional(),
-  retryAttempts: z.number().int().min(0).optional(),
-  targetHttpPorts: z.array(z.number().int()).optional(),
+  batchSize: z.number().int().min(1).max(10000).optional(), // Backend: min=1, max=10000
+  retryAttempts: z.number().int().min(0).max(10).optional(), // Backend: min=0, max=10
+  targetHttpPorts: z.array(z.number().int().min(1).max(65535)).optional(), // Backend: valid port range
   lastProcessedDomainName: z.string().optional(),
   metadata: z.record(z.unknown()).optional()
 });

@@ -1,7 +1,7 @@
 // Enhanced WebSocket Service - Real-time updates implementation
 // Handles campaign progress, proxy status, and system notifications
 
-import { UUID, ISODateString } from '@/lib/types/branded';
+import { UUID, ISODateString, SafeBigInt, createSafeBigInt, isSafeBigInt } from '@/lib/types/branded';
 
 export interface WebSocketMessage {
   id?: UUID;
@@ -20,8 +20,8 @@ export interface WebSocketMessage {
   proxyStatus?: string;
   personaId?: UUID;
   personaStatus?: string;
-  validationsProcessed?: number;
-  domainsGenerated?: number;
+  validationsProcessed?: SafeBigInt;  // CRITICAL FIX: Use SafeBigInt for int64
+  domainsGenerated?: SafeBigInt;      // CRITICAL FIX: Use SafeBigInt for int64
   estimatedTimeRemaining?: string;
   error?: string;
 }
@@ -37,8 +37,12 @@ export interface CampaignProgressMessage extends WebSocketMessage {
     domains?: string[];
     validationResults?: Record<string, unknown>[];
     error?: string;
-    domainsGenerated?: number;
-    validationsProcessed?: number;
+    domainsGenerated?: SafeBigInt;      // CRITICAL FIX: Use SafeBigInt for int64
+    validationsProcessed?: SafeBigInt;   // CRITICAL FIX: Use SafeBigInt for int64
+    totalItems?: SafeBigInt;             // CRITICAL FIX: Use SafeBigInt for int64
+    processedItems?: SafeBigInt;         // CRITICAL FIX: Use SafeBigInt for int64
+    successfulItems?: SafeBigInt;        // CRITICAL FIX: Use SafeBigInt for int64
+    failedItems?: SafeBigInt;            // CRITICAL FIX: Use SafeBigInt for int64
     [key: string]: unknown;
   };
 }
@@ -126,7 +130,7 @@ export class WebSocketService {
 
         this.ws.onmessage = (event) => {
           try {
-            const message: WebSocketMessage = JSON.parse(event.data);
+            const message: WebSocketMessage = this.parseAndTransformMessage(event.data);
             this.handleMessage(message);
           } catch (error) {
             console.error('[WebSocket] Failed to parse message:', error);
@@ -167,6 +171,45 @@ export class WebSocketService {
         reject(error);
       }
     });
+  }
+
+  /**
+   * CRITICAL FIX CV-009: Parse and transform WebSocket messages to handle int64 fields
+   * Converts numeric fields that represent int64 values to SafeBigInt
+   */
+  private parseAndTransformMessage(rawData: string): WebSocketMessage {
+    const parsed = JSON.parse(rawData);
+    
+    // Transform int64 fields to SafeBigInt
+    if (parsed.validationsProcessed !== undefined) {
+      parsed.validationsProcessed = createSafeBigInt(parsed.validationsProcessed);
+    }
+    if (parsed.domainsGenerated !== undefined) {
+      parsed.domainsGenerated = createSafeBigInt(parsed.domainsGenerated);
+    }
+    
+    // Transform data object fields if present
+    if (parsed.data && typeof parsed.data === 'object') {
+      const data = parsed.data as Record<string, unknown>;
+      
+      // Transform all int64 fields in data
+      const int64Fields = [
+        'domainsGenerated',
+        'validationsProcessed',
+        'totalItems',
+        'processedItems',
+        'successfulItems',
+        'failedItems'
+      ];
+      
+      int64Fields.forEach(field => {
+        if (data[field] !== undefined) {
+          data[field] = createSafeBigInt(data[field] as string | number);
+        }
+      });
+    }
+    
+    return parsed as WebSocketMessage;
   }
 
   private sendConnectionInit(): void {
@@ -320,10 +363,41 @@ export class WebSocketService {
     };
   }
 
+  /**
+   * CRITICAL FIX CV-009: Serialize SafeBigInt fields before sending
+   */
+  private serializeMessage(message: WebSocketMessage): string {
+    const serializable = { ...message };
+    
+    // Convert SafeBigInt fields to strings for transmission
+    if (serializable.validationsProcessed !== undefined && isSafeBigInt(serializable.validationsProcessed)) {
+      (serializable as any).validationsProcessed = serializable.validationsProcessed.toString();
+    }
+    if (serializable.domainsGenerated !== undefined && isSafeBigInt(serializable.domainsGenerated)) {
+      (serializable as any).domainsGenerated = serializable.domainsGenerated.toString();
+    }
+    
+    // Handle data object
+    if (serializable.data && typeof serializable.data === 'object') {
+      const data = { ...serializable.data };
+      
+      Object.keys(data).forEach(key => {
+        if (data[key] !== undefined && isSafeBigInt(data[key])) {
+          data[key] = (data[key] as SafeBigInt).toString();
+        }
+      });
+      
+      serializable.data = data;
+    }
+    
+    return JSON.stringify(serializable);
+  }
+
   send(message: WebSocketMessage): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       try {
-        this.ws.send(JSON.stringify(message));
+        const serialized = this.serializeMessage(message);
+        this.ws.send(serialized);
         console.log('[WebSocket] Sent message:', message);
       } catch (error) {
         console.error('[WebSocket] Failed to send message:', error);
@@ -339,9 +413,10 @@ export class WebSocketService {
       try {
         const messageWithCampaign = {
           ...message,
-          campaignId: campaignId
+          campaignId: campaignId as UUID
         };
-        this.ws.send(JSON.stringify(messageWithCampaign));
+        const serialized = this.serializeMessage(messageWithCampaign);
+        this.ws.send(serialized);
         console.log(`[WebSocket] Sent message to campaign ${campaignId}:`, messageWithCampaign);
       } catch (error) {
         console.error('[WebSocket] Failed to send message to campaign:', error);

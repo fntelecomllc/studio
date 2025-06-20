@@ -28,7 +28,6 @@ export const ModelsCampaignStatusEnum = {
     CampaignStatusPaused: 'paused',
     CampaignStatusCompleted: 'completed',
     CampaignStatusFailed: 'failed',
-    CampaignStatusArchived: 'archived',
     CampaignStatusCancelled: 'cancelled'
 } as const;
 

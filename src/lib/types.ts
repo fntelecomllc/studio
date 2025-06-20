@@ -115,12 +115,18 @@ export type CampaignJobStatus =
   | "retry";
 
 // Validation Status Enum - matches backend ValidationStatusEnum exactly
-export type ValidationStatus = 
+export type ValidationStatus =
   | "pending"
   | "valid"
   | "invalid"
   | "error"
   | "skipped";
+
+// HTTP Keyword Source Type Enum - matches backend validation exactly
+// Uses the sequential pipeline: DomainGeneration -> DNSValidation -> HTTPKeyword
+export type HTTPKeywordSourceType =
+  | "DomainGeneration"
+  | "DNSValidation";
 
 // DNS Validation Status Enum - matches backend DNSValidationStatusEnum exactly
 export type DNSValidationStatus = 
@@ -297,7 +303,7 @@ export interface HTTPKeywordCampaignParams {
   retryAttempts?: SafeBigInt;
   targetHttpPorts?: number[];
   lastProcessedDomainName?: string;
-  sourceType: string;
+  sourceType: HTTPKeywordSourceType;
   proxyIds?: UUID[];
   metadata?: Record<string, unknown>;
 }

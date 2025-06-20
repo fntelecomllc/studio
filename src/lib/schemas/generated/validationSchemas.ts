@@ -137,6 +137,7 @@ export const personaSchema = z.object({
   name: z.string(),
   personaType: z.enum(["dns", "http"]),
   configDetails: z.record(z.any()),
+  isEnabled: z.boolean(),
 });
 
 export type Persona = z.infer<typeof personaSchema>;
@@ -189,7 +190,7 @@ export type DomainGenerationCampaignParams = z.infer<typeof domainGenerationCamp
 export const generatedDomainSchema = z.object({
   generationCampaignId: z.string().uuid(),
   domainName: z.string(),
-  offsetIndex: z.number().int().gte(0),
+  offsetIndex: z.bigint().nonnegative(),
 });
 
 export type GeneratedDomain = z.infer<typeof generatedDomainSchema>;
@@ -198,8 +199,8 @@ export const dNSValidationCampaignParamsSchema = z.object({
   sourceGenerationCampaignId: z.string().uuid().uuid().optional(),
   rotationIntervalSeconds: z.number().int().gte(0).optional(),
   processingSpeedPerMinute: z.number().int().gte(0).optional(),
-  batchSize: z.number().int().gt(0).optional(),
-  retryAttempts: z.number().int().gte(0).optional(),
+  batchSize: z.number().int().min(1).max(10000).optional(), // Backend: min=1, max=10000
+  retryAttempts: z.number().int().min(0).max(10).optional(), // Backend: min=0, max=10
 });
 
 export type DNSValidationCampaignParams = z.infer<typeof dNSValidationCampaignParamsSchema>;
@@ -215,11 +216,11 @@ export type DNSValidationResult = z.infer<typeof dNSValidationResultSchema>;
 
 export const hTTPKeywordCampaignParamsSchema = z.object({
   sourceCampaignId: z.string().uuid(),
-  sourceType: z.string(),
+  sourceType: z.enum(['DomainGeneration', 'DNSValidation']),
   rotationIntervalSeconds: z.number().int().gte(0).optional(),
   processingSpeedPerMinute: z.number().int().gte(0).optional(),
-  batchSize: z.number().int().gt(0).optional(),
-  retryAttempts: z.number().int().gte(0).optional(),
+  batchSize: z.number().int().min(1).max(10000).optional(), // Backend: min=1, max=10000
+  retryAttempts: z.number().int().min(0).max(10).optional(), // Backend: min=0, max=10
 });
 
 export type HTTPKeywordCampaignParams = z.infer<typeof hTTPKeywordCampaignParamsSchema>;
@@ -281,18 +282,19 @@ export const dnsValidationParamsSchema = z.object({
   sourceCampaignId: z.string().uuid(),
   rotationIntervalSeconds: z.number().int().gte(0).optional(),
   processingSpeedPerMinute: z.number().int().gte(0).optional(),
-  batchSize: z.number().int().gt(0).optional(),
-  retryAttempts: z.number().int().gte(0).optional(),
+  batchSize: z.number().int().min(1).max(10000).optional(), // Backend: min=1, max=10000
+  retryAttempts: z.number().int().min(0).max(10).optional(), // Backend: min=0, max=10
 });
 
 export type DnsValidationParams = z.infer<typeof dnsValidationParamsSchema>;
 
 export const httpKeywordParamsSchema = z.object({
   sourceCampaignId: z.string().uuid(),
+  sourceType: z.enum(['DomainGeneration', 'DNSValidation']), // Required field
   rotationIntervalSeconds: z.number().int().gte(0).optional(),
   processingSpeedPerMinute: z.number().int().gte(0).optional(),
-  batchSize: z.number().int().gt(0).optional(),
-  retryAttempts: z.number().int().gte(0).optional(),
+  batchSize: z.number().int().min(1).max(10000).optional(), // Backend: min=1, max=10000
+  retryAttempts: z.number().int().min(0).max(10).optional(), // Backend: min=0, max=10
 });
 
 export type HttpKeywordParams = z.infer<typeof httpKeywordParamsSchema>;
@@ -314,8 +316,8 @@ export const createDNSValidationCampaignRequestSchema = z.object({
   sourceCampaignId: z.string().uuid(),
   rotationIntervalSeconds: z.number().int().gte(0).optional(),
   processingSpeedPerMinute: z.number().int().gte(0).optional(),
-  batchSize: z.number().int().gt(0).optional(),
-  retryAttempts: z.number().int().gte(0).optional(),
+  batchSize: z.number().int().min(1).max(10000).optional(), // Backend: min=1, max=10000
+  retryAttempts: z.number().int().min(0).max(10).optional(), // Backend: min=0, max=10
 });
 
 export type CreateDNSValidationCampaignRequest = z.infer<typeof createDNSValidationCampaignRequestSchema>;
@@ -323,10 +325,11 @@ export type CreateDNSValidationCampaignRequest = z.infer<typeof createDNSValidat
 export const createHTTPKeywordCampaignRequestSchema = z.object({
   name: z.string(),
   sourceCampaignId: z.string().uuid(),
+  sourceType: z.enum(['DomainGeneration', 'DNSValidation']), // Required field
   rotationIntervalSeconds: z.number().int().gte(0).optional(),
   processingSpeedPerMinute: z.number().int().gte(0).optional(),
-  batchSize: z.number().int().gt(0).optional(),
-  retryAttempts: z.number().int().gte(0).optional(),
+  batchSize: z.number().int().min(1).max(10000).optional(), // Backend: min=1, max=10000
+  retryAttempts: z.number().int().min(0).max(10).optional(), // Backend: min=0, max=10
 });
 
 export type CreateHTTPKeywordCampaignRequest = z.infer<typeof createHTTPKeywordCampaignRequestSchema>;

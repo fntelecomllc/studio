@@ -318,11 +318,11 @@ func main() {
 		adminRoutes := apiV2.Group("/admin")
 		adminRoutes.Use(authMiddleware.RequirePermission("admin:users"))
 		{
-			adminRoutes.GET("/users", authHandler.ListUsers)
-			adminRoutes.POST("/users", authHandler.CreateUser)
-			adminRoutes.GET("/users/:userId", authHandler.GetUser)
-			adminRoutes.PUT("/users/:userId", authHandler.UpdateUser)
-			adminRoutes.DELETE("/users/:userId", authHandler.DeleteUser)
+			adminRoutes.GET("/users", apiHandler.ListUsersGin)
+			adminRoutes.POST("/users", apiHandler.CreateUserGin)
+			adminRoutes.GET("/users/:userId", apiHandler.GetUserGin)
+			adminRoutes.PUT("/users/:userId", apiHandler.UpdateUserGin)
+			adminRoutes.DELETE("/users/:userId", apiHandler.DeleteUserGin)
 		}
 
 		// Current user routes (authenticated users)

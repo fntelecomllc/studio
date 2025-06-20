@@ -12,7 +12,7 @@
  * Do not edit the class manually.
  */
 
-
+import { SafeBigInt } from '../../types/branded';
 
 /**
  * 
@@ -39,11 +39,25 @@ export interface ServicesDomainGenerationParams {
      */
     'numDomainsToGenerate'?: number;
     /**
-     * 
+     *
      * @type {string}
      * @memberof ServicesDomainGenerationParams
      */
     'patternType': ServicesDomainGenerationParamsPatternTypeEnum;
+    /**
+     * CRITICAL FIX H-003: Use SafeBigInt for int64 field
+     * Backend uses uint64 which can exceed JavaScript's safe integer limit
+     * @type {SafeBigInt}
+     * @memberof ServicesDomainGenerationParams
+     */
+    'totalPossibleCombinations'?: SafeBigInt;
+    /**
+     * CRITICAL FIX H-003: Use SafeBigInt for int64 field
+     * Backend uses int64 which can exceed JavaScript's safe integer limit
+     * @type {SafeBigInt}
+     * @memberof ServicesDomainGenerationParams
+     */
+    'currentOffset'?: SafeBigInt;
     /**
      * 
      * @type {string}
@@ -65,5 +79,3 @@ export const ServicesDomainGenerationParamsPatternTypeEnum = {
 } as const;
 
 export type ServicesDomainGenerationParamsPatternTypeEnum = typeof ServicesDomainGenerationParamsPatternTypeEnum[keyof typeof ServicesDomainGenerationParamsPatternTypeEnum];
-
-
