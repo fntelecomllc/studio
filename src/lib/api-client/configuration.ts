@@ -90,9 +90,9 @@ export class Configuration {
         this.basePath = param.basePath;
         this.serverIndex = param.serverIndex;
         this.baseOptions = {
-            ...(param.baseOptions as Record<string, unknown> || {}),
+            ...param.baseOptions,
             headers: {
-                ...((param.baseOptions as Record<string, unknown>)?.headers as Record<string, unknown> || {}),
+                ...param.baseOptions?.headers,
             },
         };
         this.formDataCtor = param.formDataCtor;
