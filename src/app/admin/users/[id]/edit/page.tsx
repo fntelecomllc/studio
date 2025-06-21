@@ -87,7 +87,7 @@ const availableRoles: Role[] = [
   }
 ];
 
-export default function EditUserPage() {
+export default function EditUserPage(): React.ReactElement {
   const { hasPermission, updateUser, getUsers } = useAuth();
   const params = useParams();
   const userId = params.id as string;
@@ -111,15 +111,15 @@ export default function EditUserPage() {
     
     try {
       const result = await getUsers();
-      if (result.success && result.data) {
+      if (result.success && result.data !== null && result.data !== undefined && 'data' in result.data) {
         const foundUser = result.data.data?.find(u => u.id === userId);
-        if (foundUser) {
+        if (foundUser !== undefined) {
           setUser(foundUser);
           setFormData({
             firstName: foundUser.firstName,
             lastName: foundUser.lastName,
             email: foundUser.email,
-            roleIds: foundUser.roles?.map(role => role.id) || [],
+            roleIds: foundUser.roles?.map(role => role.id) ?? [],
             isActive: foundUser.isActive,
             mustChangePassword: foundUser.mustChangePassword
           });
@@ -127,7 +127,7 @@ export default function EditUserPage() {
           setErrorMessage('User not found');
         }
       } else {
-        setErrorMessage(result.error?.message || 'Failed to load user');
+        setErrorMessage(result.error?.message ?? 'Failed to load user');
       }
     } catch (error) {
       console.error('Load user error:', error);
@@ -139,8 +139,8 @@ export default function EditUserPage() {
 
   // Load user on component mount
   useEffect(() => {
-    if (userId) {
-      loadUser();
+    if (userId !== '') {
+      void loadUser();
     }
   }, [userId, loadUser]);
 
@@ -149,13 +149,13 @@ export default function EditUserPage() {
     setFormData(prev => ({ ...prev, [field]: value }));
     
     // Clear field error when user starts typing
-    if (errors[field]) {
+    if (errors[field] !== undefined) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
     
     // Clear messages
-    if (successMessage) setSuccessMessage(null);
-    if (errorMessage) setErrorMessage(null);
+    if (successMessage !== null) setSuccessMessage(null);
+    if (errorMessage !== null) setErrorMessage(null);
   }, [errors, successMessage, errorMessage]);
 
   // Validate form
@@ -201,7 +201,7 @@ export default function EditUserPage() {
       if (formData.lastName !== user?.lastName) {
         updateUserRequest.lastName = formData.lastName;
       }
-      if (formData.roleIds && JSON.stringify(formData.roleIds) !== JSON.stringify(user?.roles?.map(r => r.id))) {
+      if (formData.roleIds !== undefined && JSON.stringify(formData.roleIds) !== JSON.stringify(user?.roles?.map(r => r.id))) {
         updateUserRequest.roleIds = formData.roleIds;
       }
       if (formData.isActive !== user?.isActive) {
@@ -215,7 +215,7 @@ export default function EditUserPage() {
         // Reload user data to reflect changes
         await loadUser();
       } else {
-        setErrorMessage(result.error?.message || 'Failed to update user');
+        setErrorMessage(result.error?.message ?? 'Failed to update user');
       }
     } catch (error) {
       console.error('Update user error:', error);
@@ -249,13 +249,13 @@ export default function EditUserPage() {
     );
   }
 
-  if (!user) {
+  if (user === null) {
     return (
       <div className="container mx-auto p-6">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            {errorMessage || 'User not found'}
+            {errorMessage ?? 'User not found'}
           </AlertDescription>
         </Alert>
       </div>
@@ -285,14 +285,14 @@ export default function EditUserPage() {
       </div>
 
       {/* Messages */}
-      {successMessage && (
+      {successMessage !== null && (
         <Alert>
           <CheckCircle className="h-4 w-4" />
           <AlertDescription>{successMessage}</AlertDescription>
         </Alert>
       )}
       
-      {errorMessage && (
+      {errorMessage !== null && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{errorMessage}</AlertDescription>
@@ -336,7 +336,7 @@ export default function EditUserPage() {
             <div className="space-y-2">
               <Label className="text-sm font-medium">Last Login</Label>
               <div className="text-sm text-muted-foreground">
-                {user.lastLoginAt ? (
+                {user.lastLoginAt !== null && user.lastLoginAt !== undefined ? (
                   new Date(user.lastLoginAt).toLocaleString()
                 ) : (
                   'Never'
@@ -362,7 +362,7 @@ export default function EditUserPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={(e) => void handleSubmit(e)} className="space-y-6">
               {/* Personal Information */}
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
@@ -370,12 +370,12 @@ export default function EditUserPage() {
                   <Input
                     id="firstName"
                     type="text"
-                    value={formData.firstName || ''}
+                    value={formData.firstName ?? ''}
                     onChange={(e) => handleInputChange('firstName', e.target.value)}
                     placeholder="Enter first name"
-                    className={errors.firstName ? 'border-red-500' : ''}
+                    className={errors.firstName !== undefined ? 'border-red-500' : ''}
                   />
-                  {errors.firstName && (
+                  {errors.firstName !== undefined && (
                     <p className="text-sm text-red-500">{errors.firstName}</p>
                   )}
                 </div>
@@ -385,12 +385,12 @@ export default function EditUserPage() {
                   <Input
                     id="lastName"
                     type="text"
-                    value={formData.lastName || ''}
+                    value={formData.lastName ?? ''}
                     onChange={(e) => handleInputChange('lastName', e.target.value)}
                     placeholder="Enter last name"
-                    className={errors.lastName ? 'border-red-500' : ''}
+                    className={errors.lastName !== undefined ? 'border-red-500' : ''}
                   />
-                  {errors.lastName && (
+                  {errors.lastName !== undefined && (
                     <p className="text-sm text-red-500">{errors.lastName}</p>
                   )}
                 </div>
@@ -404,13 +404,13 @@ export default function EditUserPage() {
                   <Input
                     id="email"
                     type="email"
-                    value={formData.email || ''}
+                    value={formData.email ?? ''}
                     onChange={(e) => handleInputChange('email', e.target.value)}
                     placeholder="Enter email address"
-                    className={`pl-10 ${errors.email ? 'border-red-500' : ''}`}
+                    className={`pl-10 ${errors.email !== undefined ? 'border-red-500' : ''}`}
                   />
                 </div>
-                {errors.email && (
+                {errors.email !== undefined && (
                   <p className="text-sm text-red-500">{errors.email}</p>
                 )}
               </div>
@@ -421,10 +421,10 @@ export default function EditUserPage() {
               <div className="space-y-2">
                 <Label>Roles</Label>
                 <Select
-                  value={formData.roleIds?.[0] || ''}
+                  value={formData.roleIds?.[0] ?? ''}
                   onValueChange={(value) => handleInputChange('roleIds', [value])}
                 >
-                  <SelectTrigger className={errors.roleIds ? 'border-red-500' : ''}>
+                  <SelectTrigger className={errors.roleIds !== undefined ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
@@ -443,7 +443,7 @@ export default function EditUserPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.roleIds && (
+                {errors.roleIds !== undefined && (
                   <p className="text-sm text-red-500">{errors.roleIds}</p>
                 )}
               </div>
@@ -458,7 +458,7 @@ export default function EditUserPage() {
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="isActive"
-                      checked={formData.isActive}
+                      checked={formData.isActive ?? false}
                       onCheckedChange={(checked) => 
                         handleInputChange('isActive', Boolean(checked))
                       }
@@ -467,7 +467,7 @@ export default function EditUserPage() {
                       htmlFor="isActive"
                       className="text-sm font-normal cursor-pointer flex items-center gap-2"
                     >
-                      {formData.isActive ? (
+                      {formData.isActive === true ? (
                         <>
                           <UserCheck className="h-4 w-4 text-green-500" />
                           Account is active
@@ -484,7 +484,7 @@ export default function EditUserPage() {
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="mustChangePassword"
-                      checked={formData.mustChangePassword}
+                      checked={formData.mustChangePassword ?? false}
                       onCheckedChange={(checked) => 
                         handleInputChange('mustChangePassword', Boolean(checked))
                       }

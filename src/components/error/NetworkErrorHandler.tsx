@@ -35,7 +35,7 @@ class NetworkErrorHandler extends Component<Props, State> {
     };
   }
 
-  override componentDidMount() {
+  override componentDidMount(): void {
     // Listen for unhandled promise rejections (API errors)
     window.addEventListener('unhandledrejection', this.handleUnhandledRejection);
     
@@ -44,14 +44,14 @@ class NetworkErrorHandler extends Component<Props, State> {
     window.addEventListener('offline', this.handleOffline);
   }
 
-  override componentWillUnmount() {
+  override componentWillUnmount(): void {
     window.removeEventListener('unhandledrejection', this.handleUnhandledRejection);
     window.removeEventListener('online', this.handleOnline);
     window.removeEventListener('offline', this.handleOffline);
   }
 
-  private handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-    const error = event.reason;
+  private handleUnhandledRejection = (event: PromiseRejectionEvent): void => {
+    const error: unknown = event.reason;
     
     // Check if this is an API error we should handle
     if (this.isApiError(error)) {
@@ -60,8 +60,8 @@ class NetworkErrorHandler extends Component<Props, State> {
     }
   };
 
-  private handleOnline = () => {
-    if (this.state.hasNetworkError) {
+  private handleOnline = (): void => {
+    if (this.state.hasNetworkError === true) {
       this.setState({
         hasNetworkError: false,
         errorType: null,
@@ -76,7 +76,7 @@ class NetworkErrorHandler extends Component<Props, State> {
     }
   };
 
-  private handleOffline = () => {
+  private handleOffline = (): void => {
     this.setState({
       hasNetworkError: true,
       errorType: 'network',
@@ -93,34 +93,43 @@ class NetworkErrorHandler extends Component<Props, State> {
   private isApiError = (error: unknown): boolean => {
     // Check if this looks like an API error we should handle
     if (typeof error === 'object' && error !== null) {
-      const errorObj = error as { status?: number; message?: string };
+      const errorObj = error as Record<string, unknown>;
       // Check for common API error patterns
-      if (errorObj.status === 401 || errorObj.status === 403) return true;
-      if (errorObj.message && errorObj.message.includes('401')) return true;
-      if (errorObj.message && errorObj.message.includes('403')) return true;
-      if (errorObj.message && errorObj.message.includes('Unauthorized')) return true;
-      if (errorObj.message && errorObj.message.includes('Authentication')) return true;
-      if (errorObj.message && errorObj.message.includes('Network Error')) return true;
-      if (errorObj.message && errorObj.message.includes('Failed to fetch')) return true;
+      if (typeof errorObj.status === 'number' && (errorObj.status === 401 || errorObj.status === 403)) return true;
+      if (typeof errorObj.message === 'string') {
+        if (errorObj.message.includes('401')) return true;
+        if (errorObj.message.includes('403')) return true;
+        if (errorObj.message.includes('Unauthorized')) return true;
+        if (errorObj.message.includes('Authentication')) return true;
+        if (errorObj.message.includes('Network Error')) return true;
+        if (errorObj.message.includes('Failed to fetch')) return true;
+      }
     }
     return false;
   };
 
-  private handleApiError = (error: { status?: number; message?: string }) => {
+  private handleApiError = (error: unknown): void => {
     let errorType: 'network' | 'auth' | 'api' = 'api';
     let errorMessage = 'An unexpected error occurred.';
 
-    // Determine error type and message
-    if (error.status === 401 || error.status === 403 || 
-        (error.message && (error.message.includes('401') || error.message.includes('403') || 
-         error.message.includes('Unauthorized') || error.message.includes('Authentication')))) {
-      errorType = 'auth';
-      errorMessage = 'Authentication failed. Please log in again.';
-    } else if (error.message && (error.message.includes('Network Error') || 
-               error.message.includes('Failed to fetch') || 
-               error.message.includes('ERR_NETWORK'))) {
-      errorType = 'network';
-      errorMessage = 'Network connection error. Please check your internet connection.';
+    // Type guard for error object
+    if (typeof error === 'object' && error !== null) {
+      const errorObj = error as Record<string, unknown>;
+      const status = typeof errorObj.status === 'number' ? errorObj.status : undefined;
+      const message = typeof errorObj.message === 'string' ? errorObj.message : undefined;
+
+      // Determine error type and message
+      if (status === 401 || status === 403 ||
+          (message !== undefined && (message.includes('401') || message.includes('403') ||
+           message.includes('Unauthorized') || message.includes('Authentication')))) {
+        errorType = 'auth';
+        errorMessage = 'Authentication failed. Please log in again.';
+      } else if (message !== undefined && (message.includes('Network Error') ||
+                 message.includes('Failed to fetch') ||
+                 message.includes('ERR_NETWORK'))) {
+        errorType = 'network';
+        errorMessage = 'Network connection error. Please check your internet connection.';
+      }
     }
 
     this.setState({
@@ -140,7 +149,7 @@ class NetworkErrorHandler extends Component<Props, State> {
     });
   };
 
-  private handleRetry = () => {
+  private handleRetry = (): void => {
     if (this.state.retryCount < this.maxRetries) {
       this.setState(prevState => ({
         hasNetworkError: false,
@@ -151,7 +160,9 @@ class NetworkErrorHandler extends Component<Props, State> {
       }));
 
       // Call custom retry handler if provided
-      this.props.onRetry?.();
+      if (this.props.onRetry !== undefined) {
+        this.props.onRetry();
+      }
       
       // Reload the page as a last resort
       setTimeout(() => {
@@ -164,7 +175,7 @@ class NetworkErrorHandler extends Component<Props, State> {
     }
   };
 
-  private handleLogin = () => {
+  private handleLogin = (): void => {
     this.setState({
       hasAuthError: false,
       errorType: null,
@@ -172,7 +183,7 @@ class NetworkErrorHandler extends Component<Props, State> {
     });
 
     // Call custom login handler if provided
-    if (this.props.onLogin) {
+    if (this.props.onLogin !== undefined) {
       this.props.onLogin();
     } else {
       // Default: redirect to login page
@@ -180,11 +191,11 @@ class NetworkErrorHandler extends Component<Props, State> {
     }
   };
 
-  override render() {
+  override render(): React.ReactNode {
     const { hasNetworkError, hasAuthError, errorMessage } = this.state;
 
     // Show network error overlay
-    if (hasNetworkError) {
+    if (hasNetworkError === true) {
       return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-md">
@@ -219,7 +230,7 @@ class NetworkErrorHandler extends Component<Props, State> {
     }
 
     // Show authentication error overlay
-    if (hasAuthError) {
+    if (hasAuthError === true) {
       return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-md">
@@ -264,16 +275,16 @@ class NetworkErrorHandler extends Component<Props, State> {
 export default NetworkErrorHandler;
 
 // Hook for manually triggering network error handling
-export const useNetworkErrorHandler = () => {
+export const useNetworkErrorHandler = (): { handleAuthError: () => void; handleNetworkError: () => void } => {
   return {
-    handleAuthError: () => {
+    handleAuthError: (): void => {
       const event = new CustomEvent('unhandledrejection', {
         detail: { reason: { status: 401, message: 'Authentication failed' } }
       }) as unknown as PromiseRejectionEvent & { reason: unknown };
       event.reason = { status: 401, message: 'Authentication failed' };
       window.dispatchEvent(event);
     },
-    handleNetworkError: () => {
+    handleNetworkError: (): void => {
       const event = new CustomEvent('unhandledrejection', {
         detail: { reason: { message: 'Network Error' } }
       }) as unknown as PromiseRejectionEvent & { reason: unknown };

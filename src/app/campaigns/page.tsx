@@ -27,13 +27,13 @@ const CampaignListItem = lazy(() => import('@/components/campaigns/CampaignListI
 const CampaignProgressMonitor = lazy(() => import('@/components/campaigns/CampaignProgressMonitor'));
 
 // PERFORMANCE: Loading component for lazy-loaded components
-const ComponentLoader = () => (
+const ComponentLoader = (): React.ReactElement => (
   <div className="space-y-4">
     <Skeleton className="h-24 w-full" />
   </div>
 );
 
-function CampaignsPageContent() {
+function CampaignsPageContent(): React.ReactElement {
   const [campaigns, setCampaigns] = useState<CampaignViewModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"all" | "active" | "completed" | "failed" | "paused">("all");
@@ -55,7 +55,7 @@ function CampaignsPageContent() {
   useEffect(() => {
     let wsCleanup: (() => void) | null = null;
 
-    const connectWebSocket = async () => {
+    const connectWebSocket = async (): Promise<void> => {
       try {
         // Import the WebSocket service dynamically to avoid SSR issues
         const { websocketService } = await import('@/lib/websocket/enhancedWebSocketClient');
@@ -76,10 +76,10 @@ function CampaignsPageContent() {
             switch (message.type) {
               case 'progress':
                 // Update campaign progress
-                if (message.campaignId) {
+                if (message.campaignId !== undefined && message.campaignId !== null) {
                   setCampaigns(prev => prev.map(campaign =>
                     campaign.id === message.campaignId
-                      ? { ...campaign, progressPercentage: message.data.progress || campaign.progressPercentage }
+                      ? { ...campaign, progressPercentage: (message.data as { progress?: number }).progress ?? campaign.progressPercentage }
                       : campaign
                   ));
                 }
@@ -87,13 +87,13 @@ function CampaignsPageContent() {
                 
               case 'phase_complete':
                 // Update campaign status and phase
-                if (message.campaignId && message.data.status) {
+                if (message.campaignId !== undefined && message.campaignId !== null && message.data !== null && message.data !== undefined && typeof message.data === 'object' && 'status' in message.data) {
                   setCampaigns(prev => prev.map(campaign =>
                     campaign.id === message.campaignId
-                      ? { 
-                          ...campaign, 
-                          status: normalizeStatus(message.data.status),
-                          currentPhase: message.data.phase as CampaignViewModel['currentPhase']
+                      ? {
+                          ...campaign,
+                          status: normalizeStatus((message.data as { status: string }).status),
+                          currentPhase: (message.data as { phase?: string }).phase as CampaignViewModel['currentPhase']
                         }
                       : campaign
                   ));
@@ -102,7 +102,7 @@ function CampaignsPageContent() {
                 
               case 'error':
                 // Handle campaign errors
-                if (message.campaignId && message.data && typeof message.data === 'object' && 'error' in message.data) {
+                if (message.campaignId !== undefined && message.campaignId !== null && message.data !== null && message.data !== undefined && typeof message.data === 'object' && 'error' in message.data) {
                   setCampaigns(prev => prev.map(campaign =>
                     campaign.id === message.campaignId
                       ? { ...campaign, errorMessage: String((message.data as { error: unknown }).error) }
@@ -130,10 +130,10 @@ function CampaignsPageContent() {
       }
     };
 
-    connectWebSocket();
+    void connectWebSocket();
 
     return () => {
-      if (wsCleanup) {
+      if (wsCleanup !== null) {
         wsCleanup();
       }
     };
@@ -178,7 +178,7 @@ function CampaignsPageContent() {
       const response: CampaignsListResponse = await getCampaigns();
       
       // MEMORY LEAK FIX: Check if request was aborted or component unmounted
-      if (signal?.aborted || !isMountedRef.current) {
+      if ((signal !== undefined && signal.aborted) || !isMountedRef.current) {
         console.log('[CampaignsPage] Request aborted or component unmounted');
         return;
       }
@@ -194,14 +194,14 @@ function CampaignsPageContent() {
           setCampaigns([]);
           toast({
             title: "Error Loading Campaigns",
-            description: response.message || "Failed to load campaigns.",
+            description: response.message ?? "Failed to load campaigns.",
             variant: "destructive"
           });
         }
       }
     } catch (error: unknown) {
       // MEMORY LEAK FIX: Don't update state if component unmounted or request aborted
-      if (signal?.aborted || !isMountedRef.current) {
+      if ((signal !== undefined && signal.aborted) || !isMountedRef.current) {
         console.log('[CampaignsPage] Request aborted or component unmounted during error handling');
         return;
       }
@@ -233,7 +233,7 @@ function CampaignsPageContent() {
     abortControllerRef.current = abortController;
     
     // Initial load
-    loadCampaignsData(true, abortController.signal);
+    void loadCampaignsData(true, abortController.signal);
     
     // MEMORY LEAK FIX: Set up interval with proper cleanup - reduced frequency for better performance
     const intervalId = setInterval(() => {
@@ -243,7 +243,7 @@ function CampaignsPageContent() {
         return;
       }
       console.log('[CampaignsPage] Interval refresh triggered');
-      loadCampaignsData(false, abortController.signal);
+      void loadCampaignsData(false, abortController.signal);
     }, 30000); // FIXED: Changed from 5 seconds to 30 seconds to reduce refresh frequency
     
     intervalRef.current = intervalId;
@@ -251,12 +251,12 @@ function CampaignsPageContent() {
     return () => {
       console.log('[CampaignsPage] Cleaning up interval and aborting requests');
       // MEMORY LEAK FIX: Clear interval
-      if (intervalRef.current) {
+      if (intervalRef.current !== null) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
       // MEMORY LEAK FIX: Abort ongoing requests
-      if (abortControllerRef.current) {
+      if (abortControllerRef.current !== null) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
       }
@@ -267,18 +267,18 @@ function CampaignsPageContent() {
   useEffect(() => {
     return () => {
       // Cancel any ongoing API requests
-      if (abortControllerRef.current) {
+      if (abortControllerRef.current !== null) {
         abortControllerRef.current.abort();
       }
       // Clear any running intervals
-      if (intervalRef.current) {
+      if (intervalRef.current !== null) {
         clearInterval(intervalRef.current);
       }
     };
   }, []);
 
 
-  const handleDeleteCampaign = async (campaignId: string) => {
+  const handleDeleteCampaign = async (campaignId: string): Promise<void> => {
     if (!hasPermission('campaigns:delete')) {
       toast({
         title: "Permission Denied",
@@ -300,7 +300,7 @@ function CampaignsPageContent() {
       optimisticData: null,
       originalData: campaign,
       rollbackFn: () => {
-        if (campaign) {
+        if (campaign !== null && campaign !== undefined) {
           setCampaigns(prev => [...prev, campaign]);
         }
       },
@@ -317,13 +317,13 @@ function CampaignsPageContent() {
         await confirmUpdate(updateId);
         toast({
           title: "Campaign Deleted",
-          description: response.message || "Campaign successfully deleted."
+          description: response.message ?? "Campaign successfully deleted."
         });
       } else {
         await rollbackUpdate(updateId, response.message);
         toast({
           title: "Error Deleting Campaign",
-          description: response.message || "Failed to delete.",
+          description: response.message ?? "Failed to delete.",
           variant: "destructive"
         });
       }
@@ -341,7 +341,7 @@ function CampaignsPageContent() {
     }
   };
 
-  const handleCampaignControl = async (campaignId: string, action: 'pause' | 'resume' | 'stop') => {
+  const handleCampaignControl = async (campaignId: string, action: 'pause' | 'resume' | 'stop'): Promise<void> => {
     const requiredPermission = `campaigns:${action}`;
     if (!hasPermission(requiredPermission)) {
       toast({
@@ -364,7 +364,7 @@ function CampaignsPageContent() {
     // Apply optimistic update
     const campaign = campaigns.find(c => c.id === campaignId);
     const optimisticStatus = action === 'pause' ? 'paused' : action === 'resume' ? 'running' : 'cancelled';
-    const optimisticData = campaign ? { ...campaign, status: normalizeStatus(optimisticStatus) } : null;
+    const optimisticData = campaign !== null && campaign !== undefined ? { ...campaign, status: normalizeStatus(optimisticStatus) } : null;
 
     const updateId = await applyUpdate({
       type: 'UPDATE',
@@ -373,7 +373,7 @@ function CampaignsPageContent() {
       optimisticData,
       originalData: campaign,
       rollbackFn: () => {
-        if (campaign) {
+        if (campaign !== null && campaign !== undefined) {
           setCampaigns(prev => prev.map(c => c.id === campaignId ? campaign : c));
         }
       },
@@ -381,17 +381,17 @@ function CampaignsPageContent() {
     });
 
     // Apply optimistic UI update
-    if (optimisticData) {
+    if (optimisticData !== null) {
       setCampaigns(prev => prev.map(c => c.id === campaignId ? optimisticData : c));
     }
 
     try {
       // Call the control function with just campaignId
       const response = await apiCall(campaignId);
-      if (response.status === 'success' && response.data) {
+      if (response.status === 'success' && response.data !== null && response.data !== undefined) {
         await confirmUpdate(updateId, response.data);
         toast({ title: `Campaign ${action}ed`, description: response.message });
-        setCampaigns(prev => prev.map(c => c.id === campaignId ? mergeCampaignApiUpdate(c, response.data || {}) : c));
+        setCampaigns(prev => prev.map(c => c.id === campaignId ? mergeCampaignApiUpdate(c, response.data ?? {}) : c));
       } else {
         await rollbackUpdate(updateId, response.message);
         toast({ title: `Error ${action}ing campaign`, description: response.message, variant: "destructive"});
@@ -477,7 +477,7 @@ function CampaignsPageContent() {
 
       {loading ? (
          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(3)].map((_, i) => (
+          {Array.from({ length: 3 }).map((_, i) => (
             <Card key={i} className="shadow-md">
               <CardHeader><Skeleton className="h-6 w-3/4 mb-2" /><Skeleton className="h-4 w-1/2" /></CardHeader>
               <CardContent className="space-y-3"><Skeleton className="h-20 w-full" /><Skeleton className="h-10 w-2/3" /></CardContent>
@@ -505,10 +505,10 @@ function CampaignsPageContent() {
             <Suspense key={campaign.id} fallback={<ComponentLoader />}>
               <CampaignListItem
                   campaign={campaign}
-                  onDeleteCampaign={() => handleDeleteCampaign(campaign.id)}
-                  onPauseCampaign={() => handleCampaignControl(campaign.id, 'pause')}
-                  onResumeCampaign={() => handleCampaignControl(campaign.id, 'resume')}
-                  onStopCampaign={() => handleCampaignControl(campaign.id, 'stop')}
+                  onDeleteCampaign={() => void handleDeleteCampaign(campaign.id)}
+                  onPauseCampaign={() => void handleCampaignControl(campaign.id, 'pause')}
+                  onResumeCampaign={() => void handleCampaignControl(campaign.id, 'resume')}
+                  onStopCampaign={() => void handleCampaignControl(campaign.id, 'stop')}
                   isActionLoading={actionLoading}
               />
             </Suspense>
@@ -539,7 +539,7 @@ function CampaignsPageContent() {
  );
 }
 
-export default function CampaignsPage() {
+export default function CampaignsPage(): React.ReactElement {
  return (
    <StrictProtectedRoute
      requiredPermissions={['campaigns:read']}

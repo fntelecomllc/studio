@@ -1,6 +1,6 @@
 import Link from 'next/link'
  
-export default function NotFound() {
+export default function NotFound(): React.ReactElement {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full text-center">

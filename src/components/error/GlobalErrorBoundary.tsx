@@ -40,7 +40,7 @@ class GlobalErrorBoundary extends Component<Props, State> {
     };
   }
 
-  override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  override componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     console.error('GlobalErrorBoundary caught an error:', error, errorInfo);
     
     this.setState({
@@ -49,7 +49,9 @@ class GlobalErrorBoundary extends Component<Props, State> {
     });
 
     // Call custom error handler if provided
-    this.props.onError?.(error, errorInfo);
+    if (this.props.onError !== undefined) {
+      this.props.onError(error, errorInfo);
+    }
 
     // Log error to external service (without exposing sensitive data)
     this.logErrorToService(error, errorInfo);
@@ -62,7 +64,7 @@ class GlobalErrorBoundary extends Component<Props, State> {
     });
   }
 
-  private logErrorToService = (error: Error, errorInfo: ErrorInfo) => {
+  private logErrorToService = (error: Error, errorInfo: ErrorInfo): void => {
     // In a real application, you would send this to your error tracking service
     // Make sure to sanitize any sensitive information
     const sanitizedError = {
@@ -81,7 +83,7 @@ class GlobalErrorBoundary extends Component<Props, State> {
     // errorTrackingService.captureException(sanitizedError);
   };
 
-  private handleRetry = () => {
+  private handleRetry = (): void => {
     if (this.state.retryCount < this.maxRetries) {
       this.setState(prevState => ({
         hasError: false,
@@ -95,14 +97,14 @@ class GlobalErrorBoundary extends Component<Props, State> {
     }
   };
 
-  private handleGoHome = () => {
+  private handleGoHome = (): void => {
     window.location.href = '/';
   };
 
-  private handleReportBug = () => {
+  private handleReportBug = (): void => {
     const errorDetails = {
-      message: this.state.error?.message || 'Unknown error',
-      stack: this.state.error?.stack || 'No stack trace',
+      message: this.state.error?.message ?? 'Unknown error',
+      stack: this.state.error?.stack ?? 'No stack trace',
       timestamp: new Date().toISOString(),
       url: window.location.href
     };
@@ -137,15 +139,15 @@ class GlobalErrorBoundary extends Component<Props, State> {
     return 'An unexpected error occurred. Our team has been notified.';
   };
 
-  override render() {
+  override render(): React.ReactNode {
     if (this.state.hasError) {
       // Custom fallback UI
-      if (this.props.fallback) {
+      if (this.props.fallback !== undefined) {
         return this.props.fallback;
       }
 
       const canRetry = this.state.retryCount < this.maxRetries;
-      const errorMessage = this.state.error ? this.getErrorMessage(this.state.error) : 'Unknown error occurred';
+      const errorMessage = this.state.error !== null ? this.getErrorMessage(this.state.error) : 'Unknown error occurred';
 
       return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -170,15 +172,15 @@ class GlobalErrorBoundary extends Component<Props, State> {
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                {canRetry && (
+                {canRetry === true && (
                   <Button onClick={this.handleRetry} className="flex items-center gap-2">
                     <RefreshCw className="h-4 w-4" />
                     Try Again ({this.maxRetries - this.state.retryCount} attempts left)
                   </Button>
                 )}
                 
-                {!canRetry && (
-                  <Button onClick={() => window.location.reload()} className="flex items-center gap-2">
+                {canRetry === false && (
+                  <Button onClick={() => { window.location.reload(); }} className="flex items-center gap-2">
                     <RefreshCw className="h-4 w-4" />
                     Refresh Page
                   </Button>
@@ -196,7 +198,7 @@ class GlobalErrorBoundary extends Component<Props, State> {
               </div>
 
               {/* Technical Details (only in development) */}
-              {process.env.NODE_ENV === 'development' && this.state.error && (
+              {process.env.NODE_ENV === 'development' && this.state.error !== null && (
                 <details className="mt-6">
                   <summary className="cursor-pointer text-sm font-medium text-gray-600 hover:text-gray-800">
                     Technical Details (Development Only)
@@ -208,7 +210,7 @@ class GlobalErrorBoundary extends Component<Props, State> {
                         {this.state.error.message}
                       </pre>
                       
-                      {this.state.error.stack && (
+                      {this.state.error.stack !== undefined && (
                         <>
                           <div className="font-medium text-red-600 mb-2">Stack Trace:</div>
                           <pre className="whitespace-pre-wrap text-xs text-gray-600 mb-4 max-h-40 overflow-y-auto">
@@ -217,7 +219,7 @@ class GlobalErrorBoundary extends Component<Props, State> {
                         </>
                       )}
                       
-                      {this.state.errorInfo?.componentStack && (
+                      {this.state.errorInfo?.componentStack !== undefined && (
                         <>
                           <div className="font-medium text-red-600 mb-2">Component Stack:</div>
                           <pre className="whitespace-pre-wrap text-xs text-gray-600 max-h-40 overflow-y-auto">
@@ -252,8 +254,8 @@ class GlobalErrorBoundary extends Component<Props, State> {
 export default GlobalErrorBoundary;
 
 // Hook for functional components to trigger error boundary
-export const useErrorHandler = () => {
-  return (error: Error) => {
+export const useErrorHandler = (): ((error: Error) => never) => {
+  return (error: Error): never => {
     // This will trigger the error boundary
     throw error;
   };
@@ -264,14 +266,14 @@ export const withErrorBoundary = <P extends object>(
   Component: React.ComponentType<P>,
   fallback?: ReactNode,
   onError?: (error: Error, errorInfo: ErrorInfo) => void
-) => {
-  const WrappedComponent = (props: P) => (
+): React.ComponentType<P> => {
+  const WrappedComponent = (props: P): React.ReactElement => (
     <GlobalErrorBoundary fallback={fallback} onError={onError}>
       <Component {...props} />
     </GlobalErrorBoundary>
   );
   
-  WrappedComponent.displayName = `withErrorBoundary(${Component.displayName || Component.name})`;
+  WrappedComponent.displayName = `withErrorBoundary(${Component.displayName ?? Component.name})`;
   
   return WrappedComponent;
 };

@@ -39,9 +39,9 @@ type SidebarContext = {
 
 const SidebarContext = React.createContext<SidebarContext | null>(null)
 
-function useSidebar() {
+function useSidebar(): SidebarContext {
   const context = React.useContext(SidebarContext)
-  if (!context) {
+  if (context === null || context === undefined) {
     throw new Error("useSidebar must be used within a SidebarProvider.")
   }
 
@@ -76,7 +76,7 @@ const SidebarProvider = React.forwardRef<
     const setOpen = React.useCallback(
       (value: boolean | ((value: boolean) => boolean)) => {
         const openState = typeof value === "function" ? value(open) : value
-        if (setOpenProp) {
+        if (setOpenProp !== undefined && setOpenProp !== null) {
           setOpenProp(openState)
         } else {
           _setOpen(openState)
@@ -93,7 +93,7 @@ const SidebarProvider = React.forwardRef<
     }, [isMobile, setOpen, setOpenMobile])
 
     React.useEffect(() => {
-      const handleKeyDown = (event: KeyboardEvent) => {
+      const handleKeyDown = (event: KeyboardEvent): void => {
         if (
           event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
           (event.metaKey || event.ctrlKey)
@@ -579,7 +579,7 @@ const SidebarMenuButton = React.forwardRef<
       </Comp>
     )
 
-    if (!tooltip) {
+    if (tooltip === undefined || tooltip === null) {
       return button
     }
 

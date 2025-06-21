@@ -81,7 +81,7 @@ export function processWebSocketMessage(
     // Parse and validate message
     const message = parseWebSocketMessage(rawMessage);
     
-    if (!message) {
+    if (message === null) {
       errorTracker.trackError(new Error('Invalid WebSocket message format'), {
         component: 'WebSocketMessageHandler',
         action: 'parse',
@@ -127,15 +127,13 @@ function handleTypedMessage(
   message: TypedWebSocketMessage
 ): void {
   // Route to global handlers
-  if (registry.globalHandlers) {
-    routeWebSocketMessage(message, registry.globalHandlers);
-  }
-
+  routeWebSocketMessage(message, registry.globalHandlers);
+  
   // Route to campaign-specific handlers if applicable
   const campaignId = extractCampaignId(message);
-  if (campaignId) {
+  if (campaignId !== null) {
     const campaignHandlers = registry.campaignHandlers.get(campaignId);
-    if (campaignHandlers) {
+    if (campaignHandlers !== undefined) {
       routeWebSocketMessage(message, campaignHandlers);
     }
   }
@@ -155,9 +153,10 @@ function extractCampaignId(message: TypedWebSocketMessage): UUID | null {
     case WebSocketMessageTypes.HTTP_VALIDATION_RESULT:
       return (message.data as { campaignId: string }).campaignId as UUID;
     
-    case WebSocketMessageTypes.PROXY_STATUS:
+    case WebSocketMessageTypes.PROXY_STATUS: {
       const proxyData = message.data as { campaignId?: string };
-      return proxyData.campaignId ? proxyData.campaignId as UUID : null;
+      return proxyData.campaignId !== undefined && proxyData.campaignId !== '' ? proxyData.campaignId as UUID : null;
+    }
     
     default:
       return null;
@@ -229,34 +228,34 @@ export function createValidatedWebSocketHandlers(
 ): WebSocketHandlers {
   return {
     // Campaign handlers
-    onCampaignProgress: customHandlers.onCampaignProgress || ((message) => {
+    onCampaignProgress: customHandlers.onCampaignProgress ?? ((message) => {
       console.log('[WebSocket] Campaign progress:', message.data);
     }),
     
-    onCampaignStatus: customHandlers.onCampaignStatus || ((message) => {
+    onCampaignStatus: customHandlers.onCampaignStatus ?? ((message) => {
       console.log('[WebSocket] Campaign status:', message.data);
     }),
     
     // Domain handlers
-    onDomainGenerated: customHandlers.onDomainGenerated || ((message) => {
+    onDomainGenerated: customHandlers.onDomainGenerated ?? ((message) => {
       console.log('[WebSocket] Domain generated:', message.data);
     }),
     
     // Validation handlers
-    onDNSValidationResult: customHandlers.onDNSValidationResult || ((message) => {
+    onDNSValidationResult: customHandlers.onDNSValidationResult ?? ((message) => {
       console.log('[WebSocket] DNS validation:', message.data);
     }),
     
-    onHTTPValidationResult: customHandlers.onHTTPValidationResult || ((message) => {
+    onHTTPValidationResult: customHandlers.onHTTPValidationResult ?? ((message) => {
       console.log('[WebSocket] HTTP validation:', message.data);
     }),
     
     // System handlers
-    onSystemNotification: customHandlers.onSystemNotification || ((message) => {
+    onSystemNotification: customHandlers.onSystemNotification ?? ((message) => {
       console.log('[WebSocket] System notification:', message.data);
     }),
     
-    onProxyStatus: customHandlers.onProxyStatus || ((message) => {
+    onProxyStatus: customHandlers.onProxyStatus ?? ((message) => {
       console.log('[WebSocket] Proxy status:', message.data);
     }),
     
@@ -264,7 +263,7 @@ export function createValidatedWebSocketHandlers(
     onError: createErrorHandler(customHandlers.onError),
     
     // Unknown message handler
-    onUnknownMessage: customHandlers.onUnknownMessage || ((message) => {
+    onUnknownMessage: customHandlers.onUnknownMessage ?? ((message) => {
       console.warn('[WebSocket] Unknown message type:', message.type, message);
     })
   };
@@ -283,7 +282,7 @@ export class WebSocketStateManager {
 
   setConnectionState(state: ConnectionState, error?: Error): void {
     this.connectionState = state;
-    if (error) {
+    if (error !== undefined) {
       this.lastError = error;
       errorTracker.trackError(error, {
         component: 'WebSocketStateManager',
@@ -303,7 +302,7 @@ export class WebSocketStateManager {
       'websocket_connection_state',
       1,
       'count',
-      { state, hasError: error ? 'true' : 'false' }
+      { state, hasError: error !== undefined ? 'true' : 'false' }
     );
   }
 
@@ -347,9 +346,9 @@ export class MessageValidationStats {
 
   recordMessage(messageType: string, isValid: boolean): void {
     this.stats.totalMessages++;
-    if (isValid) {
+    if (isValid === true) {
       this.stats.validMessages++;
-      const count = this.stats.messageTypes.get(messageType) || 0;
+      const count = this.stats.messageTypes.get(messageType) ?? 0;
       this.stats.messageTypes.set(messageType, count + 1);
     } else {
       this.stats.invalidMessages++;

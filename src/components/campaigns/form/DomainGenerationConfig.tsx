@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React, { memo } from 'react';
 import { Control } from 'react-hook-form';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -31,7 +32,7 @@ const DomainGenerationConfig = memo<DomainGenerationConfigProps>(({
   calculationDetails,
   calculationWarning,
   isCalculationSafe
-}) => {
+}): React.ReactElement => {
   return (
     <Card className="p-4 pt-2 border-dashed">
       <CardHeader className="p-2">
@@ -127,7 +128,7 @@ const DomainGenerationConfig = memo<DomainGenerationConfigProps>(({
             <div className={`text-lg font-semibold ${!isCalculationSafe ? 'text-yellow-700' : ''}`}>
               {totalPossible.toLocaleString()} domains
             </div>
-            {calculationDetails && (
+            {calculationDetails !== undefined && (
               <div className="text-xs text-muted-foreground mt-1">
                 Pattern: {calculationDetails.pattern} • 
                 Character set length: {calculationDetails.charSetLength} • 
@@ -137,7 +138,7 @@ const DomainGenerationConfig = memo<DomainGenerationConfigProps>(({
                 TLD count: {calculationDetails.tldCount}
               </div>
             )}
-            {calculationWarning && (
+            {calculationWarning !== null && calculationWarning !== undefined && (
               <div className="text-xs text-yellow-700 mt-2 font-medium">
                 ⚠️ {calculationWarning}
               </div>

@@ -74,9 +74,9 @@ const CampaignProgressMonitor = memo(({
 
   const [realtimeData, setRealtimeData] = useState({
     domainsGenerated: 0,
-    currentProgress: campaign.progress || 0,
+    currentProgress: campaign.progress ?? 0,
     currentStatus: normalizeStatus(campaign.status),
-    currentPhase: campaign.currentPhase || 'Idle',
+    currentPhase: campaign.currentPhase ?? 'Idle',
     lastActivity: new Date(),
     errors: [] as string[]
   });
@@ -111,19 +111,25 @@ const CampaignProgressMonitor = memo(({
         });
         break;
 
-      case 'domain_generated':
+      case 'domain_generated': {
         const domainData = message.data as { domains?: string[] };
-        if (domainData.domains && domainData.domains.length > 0) {
+        const domains = domainData.domains;
+        if (domains !== undefined && domains.length > 0) {
           setRealtimeData(prev => ({
             ...prev,
-            domainsGenerated: prev.domainsGenerated + domainData.domains!.length,
+            domainsGenerated: prev.domainsGenerated + domains.length,
             lastActivity: new Date()
           }));
-          domainData.domains.forEach((domain: string) => onDomainReceived?.(domain));
+          domains.forEach((domain: string) => {
+            if (onDomainReceived !== undefined) {
+              onDomainReceived(domain);
+            }
+          });
         }
         break;
+      }
 
-      case 'progress':
+      case 'progress': {
         const progressValue = message.data.progress;
         if (typeof progressValue === 'number') {
           setRealtimeData(prev => ({
@@ -134,9 +140,10 @@ const CampaignProgressMonitor = memo(({
           onCampaignUpdate?.({ progress: progressValue });
         }
         break;
+      }
 
       case 'phase_complete':
-        if (message.data.phase && message.data.status) {
+        if (message.data.phase !== undefined && message.data.status !== undefined) {
           setRealtimeData(prev => ({
             ...prev,
             currentPhase: message.data.phase as CampaignPhase,
@@ -150,14 +157,14 @@ const CampaignProgressMonitor = memo(({
           });
           toast({
             title: "Phase Completed",
-            description: `${message.data.phase} phase has completed successfully.`
+            description: `${typeof message.data.phase === 'string' ? message.data.phase : 'Unknown'} phase has completed successfully.`
           });
         }
         break;
 
-      case 'error':
+      case 'error': {
         const errorData = message.data as { error?: string };
-        const errorMsg = errorData.error || message.message || 'Unknown error occurred';
+        const errorMsg = errorData.error ?? message.message ?? 'Unknown error occurred';
         setRealtimeData(prev => ({
           ...prev,
           errors: [...prev.errors.slice(-4), String(errorMsg)], // Keep last 5 errors
@@ -169,6 +176,7 @@ const CampaignProgressMonitor = memo(({
           variant: "destructive"
         });
         break;
+      }
 
       default:
         console.log('Unknown WebSocket message type:', message.type);
@@ -179,7 +187,7 @@ const CampaignProgressMonitor = memo(({
   useEffect(() => {
     console.log(`[DEBUG] useEffect triggered for campaign ${campaignKey.id} - shouldConnect: ${shouldConnect}, phase: ${campaignKey.currentPhase}, status: ${campaignKey.status}`);
     
-    if (shouldConnect && user) {
+    if (shouldConnect && user !== null) {
       // Use the websocketService
       cleanupRef.current = websocketService.connectToCampaign(
         campaignKey.id,
@@ -209,7 +217,7 @@ const CampaignProgressMonitor = memo(({
 
     return () => {
       console.log(`[DEBUG] useEffect cleanup for campaign ${campaignKey.id}`);
-      if (cleanupRef.current) {
+      if (cleanupRef.current !== null) {
         cleanupRef.current();
         cleanupRef.current = null;
       }
@@ -226,9 +234,9 @@ const CampaignProgressMonitor = memo(({
     });
     setRealtimeData(prev => ({
       ...prev,
-      currentProgress: campaign.progress || 0,
+      currentProgress: campaign.progress ?? 0,
       currentStatus: normalizeStatus(campaign.status),
-      currentPhase: campaign.currentPhase || 'Idle'
+      currentPhase: campaign.currentPhase ?? 'Idle'
     }));
   }, [campaignKey.id, campaign.progress, campaign.status, campaign.currentPhase]);
 
@@ -242,7 +250,7 @@ const CampaignProgressMonitor = memo(({
 
   // Memoize heartbeat time formatting
   const formattedHeartbeat = useMemo(() => {
-    return connectionHealth.lastHeartbeat?.toLocaleTimeString();
+    return connectionHealth.lastHeartbeat !== null ? connectionHealth.lastHeartbeat.toLocaleTimeString() : undefined;
   }, [connectionHealth.lastHeartbeat]);
 
   // Remove the local getStatusColor function since we're importing it from utils
@@ -297,7 +305,7 @@ const CampaignProgressMonitor = memo(({
         )}
 
         {/* Connection Health */}
-        {connectionHealth.lastHeartbeat && (
+        {connectionHealth.lastHeartbeat !== null && (
           <div className="text-xs text-muted-foreground">
             Last heartbeat: {formattedHeartbeat}
           </div>

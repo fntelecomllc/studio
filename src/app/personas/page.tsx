@@ -72,7 +72,7 @@ const DnsPersonaImportSchema = z.object({
 // const PersonaImportSchema = z.union([HttpPersonaImportSchema, DnsPersonaImportSchema]);
 
 
-function PersonasPageContent() {
+function PersonasPageContent(): React.ReactElement {
   const [httpPersonas, setHttpPersonas] = useState<HttpPersona[]>([]);
   const [dnsPersonas, setDnsPersonas] = useState<DnsPersona[]>([]);
   const [activeTab, setActiveTab] = useState<'http' | 'dns'>('http');
@@ -88,16 +88,16 @@ function PersonasPageContent() {
   const loadingDns = isLoading(LOADING_OPERATIONS.FETCH_DNS_PERSONAS);
 
 
-  const fetchPersonasData = useCallback(async (type: 'http' | 'dns', showLoading = true) => {
+  const fetchPersonasData = useCallback(async (type: 'http' | 'dns', showLoading = true): Promise<void> => {
     const operation = type === 'http' ? LOADING_OPERATIONS.FETCH_HTTP_PERSONAS : LOADING_OPERATIONS.FETCH_DNS_PERSONAS;
     if (showLoading) startLoading(operation, `Loading ${type.toUpperCase()} personas`);
     try {
       const response: PersonasListResponse = await getPersonas(type);
-      if (response.status === 'success' && response.data) {
+      if (response.status === 'success' && response.data !== null && response.data !== undefined) {
         if (type === 'http') setHttpPersonas(response.data as HttpPersona[]);
         else setDnsPersonas(response.data as DnsPersona[]);
       } else {
-        toast({ title: `Error Loading ${type.toUpperCase()} Personas`, description: response.message || `Failed to load ${type.toUpperCase()} personas.`, variant: "destructive"});
+        toast({ title: `Error Loading ${type.toUpperCase()} Personas`, description: response.message !== null && response.message !== undefined && response.message !== '' ? response.message : `Failed to load ${type.toUpperCase()} personas.`, variant: "destructive"});
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : `Failed to load ${type.toUpperCase()} personas.`;
@@ -108,18 +108,18 @@ function PersonasPageContent() {
   }, [toast, startLoading, stopLoading]);
 
   useEffect(() => {
-    fetchPersonasData(activeTab);
+    void fetchPersonasData(activeTab);
   }, [activeTab, fetchPersonasData]);
 
-  const handleDeletePersona = async (personaId: string, personaType: 'http' | 'dns') => {
+  const handleDeletePersona = async (personaId: string, personaType: 'http' | 'dns'): Promise<void> => {
     setActionLoading(prev => ({ ...prev, [personaId]: 'delete' }));
     try {
       const response: PersonaDeleteResponse = await deletePersona(personaId, personaType);
       if (response.status === 'success') {
-        toast({ title: "Persona Deleted", description: response.message || `Persona successfully deleted.` });
-        fetchPersonasData(personaType, false); 
+        toast({ title: "Persona Deleted", description: response.message !== null && response.message !== undefined && response.message !== '' ? response.message : `Persona successfully deleted.` });
+        void fetchPersonasData(personaType, false);
       } else {
-        toast({ title: "Error Deleting Persona", description: response.message || "Failed to delete persona.", variant: "destructive"});
+        toast({ title: "Error Deleting Persona", description: response.message !== null && response.message !== undefined && response.message !== '' ? response.message : "Failed to delete persona.", variant: "destructive"});
       }
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred while deleting persona.";
@@ -129,35 +129,35 @@ function PersonasPageContent() {
     }
   };
 
-  const handleTestPersona = async (personaId: string, personaType: 'http' | 'dns') => {
+  const handleTestPersona = async (personaId: string, personaType: 'http' | 'dns'): Promise<void> => {
     setActionLoading(prev => ({ ...prev, [personaId]: 'test' }));
     try {
       const response: PersonaActionResponse = await testPersona(personaId, personaType);
-      if (response.status === 'success' && response.data) {
+      if (response.status === 'success' && response.data !== null && response.data !== undefined) {
         toast({ title: "Persona Test Complete", description: `Test for ${response.data.name} completed.` });
-        fetchPersonasData(personaType, false);
+        void fetchPersonasData(personaType, false);
       } else {
-        toast({ title: "Persona Test Failed", description: response.message || "Could not complete persona test.", variant: "destructive"});
-        fetchPersonasData(personaType, false); // Re-fetch even on failure to update potential status changes
+        toast({ title: "Persona Test Failed", description: response.message !== null && response.message !== undefined && response.message !== '' ? response.message : "Could not complete persona test.", variant: "destructive"});
+        void fetchPersonasData(personaType, false); // Re-fetch even on failure to update potential status changes
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to test persona";
       toast({ title: "Error Testing Persona", description: errorMessage, variant: "destructive" });
-      fetchPersonasData(personaType, false);
+      void fetchPersonasData(personaType, false);
     } finally {
       setActionLoading(prev => ({ ...prev, [personaId]: null }));
     }
   };
 
-  const handleTogglePersonaStatus = async (personaId: string, personaType: 'http' | 'dns', newStatus: PersonaStatus) => {
+  const handleTogglePersonaStatus = async (personaId: string, personaType: 'http' | 'dns', newStatus: PersonaStatus): Promise<void> => {
     setActionLoading(prev => ({ ...prev, [personaId]: 'toggle' }));
     try {
       const response = await updatePersona(personaId, { status: newStatus }, personaType);
-      if (response.status === 'success' && response.data) {
+      if (response.status === 'success' && response.data !== null && response.data !== undefined) {
         toast({ title: `Persona Status Updated`, description: `${response.data.name} is now ${newStatus}.` });
-        fetchPersonasData(personaType, false);
+        void fetchPersonasData(personaType, false);
       } else {
-        toast({ title: "Error Updating Status", description: response.message || "Could not update persona status.", variant: "destructive"});
+        toast({ title: "Error Updating Status", description: response.message !== null && response.message !== undefined && response.message !== '' ? response.message : "Could not update persona status.", variant: "destructive"});
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to update persona status";
@@ -168,33 +168,40 @@ function PersonasPageContent() {
   };
 
 
-  const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportFile = (event: React.ChangeEvent<HTMLInputElement>): void => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (file === null || file === undefined) return;
 
     const reader = new FileReader();
-    reader.onload = async (e) => {
+    reader.onload = async (e): Promise<void> => {
       try {
         const content = e.target?.result as string;
-        const jsonData = JSON.parse(content);
-        const itemsToImport = Array.isArray(jsonData) ? jsonData : [jsonData];
+        const jsonData = JSON.parse(content) as unknown;
+        const itemsToImport = Array.isArray(jsonData) ? jsonData as unknown[] : [jsonData];
         let importedCount = 0;
         let errorCount = 0;
 
-        for (const item of itemsToImport) {
-            const personaTypeForImport = item.personaType || activeTab; 
-            if (item.personaType && personaTypeForImport !== activeTab) {
-                toast({ title: "Import Error", description: `Mismatched persona type in file for item: ${item.name || 'Unknown'}. Skipping. Active tab is ${activeTab}.`, variant: "destructive" });
+        for (const unknownItem of itemsToImport) {
+            if (typeof unknownItem !== 'object' || unknownItem === null) {
                 errorCount++;
                 continue;
             }
-            const itemWithExplicitType = { ...item, personaType: personaTypeForImport };
+            const itemObj = unknownItem as Record<string, unknown>;
+            const personaTypeForImport = (typeof itemObj.personaType === 'string' ? itemObj.personaType : null) ?? activeTab;
+            if (itemObj.personaType !== undefined && itemObj.personaType !== null && personaTypeForImport !== activeTab) {
+                const itemName = typeof itemObj.name === 'string' ? itemObj.name : 'Unknown';
+                toast({ title: "Import Error", description: `Mismatched persona type in file for item: ${itemName}. Skipping. Active tab is ${activeTab}.`, variant: "destructive" });
+                errorCount++;
+                continue;
+            }
+            const itemWithExplicitType = { ...itemObj, personaType: personaTypeForImport };
             const schema = personaTypeForImport === 'http' ? HttpPersonaImportSchema : DnsPersonaImportSchema;
             const validationResult = schema.safeParse(itemWithExplicitType);
 
             if (!validationResult.success) {
               console.error("Import validation error:", validationResult.error.flatten());
-              toast({ title: "Import Validation Error", description: `Invalid structure for persona: ${item.name || 'Unknown'}. Check console. Skipping.`, variant: "destructive" });
+              const itemName = typeof itemObj.name === 'string' ? itemObj.name : 'Unknown';
+              toast({ title: "Import Validation Error", description: `Invalid structure for persona: ${itemName}. Check console. Skipping.`, variant: "destructive" });
               errorCount++;
               continue;
             }
@@ -207,15 +214,15 @@ function PersonasPageContent() {
                     personaType: 'http' as const,
                     description: validatedData.description,
                     configDetails: {
-                        userAgent: validatedData.userAgent || "",
+                        userAgent: validatedData.userAgent !== undefined && validatedData.userAgent !== null ? validatedData.userAgent : "",
                         headers: validatedData.headers,
                         headerOrder: validatedData.headerOrder,
-                        tlsClientHello: validatedData.tlsClientHello ?? undefined,
-                        http2Settings: validatedData.http2Settings ? {
-                            enabled: validatedData.http2Settings.enabled || true,
-                            ...validatedData.http2Settings
+                        tlsClientHello: validatedData.tlsClientHello !== null ? validatedData.tlsClientHello : undefined,
+                        http2Settings: validatedData.http2Settings !== null && validatedData.http2Settings !== undefined ? {
+                            enabled: (validatedData.http2Settings as {enabled?: boolean}).enabled === true,
+                            ...(validatedData.http2Settings as Record<string, unknown>)
                         } : undefined,
-                        cookieHandling: validatedData.cookieHandling ?? undefined,
+                        cookieHandling: validatedData.cookieHandling !== null ? validatedData.cookieHandling : undefined,
                         requestTimeoutSeconds: validatedData.requestTimeoutSec,
                         notes: validatedData.notes,
                     }
@@ -232,14 +239,14 @@ function PersonasPageContent() {
                         queryTimeoutSeconds: validatedData.config.queryTimeoutSeconds,
                         maxDomainsPerRequest: validatedData.config.maxDomainsPerRequest ?? 100,
                         resolverStrategy: validatedData.config.resolverStrategy,
-                        resolversWeighted: validatedData.config.resolversWeighted || undefined,
-                        resolversPreferredOrder: validatedData.config.resolversPreferredOrder || undefined,
+                        resolversWeighted: validatedData.config.resolversWeighted !== null && validatedData.config.resolversWeighted !== undefined ? validatedData.config.resolversWeighted : undefined,
+                        resolversPreferredOrder: validatedData.config.resolversPreferredOrder !== null && validatedData.config.resolversPreferredOrder !== undefined ? validatedData.config.resolversPreferredOrder : undefined,
                         concurrentQueriesPerDomain: validatedData.config.concurrentQueriesPerDomain,
-                        queryDelayMinMs: validatedData.config.queryDelayMinMs ?? 100,
-                        queryDelayMaxMs: validatedData.config.queryDelayMaxMs ?? 1000,
+                        queryDelayMinMs: validatedData.config.queryDelayMinMs !== undefined && validatedData.config.queryDelayMinMs !== null ? validatedData.config.queryDelayMinMs : 100,
+                        queryDelayMaxMs: validatedData.config.queryDelayMaxMs !== undefined && validatedData.config.queryDelayMaxMs !== null ? validatedData.config.queryDelayMaxMs : 1000,
                         maxConcurrentGoroutines: validatedData.config.maxConcurrentGoroutines,
-                        rateLimitDps: validatedData.config.rateLimitDps ?? 100.0,
-                        rateLimitBurst: validatedData.config.rateLimitBurst ?? 10,
+                        rateLimitDps: validatedData.config.rateLimitDps !== undefined && validatedData.config.rateLimitDps !== null ? validatedData.config.rateLimitDps : 100.0,
+                        rateLimitBurst: validatedData.config.rateLimitBurst !== undefined && validatedData.config.rateLimitBurst !== null ? validatedData.config.rateLimitBurst : 10,
                     },
                 };
             }
@@ -248,12 +255,14 @@ function PersonasPageContent() {
               importedCount++;
             } else {
               errorCount++;
-              toast({ title: `Error Importing ${item.name || 'Persona'}`, description: response.message || "Failed to import.", variant: "destructive" });
+              const itemName = typeof itemObj.name === 'string' ? itemObj.name : 'Persona';
+              const errorMessage = response.message !== null && response.message !== undefined && response.message !== '' ? response.message : "Failed to import.";
+              toast({ title: `Error Importing ${itemName}`, description: errorMessage, variant: "destructive" });
             }
         }
         if (importedCount > 0) {
             toast({ title: "Import Successful", description: `${importedCount} persona(s) imported successfully.` });
-            fetchPersonasData(activeTab, false);
+            void fetchPersonasData(activeTab, false);
         }
         if (errorCount > 0 && importedCount === 0) {
              toast({ title: "Import Failed", description: `No personas were imported due to errors.`, variant: "destructive" });
@@ -263,25 +272,25 @@ function PersonasPageContent() {
         const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         toast({ title: "Import Failed", description: "Could not parse JSON file or an error occurred: " + errorMessage, variant: "destructive" });
       } finally {
-        if (fileInputRef.current) fileInputRef.current.value = "";
+        if (fileInputRef.current !== null) fileInputRef.current.value = "";
       }
     };
     reader.readAsText(file);
   };
 
   const filterPersonas = (personas: Persona[], searchTerm: string): Persona[] => {
-    if (!searchTerm.trim()) return personas;
+    if (searchTerm.trim() === '') return personas;
     const lowerSearchTerm = searchTerm.toLowerCase();
     return personas.filter(p =>
       p.name.toLowerCase().includes(lowerSearchTerm) ||
-      (p.description && p.description.toLowerCase().includes(lowerSearchTerm))
+      (p.description !== null && p.description !== undefined && p.description !== '' && p.description.toLowerCase().includes(lowerSearchTerm))
     );
   };
 
   const filteredHttpPersonas = useMemo(() => filterPersonas(httpPersonas, searchTermHttp), [httpPersonas, searchTermHttp]);
   const filteredDnsPersonas = useMemo(() => filterPersonas(dnsPersonas, searchTermDns), [dnsPersonas, searchTermDns]);
 
-  const renderPersonaList = (personas: Persona[], isLoading: boolean, type: 'http' | 'dns', searchTerm: string, setSearchTerm: (term: string) => void) => {
+  const renderPersonaList = (personas: Persona[], isLoading: boolean, type: 'http' | 'dns', searchTerm: string, setSearchTerm: (term: string) => void): React.ReactElement => {
     return (
       <>
         <div className="my-4 relative">
@@ -295,7 +304,7 @@ function PersonasPageContent() {
         </div>
         {isLoading ? (
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 mt-2">
-            {[...Array(3)].map((_, i) => (
+            {Array.from({length: 3}).map((_, i) => (
               <Card key={i} className="shadow-md">
                 <CardHeader><Skeleton className="h-6 w-3/4 mb-2" /><Skeleton className="h-4 w-1/2" /></CardHeader>
                 <CardContent className="space-y-3"><Skeleton className="h-20 w-full" /><Skeleton className="h-10 w-2/3" /></CardContent>
@@ -307,10 +316,10 @@ function PersonasPageContent() {
           <div className="text-center py-10 border-2 border-dashed rounded-lg mt-6">
             {type === 'http' ? <Globe className="mx-auto h-12 w-12 text-muted-foreground" /> : <Wifi className="mx-auto h-12 w-12 text-muted-foreground" />}
             <h3 className="mt-2 text-lg font-medium">
-              {searchTerm ? `No ${type.toUpperCase()} personas found matching "${searchTerm}"` : `No ${type.toUpperCase()} personas found`}
+              {searchTerm !== '' ? `No ${type.toUpperCase()} personas found matching "${searchTerm}"` : `No ${type.toUpperCase()} personas found`}
             </h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              {searchTerm ? "Try a different search term or " : ""}
+              {searchTerm !== '' ? "Try a different search term or " : ""}
               Get started by creating or importing your first {type.toUpperCase()} persona.
             </p>
             <div className="mt-6">
@@ -323,9 +332,9 @@ function PersonasPageContent() {
               <PersonaListItem
                 key={persona.id}
                 persona={persona}
-                onDelete={handleDeletePersona}
-                onTest={handleTestPersona}
-                onToggleStatus={handleTogglePersonaStatus}
+                onDelete={(id, type) => void handleDeletePersona(id, type)}
+                onTest={(id, type) => void handleTestPersona(id, type)}
+                onToggleStatus={(id, type, status) => void handleTogglePersonaStatus(id, type, status)}
                 isTesting={actionLoading[persona.id] === 'test'}
                 isTogglingStatus={actionLoading[persona.id] === 'toggle'}
               />
@@ -347,7 +356,7 @@ function PersonasPageContent() {
             <input 
               type="file" 
               ref={fileInputRef} 
-              onChange={handleImportFile} 
+              onChange={(e) => handleImportFile(e)}
               accept=".json" 
               className="hidden"
               aria-label={`Import ${activeTab.toUpperCase()} persona file`}
@@ -375,7 +384,7 @@ function PersonasPageContent() {
     </>
   );
 }
-export default function PersonasPage() {
+export default function PersonasPage(): React.ReactElement {
   return (
     <StrictProtectedRoute
       requiredPermissions={['personas:read']}

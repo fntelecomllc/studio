@@ -14,21 +14,21 @@ interface WebSocketStatusProps {
   campaignId?: string;
 }
 
-export function WebSocketStatus({ 
-  className = '', 
-  showDetails = false, 
-  campaignId 
-}: WebSocketStatusProps) {
+export function WebSocketStatus({
+  className = '',
+  showDetails = false,
+  campaignId
+}: WebSocketStatusProps): React.ReactElement {
   const { status, isAnyConnected, getStatus } = useWebSocketStatus();
 
   // Determine status for specific campaign or overall
-  const isConnected = campaignId ? getStatus(campaignId) : isAnyConnected;
+  const isConnected = (campaignId !== undefined) ? getStatus(campaignId) : isAnyConnected;
   
   const statusColor = isConnected ? 'text-green-600' : 'text-red-600';
   const statusIcon = isConnected ? '●' : '●';
   const statusText = isConnected ? 'Connected' : 'Disconnected';
 
-  if (!showDetails) {
+  if (showDetails === false) {
     return (
       <div className={`flex items-center gap-2 ${className}`}>
         <span className={`${statusColor} text-sm`} title="WebSocket Status">
@@ -52,13 +52,13 @@ export function WebSocketStatus({
         </span>
       </div>
       
-      {showDetails && Object.keys(status).length > 0 && (
+      {(showDetails === true && Object.keys(status).length > 0) && (
         <div className="text-xs text-gray-500 space-y-1">
           <div>Active Connections:</div>
           {Object.entries(status).map(([id, connected]) => (
             <div key={id} className="flex items-center gap-2 ml-2">
-              <span className={connected ? 'text-green-600' : 'text-red-600'}>
-                {connected ? '●' : '●'}
+              <span className={connected === true ? 'text-green-600' : 'text-red-600'}>
+                {connected === true ? '●' : '●'}
               </span>
               <span className="font-mono text-xs">
                 {id.length > 8 ? `${id.slice(0, 8)}...` : id}
@@ -79,10 +79,10 @@ interface CampaignWebSocketIndicatorProps {
   className?: string;
 }
 
-export function CampaignWebSocketIndicator({ 
-  campaignId, 
-  className = '' 
-}: CampaignWebSocketIndicatorProps) {
+export function CampaignWebSocketIndicator({
+  campaignId,
+  className = ''
+}: CampaignWebSocketIndicatorProps): React.ReactElement {
   const { getStatus } = useWebSocketStatus();
   const isConnected = getStatus(campaignId);
 
@@ -90,16 +90,16 @@ export function CampaignWebSocketIndicator({
     <div 
       className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${className}`}
       style={{
-        backgroundColor: isConnected ? '#dcfce7' : '#fee2e2',
-        color: isConnected ? '#16a34a' : '#dc2626'
+        backgroundColor: isConnected === true ? '#dcfce7' : '#fee2e2',
+        color: isConnected === true ? '#16a34a' : '#dc2626'
       }}
-      title={`WebSocket ${isConnected ? 'Connected' : 'Disconnected'}`}
+      title={`WebSocket ${isConnected === true ? 'Connected' : 'Disconnected'}`}
     >
       <span className="w-2 h-2 rounded-full" style={{
-        backgroundColor: isConnected ? '#16a34a' : '#dc2626'
+        backgroundColor: isConnected === true ? '#16a34a' : '#dc2626'
       }} />
       <span>
-        {isConnected ? 'Live' : 'Offline'}
+        {isConnected === true ? 'Live' : 'Offline'}
       </span>
     </div>
   );

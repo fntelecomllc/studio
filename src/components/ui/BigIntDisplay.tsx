@@ -35,7 +35,7 @@ function formatBigIntValue(
     } else if (typeof value === 'string') {
       // Handle SafeBigInt string format or numeric strings
       const cleanValue = value.replace(/[^\d]/g, '');
-      if (!cleanValue) return '';
+      if (cleanValue === '') return '';
       bigIntValue = BigInt(cleanValue);
     } else if (typeof value === 'number') {
       if (!Number.isSafeInteger(value) || value < 0) {
@@ -138,14 +138,14 @@ export function BigIntDisplay({
   fallback = '0',
   showTooltip = false,
   precision = 2
-}: BigIntDisplayProps) {
+}: BigIntDisplayProps): React.ReactElement {
   const displayValue = useMemo(() => {
     const formatted = formatBigIntValue(value, format, precision);
-    return formatted || fallback;
+    return formatted !== '' ? formatted : fallback;
   }, [value, format, precision, fallback]);
 
   const tooltipValue = useMemo(() => {
-    if (!showTooltip || !value) return undefined;
+    if (showTooltip !== true || value === null || value === undefined) return undefined;
     
     // Show raw decimal value in tooltip for abbreviated formats
     if (format === 'abbreviated' || format === 'bytes') {
@@ -155,7 +155,7 @@ export function BigIntDisplay({
     return undefined;
   }, [value, format, precision, showTooltip]);
 
-  if (tooltipValue) {
+  if (tooltipValue !== undefined) {
     return (
       <span 
         className={cn('cursor-help', className)}
@@ -178,7 +178,7 @@ export function BigIntDisplay({
 /**
  * Display for item counts (e.g., processed items, total items)
  */
-export function ItemCountDisplay({ value, className }: { value: SafeBigInt | string | number | null | undefined; className?: string }) {
+export function ItemCountDisplay({ value, className }: { value: SafeBigInt | string | number | null | undefined; className?: string }): React.ReactElement {
   return (
     <BigIntDisplay
       value={value}
@@ -192,15 +192,15 @@ export function ItemCountDisplay({ value, className }: { value: SafeBigInt | str
 /**
  * Display for abbreviated large numbers
  */
-export function AbbreviatedNumberDisplay({ 
-  value, 
+export function AbbreviatedNumberDisplay({
+  value,
   className,
-  precision = 1 
-}: { 
-  value: SafeBigInt | string | number | null | undefined; 
+  precision = 1
+}: {
+  value: SafeBigInt | string | number | null | undefined;
   className?: string;
   precision?: number;
-}) {
+}): React.ReactElement {
   return (
     <BigIntDisplay
       value={value}
@@ -215,13 +215,13 @@ export function AbbreviatedNumberDisplay({
 /**
  * Display for file sizes and byte counts
  */
-export function ByteSizeDisplay({ 
-  value, 
-  className 
-}: { 
-  value: SafeBigInt | string | number | null | undefined; 
-  className?: string 
-}) {
+export function ByteSizeDisplay({
+  value,
+  className
+}: {
+  value: SafeBigInt | string | number | null | undefined;
+  className?: string
+}): React.ReactElement {
   return (
     <BigIntDisplay
       value={value}
@@ -235,17 +235,17 @@ export function ByteSizeDisplay({
 /**
  * Display for progress indicators with percentage
  */
-export function ProgressCountDisplay({ 
-  current, 
-  total, 
-  className 
-}: { 
+export function ProgressCountDisplay({
+  current,
+  total,
+  className
+}: {
   current: SafeBigInt | string | number | null | undefined;
   total: SafeBigInt | string | number | null | undefined;
   className?: string;
-}) {
+}): React.ReactElement {
   const percentage = useMemo(() => {
-    if (!current || !total) return 0;
+    if (current === null || current === undefined || total === null || total === undefined) return 0;
     
     try {
       const currentBig = typeof current === 'bigint' ? current : BigInt(current.toString());

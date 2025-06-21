@@ -69,7 +69,7 @@ export function UserManagement({
   onUserCreated,
   onUserUpdated,
   onUserDeleted
-}: UserManagementProps) {
+}: UserManagementProps): React.ReactElement {
   const { user: currentUser, getUsers, createUser, updateUser, deleteUser, hasPermission } = useAuth();
   
   const [users, setUsers] = useState<User[]>([]);
@@ -100,22 +100,22 @@ export function UserManagement({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Check if user has admin permissions
-  const canManageUsers = hasPermission('users:write') || hasPermission('admin:all');
-  const canViewUsers = hasPermission('users:read') || hasPermission('admin:all');
+  const canManageUsers = hasPermission('users:write') === true || hasPermission('admin:all') === true;
+  const canViewUsers = hasPermission('users:read') === true || hasPermission('admin:all') === true;
 
   // Load users
-  const loadUsers = useCallback(async (page: number = 1, limit: number = 20) => {
-    if (!canViewUsers) return;
+  const loadUsers = useCallback(async (page: number = 1, limit: number = 20): Promise<void> => {
+    if (canViewUsers === false) return;
     
     setIsLoading(true);
     try {
       const result = await getUsers(page, limit);
-      if (result.success && result.data) {
-        setUsers(result.data.data || []); // result.data.data is User[] array
-        setTotalUsers(result.data.metadata?.page?.total || 0);
-        setCurrentPage(result.data.metadata?.page?.current || page);
+      if (result.success && result.data !== null && result.data !== undefined) {
+        setUsers(result.data.data ?? []); // result.data.data is User[] array
+        setTotalUsers(result.data.metadata?.page?.total ?? 0);
+        setCurrentPage(result.data.metadata?.page?.current ?? page);
       } else {
-        setErrorMessage(result.error?.message || 'Failed to load users');
+        setErrorMessage(result.error?.message ?? 'Failed to load users');
       }
     } catch (error) {
       console.error('Load users error:', error);
@@ -127,7 +127,7 @@ export function UserManagement({
 
   // Load users on component mount
   useEffect(() => {
-    loadUsers();
+    void loadUsers();
   }, [loadUsers]);
 
   // Handle create form input changes
@@ -135,13 +135,13 @@ export function UserManagement({
     setCreateForm(prev => ({ ...prev, [field]: value }));
     
     // Clear field error when user starts typing
-    if (createErrors[field]) {
+    if (createErrors[field] !== undefined && createErrors[field] !== null) {
       setCreateErrors(prev => ({ ...prev, [field]: undefined }));
     }
     
     // Clear messages
-    if (successMessage) setSuccessMessage(null);
-    if (errorMessage) setErrorMessage(null);
+    if (successMessage !== null && successMessage !== undefined) setSuccessMessage(null);
+    if (errorMessage !== null && errorMessage !== undefined) setErrorMessage(null);
   }, [createErrors, successMessage, errorMessage]);
 
   // Handle update form input changes
@@ -149,13 +149,13 @@ export function UserManagement({
     setUpdateForm(prev => ({ ...prev, [field]: value }));
     
     // Clear field error when user starts typing
-    if (updateErrors[field]) {
+    if (updateErrors[field] !== undefined && updateErrors[field] !== null) {
       setUpdateErrors(prev => ({ ...prev, [field]: undefined }));
     }
     
     // Clear messages
-    if (successMessage) setSuccessMessage(null);
-    if (errorMessage) setErrorMessage(null);
+    if (successMessage !== null && successMessage !== undefined) setSuccessMessage(null);
+    if (errorMessage !== null && errorMessage !== undefined) setErrorMessage(null);
   }, [updateErrors, successMessage, errorMessage]);
 
   // Validate create form
@@ -168,7 +168,7 @@ export function UserManagement({
       if (error instanceof z.ZodError) {
         const fieldErrors: Partial<Record<keyof CreateUserFormData, string>> = {};
         error.errors.forEach(err => {
-          if (err.path[0]) {
+          if (err.path[0] !== undefined) {
             fieldErrors[err.path[0] as keyof CreateUserFormData] = err.message;
           }
         });
@@ -188,7 +188,7 @@ export function UserManagement({
       if (error instanceof z.ZodError) {
         const fieldErrors: Partial<Record<keyof UpdateUserFormData, string>> = {};
         error.errors.forEach(err => {
-          if (err.path[0]) {
+          if (err.path[0] !== undefined) {
             fieldErrors[err.path[0] as keyof UpdateUserFormData] = err.message;
           }
         });
@@ -199,7 +199,7 @@ export function UserManagement({
   }, [updateForm]);
 
   // Handle create user submission
-  const handleCreateSubmit = useCallback(async (e: React.FormEvent) => {
+  const handleCreateSubmit = useCallback(async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     
     if (!validateCreateForm()) {
@@ -213,11 +213,11 @@ export function UserManagement({
     try {
       // Transform form data to match CreateUserRequest interface
       const [firstName, ...lastNameParts] = createForm.name.split(' ');
-      const lastName = lastNameParts.join(' ') || 'User'; // fallback if no last name
+      const lastName = lastNameParts.length > 0 ? lastNameParts.join(' ') : 'User'; // fallback if no last name
       
       const createUserRequest = {
         email: createForm.email,
-        firstName: firstName || 'User',
+        firstName: firstName ?? 'User',
         lastName,
         password: createForm.password,
         roleIds: [createForm.roleId]
@@ -225,7 +225,7 @@ export function UserManagement({
       
       const result = await createUser(createUserRequest);
 
-      if (result.success && result.data) {
+      if (result.success && result.data !== null && result.data !== undefined) {
         setSuccessMessage('User created successfully!');
         setCreateForm({
           name: '',
@@ -237,11 +237,11 @@ export function UserManagement({
         setIsCreateDialogOpen(false);
         await loadUsers(currentPage);
         
-        if (onUserCreated) {
+        if (onUserCreated !== undefined) {
           onUserCreated(result.data);
         }
       } else {
-        setErrorMessage(result.error?.message || 'Failed to create user');
+        setErrorMessage(result.error?.message ?? 'Failed to create user');
       }
     } catch (error) {
       console.error('Create user error:', error);
@@ -252,10 +252,10 @@ export function UserManagement({
   }, [validateCreateForm, createUser, createForm, currentPage, loadUsers, onUserCreated]);
 
   // Handle update user submission
-  const handleUpdateSubmit = useCallback(async (e: React.FormEvent) => {
+  const handleUpdateSubmit = useCallback(async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     
-    if (!selectedUser || !validateUpdateForm()) {
+    if (selectedUser === null || selectedUser === undefined || validateUpdateForm() === false) {
       return;
     }
 
@@ -266,18 +266,18 @@ export function UserManagement({
     try {
       const result = await updateUser(selectedUser.id, updateForm);
 
-      if (result.success && result.data) {
+      if (result.success && result.data !== null && result.data !== undefined) {
         setSuccessMessage('User updated successfully!');
         setUpdateForm({});
         setIsEditDialogOpen(false);
         setSelectedUser(null);
         await loadUsers(currentPage);
         
-        if (onUserUpdated) {
+        if (onUserUpdated !== undefined) {
           onUserUpdated(result.data);
         }
       } else {
-        setErrorMessage(result.error?.message || 'Failed to update user');
+        setErrorMessage(result.error?.message ?? 'Failed to update user');
       }
     } catch (error) {
       console.error('Update user error:', error);
@@ -288,7 +288,7 @@ export function UserManagement({
   }, [selectedUser, validateUpdateForm, updateUser, updateForm, currentPage, loadUsers, onUserUpdated]);
 
   // Handle delete user
-  const handleDeleteUser = useCallback(async (user: User) => {
+  const handleDeleteUser = useCallback(async (user: User): Promise<void> => {
     if (!confirm(`Are you sure you want to delete user "${user.firstName} ${user.lastName}"? This action cannot be undone.`)) {
       return;
     }
@@ -304,11 +304,11 @@ export function UserManagement({
         setSuccessMessage('User deleted successfully!');
         await loadUsers(currentPage);
         
-        if (onUserDeleted) {
+        if (onUserDeleted !== undefined) {
           onUserDeleted(user.id);
         }
       } else {
-        setErrorMessage(result.error?.message || 'Failed to delete user');
+        setErrorMessage(result.error?.message ?? 'Failed to delete user');
       }
     } catch (error) {
       console.error('Delete user error:', error);
@@ -324,7 +324,7 @@ export function UserManagement({
     setUpdateForm({
       name: `${user.firstName} ${user.lastName}`,
       email: user.email,
-      roleId: user.roles?.[0]?.id || '',
+      roleId: user.roles?.[0]?.id ?? '',
       isActive: user.isActive,
       mustChangePassword: user.mustChangePassword
     });
@@ -333,19 +333,20 @@ export function UserManagement({
 
   // Filter users based on search and filters
   const filteredUsers = users.filter(user => {
-    const displayName = `${user.firstName} ${user.lastName}`.trim() || user.email;
-    const matchesSearch = displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const displayName = `${user.firstName} ${user.lastName}`.trim();
+    const nameForSearch = displayName.length > 0 ? displayName : user.email;
+    const matchesSearch = nameForSearch.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'all' || (user.roles?.[0]?.name || 'user') === roleFilter;
+    const matchesRole = roleFilter === 'all' || (user.roles?.[0]?.name ?? 'user') === roleFilter;
     const matchesStatus = statusFilter === 'all' ||
                          (statusFilter === 'active' && user.isActive) ||
-                         (statusFilter === 'inactive' && !user.isActive);
+                         (statusFilter === 'inactive' && user.isActive === false);
     return matchesSearch && matchesRole && matchesStatus;
   });
 
   // Format date
   const formatDate = useCallback((dateString?: string): string => {
-    if (!dateString) return '';
+    if (dateString === undefined || dateString === null) return '';
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -353,7 +354,7 @@ export function UserManagement({
     });
   }, []);
 
-  if (!canViewUsers) {
+  if (canViewUsers === false) {
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
@@ -391,7 +392,7 @@ export function UserManagement({
                   Add a new user to the system
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleCreateSubmit} className="space-y-4">
+              <form onSubmit={(e) => void handleCreateSubmit(e)} className="space-y-4">
                 {/* Name */}
                 <div className="space-y-2">
                   <Label htmlFor="create-name">Name</Label>
@@ -401,9 +402,9 @@ export function UserManagement({
                     value={createForm.name}
                     onChange={(e) => handleCreateInputChange('name', e.target.value)}
                     disabled={isLoading}
-                    className={createErrors.name ? 'border-destructive' : ''}
+                    className={createErrors.name !== undefined ? 'border-destructive' : ''}
                   />
-                  {createErrors.name && (
+                  {createErrors.name !== undefined && (
                     <p className="text-sm text-destructive">{createErrors.name}</p>
                   )}
                 </div>
@@ -418,9 +419,9 @@ export function UserManagement({
                     value={createForm.email}
                     onChange={(e) => handleCreateInputChange('email', e.target.value)}
                     disabled={isLoading}
-                    className={createErrors.email ? 'border-destructive' : ''}
+                    className={createErrors.email !== undefined ? 'border-destructive' : ''}
                   />
-                  {createErrors.email && (
+                  {createErrors.email !== undefined && (
                     <p className="text-sm text-destructive">{createErrors.email}</p>
                   )}
                 </div>
@@ -436,7 +437,7 @@ export function UserManagement({
                       value={createForm.password}
                       onChange={(e) => handleCreateInputChange('password', e.target.value)}
                       disabled={isLoading}
-                      className={createErrors.password ? 'border-destructive pr-10' : 'pr-10'}
+                      className={createErrors.password !== undefined ? 'border-destructive pr-10' : 'pr-10'}
                     />
                     <Button
                       type="button"
@@ -453,7 +454,7 @@ export function UserManagement({
                       )}
                     </Button>
                   </div>
-                  {createErrors.password && (
+                  {createErrors.password !== undefined && (
                     <p className="text-sm text-destructive">{createErrors.password}</p>
                   )}
                 </div>
@@ -466,7 +467,7 @@ export function UserManagement({
                     onValueChange={(value) => handleCreateInputChange('roleId', value)}
                     disabled={isLoading}
                   >
-                    <SelectTrigger className={createErrors.roleId ? 'border-destructive' : ''}>
+                    <SelectTrigger className={createErrors.roleId !== undefined ? 'border-destructive' : ''}>
                       <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
                     <SelectContent>
@@ -477,7 +478,7 @@ export function UserManagement({
                       ))}
                     </SelectContent>
                   </Select>
-                  {createErrors.roleId && (
+                  {createErrors.roleId !== undefined && (
                     <p className="text-sm text-destructive">{createErrors.roleId}</p>
                   )}
                 </div>
@@ -487,7 +488,7 @@ export function UserManagement({
                   <Checkbox
                     id="create-mustChangePassword"
                     checked={createForm.mustChangePassword}
-                    onCheckedChange={(checked) => handleCreateInputChange('mustChangePassword', !!checked)}
+                    onCheckedChange={(checked) => handleCreateInputChange('mustChangePassword', checked === true)}
                     disabled={isLoading}
                   />
                   <Label htmlFor="create-mustChangePassword" className="text-sm">
@@ -496,7 +497,7 @@ export function UserManagement({
                 </div>
 
                 {/* Error Message */}
-                {errorMessage && (
+                {errorMessage !== null && (
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>{errorMessage}</AlertDescription>
@@ -571,7 +572,7 @@ export function UserManagement({
       </Card>
 
       {/* Success Message */}
-      {successMessage && (
+      {successMessage !== null && (
         <Alert>
           <CheckCircle className="h-4 w-4" />
           <AlertDescription>{successMessage}</AlertDescription>
@@ -579,7 +580,7 @@ export function UserManagement({
       )}
 
       {/* Error Message */}
-      {errorMessage && (
+      {errorMessage !== null && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{errorMessage}</AlertDescription>
@@ -623,7 +624,7 @@ export function UserManagement({
                       <div>
                         <p className="font-medium">{user.firstName} {user.lastName}</p>
                         <p className="text-sm text-muted-foreground">{user.email}</p>
-                        {user.mustChangePassword && (
+                        {user.mustChangePassword === true && (
                           <Badge variant="outline" className="mt-1">
                             Must change password
                           </Badge>
@@ -631,7 +632,7 @@ export function UserManagement({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{user.roles?.[0]?.name || 'user'}</Badge>
+                      <Badge variant="secondary">{user.roles?.[0]?.name ?? 'user'}</Badge>
                     </TableCell>
                     <TableCell>
                       <Badge variant={user.isActive ? "default" : "destructive"}>
@@ -639,7 +640,7 @@ export function UserManagement({
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never'}
+                      {user.lastLoginAt !== undefined ? formatDate(user.lastLoginAt) : 'Never'}
                     </TableCell>
                     <TableCell>{formatDate(user.createdAt)}</TableCell>
                     {canManageUsers && (
@@ -653,11 +654,11 @@ export function UserManagement({
                           >
                             <Edit className="h-3 w-3" />
                           </Button>
-                          {user.id !== currentUser?.id && (
+                          {currentUser !== null && user.id !== currentUser.id && (
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleDeleteUser(user)}
+                              onClick={() => void handleDeleteUser(user)}
                               disabled={isLoading}
                             >
                               <Trash2 className="h-3 w-3" />
@@ -683,20 +684,20 @@ export function UserManagement({
               Update user information and permissions
             </DialogDescription>
           </DialogHeader>
-          {selectedUser && (
-            <form onSubmit={handleUpdateSubmit} className="space-y-4">
+          {selectedUser !== null && (
+            <form onSubmit={(e) => void handleUpdateSubmit(e)} className="space-y-4">
               {/* Name */}
               <div className="space-y-2">
                 <Label htmlFor="update-name">Name</Label>
                 <Input
                   id="update-name"
                   placeholder="Enter user's full name"
-                  value={updateForm.name || ''}
+                  value={updateForm.name ?? ''}
                   onChange={(e) => handleUpdateInputChange('name', e.target.value)}
                   disabled={isLoading}
-                  className={updateErrors.name ? 'border-destructive' : ''}
+                  className={updateErrors.name !== undefined ? 'border-destructive' : ''}
                 />
-                {updateErrors.name && (
+                {updateErrors.name !== undefined && (
                   <p className="text-sm text-destructive">{updateErrors.name}</p>
                 )}
               </div>
@@ -708,12 +709,12 @@ export function UserManagement({
                   id="update-email"
                   type="email"
                   placeholder="Enter user's email address"
-                  value={updateForm.email || ''}
+                  value={updateForm.email ?? ''}
                   onChange={(e) => handleUpdateInputChange('email', e.target.value)}
                   disabled={isLoading}
-                  className={updateErrors.email ? 'border-destructive' : ''}
+                  className={updateErrors.email !== undefined ? 'border-destructive' : ''}
                 />
-                {updateErrors.email && (
+                {updateErrors.email !== undefined && (
                   <p className="text-sm text-destructive">{updateErrors.email}</p>
                 )}
               </div>
@@ -722,11 +723,11 @@ export function UserManagement({
               <div className="space-y-2">
                 <Label htmlFor="update-role">Role</Label>
                 <Select
-                  value={updateForm.roleId || ''}
+                  value={updateForm.roleId ?? ''}
                   onValueChange={(value) => handleUpdateInputChange('roleId', value)}
                   disabled={isLoading}
                 >
-                  <SelectTrigger className={updateErrors.roleId ? 'border-destructive' : ''}>
+                  <SelectTrigger className={updateErrors.roleId !== undefined ? 'border-destructive' : ''}>
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
@@ -737,7 +738,7 @@ export function UserManagement({
                     ))}
                   </SelectContent>
                 </Select>
-                {updateErrors.roleId && (
+                {updateErrors.roleId !== undefined && (
                   <p className="text-sm text-destructive">{updateErrors.roleId}</p>
                 )}
               </div>
@@ -747,7 +748,7 @@ export function UserManagement({
                 <Checkbox
                   id="update-isActive"
                   checked={updateForm.isActive ?? false}
-                  onCheckedChange={(checked) => handleUpdateInputChange('isActive', !!checked)}
+                  onCheckedChange={(checked) => handleUpdateInputChange('isActive', checked === true)}
                   disabled={isLoading}
                 />
                 <Label htmlFor="update-isActive" className="text-sm">
@@ -760,7 +761,7 @@ export function UserManagement({
                 <Checkbox
                   id="update-mustChangePassword"
                   checked={updateForm.mustChangePassword ?? false}
-                  onCheckedChange={(checked) => handleUpdateInputChange('mustChangePassword', !!checked)}
+                  onCheckedChange={(checked) => handleUpdateInputChange('mustChangePassword', checked === true)}
                   disabled={isLoading}
                 />
                 <Label htmlFor="update-mustChangePassword" className="text-sm">
@@ -769,7 +770,7 @@ export function UserManagement({
               </div>
 
               {/* Error Message */}
-              {errorMessage && (
+              {errorMessage !== null && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>{errorMessage}</AlertDescription>

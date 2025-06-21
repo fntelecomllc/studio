@@ -62,7 +62,7 @@ interface CampaignFormProps {
  * 4. Form validation optimized to reduce computation overhead
  * 5. React concurrent features best practices implemented
  */
-export default function CampaignFormV2({ campaignToEdit, isEditing = false }: CampaignFormProps) {
+export default function CampaignFormV2({ campaignToEdit, isEditing = false }: CampaignFormProps): React.ReactElement {
   const router = useRouter();
   const { toast } = useToast();
   const searchParams = useSearchParams();
@@ -85,35 +85,35 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
   const form = useForm<CampaignFormValues>({
     resolver: zodResolver(campaignFormSchema),
     defaultValues: {
-      name: isEditing && campaignToEdit ? campaignToEdit.name : "",
-      description: isEditing && campaignToEdit ? (campaignToEdit.description || "") : "",
-      selectedType: isEditing && campaignToEdit ? campaignToEdit.selectedType : (preselectedType && Object.values(CAMPAIGN_SELECTED_TYPES).includes(preselectedType) ? preselectedType : undefined),
-      domainSourceSelectionMode: isEditing && campaignToEdit ? 
-        (campaignToEdit.domainSourceConfig?.type === 'current_campaign_output' ? 'campaign_output' as const : (campaignToEdit.domainSourceConfig?.type as DomainSourceSelectionMode || getDefaultSourceMode(campaignToEdit.selectedType))) : 
+      name: isEditing && campaignToEdit !== undefined ? campaignToEdit.name : "",
+      description: isEditing && campaignToEdit !== undefined ? (campaignToEdit.description ?? "") : "",
+      selectedType: isEditing && campaignToEdit !== undefined ? campaignToEdit.selectedType : (preselectedType !== null && Object.values(CAMPAIGN_SELECTED_TYPES).includes(preselectedType) ? preselectedType : undefined),
+      domainSourceSelectionMode: isEditing && campaignToEdit !== undefined ?
+        (campaignToEdit.domainSourceConfig?.type === 'current_campaign_output' ? 'campaign_output' as const : (campaignToEdit.domainSourceConfig?.type as DomainSourceSelectionMode ?? getDefaultSourceMode(campaignToEdit.selectedType))) :
         getDefaultSourceMode(preselectedType),
-      sourceCampaignId: isEditing && campaignToEdit ? (campaignToEdit.domainSourceConfig?.sourceCampaignId || CampaignFormConstants.NONE_VALUE_PLACEHOLDER) : CampaignFormConstants.NONE_VALUE_PLACEHOLDER,
-      sourcePhase: isEditing && campaignToEdit ? (campaignToEdit.domainSourceConfig?.sourcePhase as CampaignPhase) : undefined,
+      sourceCampaignId: isEditing && campaignToEdit !== undefined ? (campaignToEdit.domainSourceConfig?.sourceCampaignId ?? CampaignFormConstants.NONE_VALUE_PLACEHOLDER) : CampaignFormConstants.NONE_VALUE_PLACEHOLDER,
+      sourcePhase: isEditing && campaignToEdit !== undefined ? (campaignToEdit.domainSourceConfig?.sourcePhase as CampaignPhase) : undefined,
       uploadedDomainsFile: null,
-      uploadedDomainsContentCache: isEditing && campaignToEdit ? (campaignToEdit.domainSourceConfig?.type === 'upload' ? campaignToEdit.domainSourceConfig.uploadedDomains : []) : [],
-      initialDomainsToProcessCount: isEditing && campaignToEdit ? campaignToEdit.initialDomainsToProcessCount : 100,
+      uploadedDomainsContentCache: isEditing && campaignToEdit !== undefined ? (campaignToEdit.domainSourceConfig?.type === 'upload' ? campaignToEdit.domainSourceConfig.uploadedDomains : []) : [],
+      initialDomainsToProcessCount: isEditing && campaignToEdit !== undefined ? campaignToEdit.initialDomainsToProcessCount : 100,
       
-      generationPattern: isEditing && campaignToEdit ? (campaignToEdit.domainGenerationConfig?.generationPattern as DomainGenerationPattern || "prefix_variable") : "prefix_variable",
-      constantPart: isEditing && campaignToEdit ? (campaignToEdit.domainGenerationConfig?.constantPart || "") : "business",
-      allowedCharSet: isEditing && campaignToEdit ? (campaignToEdit.domainGenerationConfig?.allowedCharSet || "abcdefghijklmnopqrstuvwxyz0123456789") : "abcdefghijklmnopqrstuvwxyz0123456789",
-      tldsInput: isEditing && campaignToEdit ? (campaignToEdit.domainGenerationConfig?.tlds?.join(', ') || ".com") : ".com",
-      prefixVariableLength: isEditing && campaignToEdit ? (campaignToEdit.domainGenerationConfig?.prefixVariableLength === undefined ? undefined : Number(campaignToEdit.domainGenerationConfig.prefixVariableLength)) : 3,
-      suffixVariableLength: isEditing && campaignToEdit ? (campaignToEdit.domainGenerationConfig?.suffixVariableLength === undefined ? undefined : Number(campaignToEdit.domainGenerationConfig.suffixVariableLength)) : 0,
-      maxDomainsToGenerate: isEditing && campaignToEdit ? campaignToEdit.domainGenerationConfig?.maxDomainsToGenerate : 1000,
+      generationPattern: isEditing && campaignToEdit !== undefined ? (campaignToEdit.domainGenerationConfig?.generationPattern as DomainGenerationPattern ?? "prefix_variable") : "prefix_variable",
+      constantPart: isEditing && campaignToEdit !== undefined ? (campaignToEdit.domainGenerationConfig?.constantPart ?? "") : "business",
+      allowedCharSet: isEditing && campaignToEdit !== undefined ? (campaignToEdit.domainGenerationConfig?.allowedCharSet ?? "abcdefghijklmnopqrstuvwxyz0123456789") : "abcdefghijklmnopqrstuvwxyz0123456789",
+      tldsInput: isEditing && campaignToEdit !== undefined ? (campaignToEdit.domainGenerationConfig?.tlds?.join(', ') ?? ".com") : ".com",
+      prefixVariableLength: isEditing && campaignToEdit !== undefined ? (campaignToEdit.domainGenerationConfig?.prefixVariableLength === undefined ? undefined : Number(campaignToEdit.domainGenerationConfig.prefixVariableLength)) : 3,
+      suffixVariableLength: isEditing && campaignToEdit !== undefined ? (campaignToEdit.domainGenerationConfig?.suffixVariableLength === undefined ? undefined : Number(campaignToEdit.domainGenerationConfig.suffixVariableLength)) : 0,
+      maxDomainsToGenerate: isEditing && campaignToEdit !== undefined ? campaignToEdit.domainGenerationConfig?.maxDomainsToGenerate : 1000,
       
-      targetKeywordsInput: isEditing && campaignToEdit ? (campaignToEdit.leadGenerationSpecificConfig?.targetKeywords?.join(', ') || "") : "telecom, voip, saas",
-      scrapingRateLimitRequests: isEditing && campaignToEdit ? campaignToEdit.leadGenerationSpecificConfig?.scrapingRateLimit?.requests : 1,
-      scrapingRateLimitPer: isEditing && campaignToEdit ? (campaignToEdit.leadGenerationSpecificConfig?.scrapingRateLimit?.per as "second" | "minute" || 'second') : 'second',
-      requiresJavaScriptRendering: isEditing && campaignToEdit ? (campaignToEdit.leadGenerationSpecificConfig?.requiresJavaScriptRendering || false) : false,
+      targetKeywordsInput: isEditing && campaignToEdit !== undefined ? (campaignToEdit.leadGenerationSpecificConfig?.targetKeywords?.join(', ') ?? "") : "telecom, voip, saas",
+      scrapingRateLimitRequests: isEditing && campaignToEdit !== undefined ? campaignToEdit.leadGenerationSpecificConfig?.scrapingRateLimit?.requests : 1,
+      scrapingRateLimitPer: isEditing && campaignToEdit !== undefined ? (campaignToEdit.leadGenerationSpecificConfig?.scrapingRateLimit?.per as "second" | "minute" ?? 'second') : 'second',
+      requiresJavaScriptRendering: isEditing && campaignToEdit !== undefined ? (campaignToEdit.leadGenerationSpecificConfig?.requiresJavaScriptRendering ?? false) : false,
       
-      assignedHttpPersonaId: isEditing && campaignToEdit ? (campaignToEdit.assignedHttpPersonaId || CampaignFormConstants.NONE_VALUE_PLACEHOLDER) : CampaignFormConstants.NONE_VALUE_PLACEHOLDER,
-      assignedDnsPersonaId: isEditing && campaignToEdit ? (campaignToEdit.assignedDnsPersonaId || CampaignFormConstants.NONE_VALUE_PLACEHOLDER) : CampaignFormConstants.NONE_VALUE_PLACEHOLDER,
-      proxyAssignmentMode: isEditing && campaignToEdit ? (campaignToEdit.proxyAssignment?.mode as "none" | "single" | "rotate_active" || 'none') : 'none',
-      assignedProxyId: isEditing && campaignToEdit ? ((campaignToEdit.proxyAssignment?.mode === 'single' && campaignToEdit.proxyAssignment.proxyId) ? campaignToEdit.proxyAssignment.proxyId : CampaignFormConstants.NONE_VALUE_PLACEHOLDER) : CampaignFormConstants.NONE_VALUE_PLACEHOLDER,
+      assignedHttpPersonaId: isEditing && campaignToEdit !== undefined ? (campaignToEdit.assignedHttpPersonaId ?? CampaignFormConstants.NONE_VALUE_PLACEHOLDER) : CampaignFormConstants.NONE_VALUE_PLACEHOLDER,
+      assignedDnsPersonaId: isEditing && campaignToEdit !== undefined ? (campaignToEdit.assignedDnsPersonaId ?? CampaignFormConstants.NONE_VALUE_PLACEHOLDER) : CampaignFormConstants.NONE_VALUE_PLACEHOLDER,
+      proxyAssignmentMode: isEditing && campaignToEdit !== undefined ? (campaignToEdit.proxyAssignment?.mode as "none" | "single" | "rotate_active" ?? 'none') : 'none',
+      assignedProxyId: isEditing && campaignToEdit !== undefined ? ((campaignToEdit.proxyAssignment?.mode === 'single' && campaignToEdit.proxyAssignment.proxyId !== undefined) ? campaignToEdit.proxyAssignment.proxyId : CampaignFormConstants.NONE_VALUE_PLACEHOLDER) : CampaignFormConstants.NONE_VALUE_PLACEHOLDER,
     },
     mode: "onChange"
   });
@@ -151,7 +151,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
       switch (data.selectedType) {
         case 'domain_generation': {
           // Validate required fields for domain generation
-          if (!data.generationPattern || !data.constantPart?.trim()) {
+          if (data.generationPattern === undefined || data.constantPart?.trim() === '') {
             toast({
               title: "Validation Error",
               description: "Generation pattern and constant part are required for domain generation campaigns.",
@@ -161,7 +161,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
           }
 
           // Parse TLDs from comma-separated input
-          const tlds = data.tldsInput ? data.tldsInput.split(',').map(tld => {
+          const tlds = data.tldsInput !== undefined && data.tldsInput !== '' ? data.tldsInput.split(',').map(tld => {
             const trimmed = tld.trim();
             return trimmed.startsWith('.') ? trimmed : `.${trimmed}`;
           }).filter(tld => tld.length > 1) : ['.com'];
@@ -212,9 +212,9 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
             domainGenerationParams: {
               patternType: mapPatternType(data.generationPattern),
               variableLength: variableLength,
-              characterSet: data.allowedCharSet || 'abcdefghijklmnopqrstuvwxyz0123456789',
-              constantString: data.constantPart.trim(),
-              tld: tlds[0] || '.com',
+              characterSet: data.allowedCharSet ?? 'abcdefghijklmnopqrstuvwxyz0123456789',
+              constantString: data.constantPart?.trim() ?? '',
+              tld: tlds[0] ?? '.com',
               numDomainsToGenerate: maxDomains,
             },
           };
@@ -223,7 +223,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
 
         case 'dns_validation': {
           // Validate required fields for DNS validation
-          if (!data.sourceCampaignId || data.sourceCampaignId === CampaignFormConstants.NONE_VALUE_PLACEHOLDER) {
+          if (data.sourceCampaignId === undefined || data.sourceCampaignId === CampaignFormConstants.NONE_VALUE_PLACEHOLDER) {
             toast({
               title: "Validation Error",
               description: "Source campaign is required for DNS validation campaigns.",
@@ -232,7 +232,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
             return;
           }
 
-          if (!data.assignedDnsPersonaId || data.assignedDnsPersonaId === CampaignFormConstants.NONE_VALUE_PLACEHOLDER) {
+          if (data.assignedDnsPersonaId === undefined || data.assignedDnsPersonaId === CampaignFormConstants.NONE_VALUE_PLACEHOLDER) {
             toast({
               title: "Validation Error",
               description: "DNS persona assignment is required for DNS validation campaigns.",
@@ -259,7 +259,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
 
         case 'http_keyword_validation': {
           // Validate required fields for HTTP keyword validation
-          if (!data.sourceCampaignId || data.sourceCampaignId === CampaignFormConstants.NONE_VALUE_PLACEHOLDER) {
+          if (data.sourceCampaignId === undefined || data.sourceCampaignId === CampaignFormConstants.NONE_VALUE_PLACEHOLDER) {
             toast({
               title: "Validation Error",
               description: "Source campaign is required for HTTP keyword validation campaigns.",
@@ -268,7 +268,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
             return;
           }
 
-          if (!data.assignedHttpPersonaId || data.assignedHttpPersonaId === CampaignFormConstants.NONE_VALUE_PLACEHOLDER) {
+          if (data.assignedHttpPersonaId === undefined || data.assignedHttpPersonaId === CampaignFormConstants.NONE_VALUE_PLACEHOLDER) {
             toast({
               title: "Validation Error",
               description: "HTTP persona assignment is required for HTTP keyword validation campaigns.",
@@ -278,8 +278,8 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
           }
 
           // Parse keywords from input
-          const adHocKeywords = data.targetKeywordsInput 
-            ? data.targetKeywordsInput.split(',').map(k => k.trim()).filter(k => k.length > 0) 
+          const adHocKeywords = data.targetKeywordsInput !== undefined && data.targetKeywordsInput !== ''
+            ? data.targetKeywordsInput.split(',').map(k => k.trim()).filter(k => k.length > 0)
             : [];
 
           if (adHocKeywords.length === 0) {
@@ -300,7 +300,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
               sourceType: 'DomainGeneration',  // Required field - defaulting to DomainGeneration
               adHocKeywords: adHocKeywords,
               personaIds: [data.assignedHttpPersonaId],
-              proxyPoolId: (data.assignedProxyId && data.assignedProxyId !== CampaignFormConstants.NONE_VALUE_PLACEHOLDER)
+              proxyPoolId: (data.assignedProxyId !== undefined && data.assignedProxyId !== CampaignFormConstants.NONE_VALUE_PLACEHOLDER)
                 ? data.assignedProxyId
                 : undefined,
               rotationIntervalSeconds: 300,
@@ -323,7 +323,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
       }
 
       // Handle campaign creation
-      if (isEditing && campaignToEdit) {
+      if (isEditing && campaignToEdit !== undefined) {
         // In production API, campaigns are immutable after creation
         toast({
           title: "Campaign Editing Not Supported",
@@ -335,7 +335,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
         // Use the unified endpoint for new campaign creation
         const response = await createCampaignUnified(unifiedPayload);
 
-        if (response.status === 'success' && response.data) {
+        if (response.status === 'success' && response.data !== undefined) {
           toast({
             title: "Campaign Created Successfully",
             description: `Campaign "${response.data.name}" has been created.`,
@@ -368,7 +368,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
               variant: "destructive"
             });
           } else {
-            const errorMessage = response.message || "Failed to create campaign. Please check your inputs and try again.";
+            const errorMessage = response.message ?? "Failed to create campaign. Please check your inputs and try again.";
             setFormMainError(errorMessage);
             setFormFieldErrors({});
             
@@ -401,7 +401,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
         } else {
           toast({
             title: "Error Creating Campaign",
-            description: error.message || "An unexpected error occurred. Please try again.",
+            description: error.message ?? "An unexpected error occurred. Please try again.",
             variant: "destructive"
           });
         }
@@ -417,7 +417,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
 
   // Clear errors when form values change
   const clearFormErrors = useCallback(() => {
-    if (Object.keys(formFieldErrors).length > 0 || formMainError) {
+    if (Object.keys(formFieldErrors).length > 0 || formMainError !== null) {
       setFormFieldErrors({});
       setFormMainError(null);
     }
@@ -426,7 +426,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
   // Watch for form changes to clear errors
   React.useEffect(() => {
     const subscription = form.watch(() => {
-      clearFormErrors();
+      void clearFormErrors();
     });
     return () => subscription.unsubscribe();
   }, [form, clearFormErrors]);
@@ -438,8 +438,8 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
   // Memoized page header props
   const pageHeaderProps = useMemo(() => ({
     title: isEditing
-      ? `Edit Campaign: ${campaignToEdit?.name || ''}`
-      : selectedCampaignType
+      ? `Edit Campaign: ${campaignToEdit?.name ?? ''}`
+      : selectedCampaignType !== undefined
       ? `Create New ${selectedCampaignType} Campaign`
       : "Create New Campaign",
     description: isEditing
@@ -448,7 +448,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
   }), [isEditing, campaignToEdit?.name, selectedCampaignType]);
 
   // Show data loading error if critical data failed to load
-  if (dataLoadError) {
+  if (dataLoadError !== null) {
     return (
       <Card className="max-w-2xl mx-auto shadow-xl">
         <CardContent className="p-6">
@@ -485,7 +485,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <form onSubmit={(e) => void form.handleSubmit(onSubmit)(e)} className="space-y-8">
               {/* Form Error Summary */}
               <FormErrorSummary 
                 errors={formFieldErrors}

@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -55,7 +55,7 @@ interface BulkOperationResult {
   errors: string[];
 }
 
-export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: BulkOperationsProps) {
+export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: BulkOperationsProps): React.ReactElement {
   const { toast } = useToast();
   
   const [selectedProxyIds, setSelectedProxyIds] = useState<Set<string>>(new Set());
@@ -65,8 +65,8 @@ export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: B
   const [processingProgress, setProcessingProgress] = useState<{ current: number; total: number } | null>(null);
 
   // Filter and count proxies by status
-  const enabledProxies = proxies.filter(p => p.isEnabled);
-  const disabledProxies = proxies.filter(p => !p.isEnabled);
+  const enabledProxies = proxies.filter(p => p.isEnabled === true);
+  const disabledProxies = proxies.filter(p => p.isEnabled === false);
   const failedProxies = proxies.filter(p => p.status === 'Failed');
   const activeProxies = proxies.filter(p => p.status === 'Active');
 
@@ -78,7 +78,7 @@ export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: B
   /**
    * Toggle selection for all proxies
    */
-  const toggleSelectAll = useCallback(() => {
+  const toggleSelectAll = useCallback((): void => {
     if (allSelected) {
       setSelectedProxyIds(new Set());
     } else {
@@ -89,7 +89,7 @@ export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: B
   /**
    * Toggle selection for a specific proxy
    */
-  const toggleProxySelection = useCallback((proxyId: string) => {
+  const toggleProxySelection = useCallback((proxyId: string): void => {
     setSelectedProxyIds(prev => {
       const newSet = new Set(prev);
       if (newSet.has(proxyId)) {
@@ -104,7 +104,7 @@ export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: B
   /**
    * Select proxies by status
    */
-  const selectByStatus = useCallback((status: 'active' | 'disabled' | 'failed' | 'enabled') => {
+  const selectByStatus = useCallback((status: 'active' | 'disabled' | 'failed' | 'enabled'): void => {
     let filteredProxies: Proxy[] = [];
     
     switch (status) {
@@ -140,21 +140,23 @@ export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: B
     for (let i = 0; i < targetProxies.length; i++) {
       const proxy = targetProxies[i];
       
-      if (!proxy) continue;
+      if (proxy === undefined) continue;
       
       try {
         let response: ProxyActionResponse | ProxyDeleteResponse;
         
         switch (action) {
-          case 'enable':
+          case 'enable': {
             const enablePayload: UpdateProxyPayload = { isEnabled: true };
             response = await updateProxy(proxy.id, enablePayload);
             break;
+          }
             
-          case 'disable':
+          case 'disable': {
             const disablePayload: UpdateProxyPayload = { isEnabled: false };
             response = await updateProxy(proxy.id, disablePayload);
             break;
+          }
             
           case 'test':
             response = await testProxy(proxy.id);
@@ -170,7 +172,7 @@ export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: B
             break;
             
           default:
-            throw new Error(`Unknown action: ${action}`);
+            throw new Error(`Unknown action: ${action as string}`);
         }
 
         if (response.status === 'success') {
@@ -204,8 +206,8 @@ export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: B
   /**
    * Handle bulk action execution
    */
-  const handleBulkAction = useCallback(async (action: BulkAction) => {
-    if (action !== 'clean' && noneSelected) {
+  const handleBulkAction = useCallback((action: BulkAction): void => {
+    if (action !== 'clean' && noneSelected !== false) {
       toast({
         title: "No Proxies Selected",
         description: "Please select at least one proxy to perform this action.",
@@ -221,8 +223,8 @@ export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: B
   /**
    * Confirm and execute bulk action
    */
-  const confirmBulkAction = useCallback(async () => {
-    if (!bulkAction) return;
+  const confirmBulkAction = useCallback(async (): Promise<void> => {
+    if (bulkAction === null) return;
 
     setIsConfirmationOpen(false);
     setIsProcessing(true);
@@ -231,12 +233,12 @@ export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: B
       const result = await executeBulkAction(bulkAction);
       
       // Clear selection after successful operations
-      if (result.success) {
+      if (result.success !== false) {
         setSelectedProxyIds(new Set());
       }
       
       // Show results toast
-      if (result.success) {
+      if (result.success !== false) {
         toast({
           title: "Bulk Operation Completed",
           description: `Successfully ${bulkAction === 'clean' ? 'cleaned' : `${bulkAction}d`} ${result.successCount} proxy${result.successCount !== 1 ? 'ies' : 'y'}.`,
@@ -308,9 +310,9 @@ export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: B
               onClick={toggleSelectAll}
               disabled={disabled || proxies.length === 0}
             >
-              {allSelected ? <Square className="h-4 w-4" /> : <CheckSquare className="h-4 w-4" />}
+              {allSelected !== false ? <Square className="h-4 w-4" /> : <CheckSquare className="h-4 w-4" />}
               <span className="ml-1">
-                {allSelected ? 'Deselect All' : 'Select All'}
+                {allSelected !== false ? 'Deselect All' : 'Select All'}
               </span>
             </Button>
             
@@ -336,7 +338,7 @@ export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: B
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleBulkAction('enable')}
+              onClick={() => { handleBulkAction('enable'); }}
               disabled={disabled || noneSelected || isProcessing}
             >
               <PlayCircle className="h-4 w-4 mr-1" />
@@ -346,7 +348,7 @@ export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: B
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleBulkAction('disable')}
+              onClick={() => { handleBulkAction('disable'); }}
               disabled={disabled || noneSelected || isProcessing}
             >
               <StopCircle className="h-4 w-4 mr-1" />
@@ -356,7 +358,7 @@ export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: B
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleBulkAction('test')}
+              onClick={() => { handleBulkAction('test'); }}
               disabled={disabled || noneSelected || isProcessing}
             >
               <TestTubeDiagonal className="h-4 w-4 mr-1" />
@@ -366,7 +368,7 @@ export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: B
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleBulkAction('clean')}
+              onClick={() => { handleBulkAction('clean'); }}
               disabled={disabled || failedProxies.length === 0 || isProcessing}
             >
               <Sparkles className="h-4 w-4 mr-1" />
@@ -376,7 +378,7 @@ export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: B
             <Button
               variant="destructive"
               size="sm"
-              onClick={() => handleBulkAction('delete')}
+              onClick={() => { handleBulkAction('delete'); }}
               disabled={disabled || noneSelected || isProcessing}
             >
               <Trash2 className="h-4 w-4 mr-1" />
@@ -385,7 +387,7 @@ export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: B
           </div>
 
           {/* Processing Progress */}
-          {isProcessing && processingProgress && (
+          {isProcessing !== false && processingProgress !== null && processingProgress !== undefined && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
               <span>
@@ -440,7 +442,7 @@ export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: B
               Confirm Bulk Action
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to {bulkAction ? getActionDescription(bulkAction) : 'perform this action'}?
+              Are you sure you want to {bulkAction !== null ? getActionDescription(bulkAction) : 'perform this action'}?
               {bulkAction === 'delete' && (
                 <span className="block mt-2 text-destructive font-medium">
                   This action cannot be undone.
@@ -451,7 +453,7 @@ export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: B
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={confirmBulkAction}
+              onClick={() => { void confirmBulkAction(); }}
               className={bulkAction === 'delete' ? 'bg-destructive hover:bg-destructive/90' : ''}
             >
               Confirm

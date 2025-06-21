@@ -28,11 +28,35 @@ interface CampaignStatsProps {
  * Calculate percentage safely with SafeBigInt values
  */
 function calculatePercentage(current: unknown, total: unknown): number {
-  if (!current || !total) return 0;
+  if (current === undefined || current === null || total === undefined || total === null) return 0;
   
   try {
-    const currentBig = typeof current === 'bigint' ? current : BigInt(String(current));
-    const totalBig = typeof total === 'bigint' ? total : BigInt(String(total));
+    // Convert to string safely, handling potential objects
+    let currentStr: string;
+    let totalStr: string;
+    
+    if (typeof current === 'object') {
+      currentStr = JSON.stringify(current);
+    } else if (typeof current === 'bigint') {
+      currentStr = current.toString();
+    } else if (typeof current === 'number' || typeof current === 'string' || typeof current === 'boolean') {
+      currentStr = String(current);
+    } else {
+      return 0;
+    }
+    
+    if (typeof total === 'object') {
+      totalStr = JSON.stringify(total);
+    } else if (typeof total === 'bigint') {
+      totalStr = total.toString();
+    } else if (typeof total === 'number' || typeof total === 'string' || typeof total === 'boolean') {
+      totalStr = String(total);
+    } else {
+      return 0;
+    }
+    
+    const currentBig = typeof current === 'bigint' ? current : BigInt(currentStr);
+    const totalBig = typeof total === 'bigint' ? total : BigInt(totalStr);
     
     if (totalBig === BigInt(0)) return 0;
     
@@ -46,23 +70,23 @@ function calculatePercentage(current: unknown, total: unknown): number {
 /**
  * Main campaign statistics component
  */
-export function CampaignStats({ 
-  campaign, 
+export function CampaignStats({
+  campaign,
   className,
-  showDetailedStats = true 
-}: CampaignStatsProps) {
+  showDetailedStats = true
+}: CampaignStatsProps): React.ReactElement {
   const stats = useMemo(() => {
-    const totalItems = campaign.totalItems || 0;
-    const processedItems = campaign.processedItems || 0;
-    const successfulItems = campaign.successfulItems || 0;
-    const failedItems = campaign.failedItems || 0;
+    const totalItems = campaign.totalItems ?? 0;
+    const processedItems = campaign.processedItems ?? 0;
+    const successfulItems = campaign.successfulItems ?? 0;
+    const failedItems = campaign.failedItems ?? 0;
     
     // Calculate derived statistics
     const progressPercentage = calculatePercentage(processedItems, totalItems);
     const successRate = calculatePercentage(successfulItems, processedItems);
     const failureRate = calculatePercentage(failedItems, processedItems);
     const remainingItems = (() => {
-      if (!totalItems || !processedItems) return 0;
+      if (totalItems === 0 || processedItems === 0) return 0;
       try {
         const totalBig = typeof totalItems === 'bigint' ? totalItems : BigInt(String(totalItems));
         const processedBig = typeof processedItems === 'bigint' ? processedItems : BigInt(String(processedItems));
@@ -215,10 +239,10 @@ export function CampaignStats({
 /**
  * Compact campaign statistics for list views
  */
-export function CampaignStatsCompact({ 
-  campaign, 
-  className 
-}: Omit<CampaignStatsProps, 'showDetailedStats'>) {
+export function CampaignStatsCompact({
+  campaign,
+  className
+}: Omit<CampaignStatsProps, 'showDetailedStats'>): React.ReactElement {
   const progressPercentage = useMemo(() => {
     return calculatePercentage(campaign.processedItems, campaign.totalItems);
   }, [campaign.processedItems, campaign.totalItems]);
@@ -247,10 +271,10 @@ export function CampaignStatsCompact({
 /**
  * Campaign statistics summary for dashboards
  */
-export function CampaignStatsSummary({ 
-  campaign, 
-  className 
-}: Omit<CampaignStatsProps, 'showDetailedStats'>) {
+export function CampaignStatsSummary({
+  campaign,
+  className
+}: Omit<CampaignStatsProps, 'showDetailedStats'>): React.ReactElement {
   const stats = useMemo(() => ({
     progressPercentage: calculatePercentage(campaign.processedItems, campaign.totalItems),
     successRate: calculatePercentage(campaign.successfulItems, campaign.processedItems),

@@ -30,7 +30,7 @@ interface MetricsChartData {
   label: string;
 }
 
-export function MetricsDashboard() {
+export function MetricsDashboard(): React.ReactElement {
   const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceReport[]>([]);
   const [errorMetrics, setErrorMetrics] = useState<ErrorMetrics | null>(null);
   const [recentErrors, setRecentErrors] = useState<ErrorReport[]>([]);
@@ -47,7 +47,7 @@ export function MetricsDashboard() {
     ttfb: 0
   });
 
-  const refreshMetrics = useCallback(() => {
+  const refreshMetrics = useCallback((): void => {
     setIsLoading(true);
     
     // Get performance metrics
@@ -128,7 +128,7 @@ export function MetricsDashboard() {
         .map(m => ({
           timestamp: new Date(m.timestamp).toLocaleTimeString(),
           value: m.value,
-          label: m.tags?.url || 'Unknown'
+          label: (m.tags?.url !== null && m.tags?.url !== undefined && m.tags.url !== '') ? m.tags.url : 'Unknown'
         }))
     )
     .slice(-20); // Last 20 API calls
@@ -141,7 +141,7 @@ export function MetricsDashboard() {
         .map(m => ({
           timestamp: new Date(m.timestamp).toLocaleTimeString(),
           value: m.value,
-          label: m.tags?.resource_type || 'Unknown'
+          label: (m.tags?.resource_type !== null && m.tags?.resource_type !== undefined && m.tags.resource_type !== '') ? m.tags.resource_type : 'Unknown'
         }))
     )
     .slice(-20);
@@ -156,7 +156,7 @@ export function MetricsDashboard() {
     };
     
     const threshold = thresholds[metric];
-    if (!threshold) return 'good';
+    if (threshold === undefined) return 'good';
     
     if (value <= threshold.good) return 'good';
     if (value >= threshold.poor) return 'poor';
@@ -171,7 +171,7 @@ export function MetricsDashboard() {
     }
   };
 
-  const getSeverityIcon = (severity: AlertSeverity) => {
+  const getSeverityIcon = (severity: AlertSeverity): React.ReactElement => {
     switch (severity) {
       case 'critical':
         return <XCircle className="h-4 w-4" />;
@@ -193,7 +193,7 @@ export function MetricsDashboard() {
     }
   };
 
-  const acknowledgeAlert = (alertId: string) => {
+  const acknowledgeAlert = (alertId: string): void => {
     alertingService.acknowledgeAlert(alertId);
     refreshMetrics();
   };
@@ -204,7 +204,7 @@ export function MetricsDashboard() {
   return (
     <div className="space-y-4">
       {/* Critical Alert Banner */}
-      {criticalAlerts.length > 0 && showAlertBanner && (
+      {(criticalAlerts.length > 0 && showAlertBanner === true) && (
         <Alert variant="destructive" className="mb-4">
           <XCircle className="h-4 w-4" />
           <AlertTitle className="flex items-center justify-between">
@@ -239,7 +239,7 @@ export function MetricsDashboard() {
             onClick={refreshMetrics}
             disabled={isLoading}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading === true ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
         </div>
@@ -366,7 +366,7 @@ export function MetricsDashboard() {
         </TabsContent>
 
         <TabsContent value="errors" className="space-y-4">
-          {errorMetrics && (
+          {errorMetrics !== null && (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -425,7 +425,7 @@ export function MetricsDashboard() {
                       </AlertTitle>
                       <AlertDescription>
                         <p className="font-mono text-sm">{error.message}</p>
-                        {error.context.url && (
+                        {error.context.url !== undefined && (
                           <p className="text-xs text-muted-foreground mt-1">
                             URL: {error.context.url}
                           </p>
@@ -580,7 +580,7 @@ export function MetricsDashboard() {
                           <p className="font-medium">{alert.name}</p>
                           <p className="text-sm text-muted-foreground">
                             {new Date(alert.triggeredAt).toLocaleString()}
-                            {alert.resolvedAt && (
+                            {alert.resolvedAt !== undefined && (
                               <span> - Resolved: {new Date(alert.resolvedAt).toLocaleString()}</span>
                             )}
                           </p>

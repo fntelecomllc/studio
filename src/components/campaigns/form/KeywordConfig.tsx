@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React, { memo } from 'react';
 import { Control } from 'react-hook-form';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -13,7 +14,7 @@ interface KeywordConfigProps {
  * Memoized keyword configuration component
  * Handles keyword settings for HTTP validation campaigns
  */
-const KeywordConfig = memo<KeywordConfigProps>(({ control }) => {
+const KeywordConfig = memo<KeywordConfigProps>(({ control }): React.ReactElement => {
   return (
     <Card className="p-4 pt-2 border-dashed">
       <CardHeader className="p-2">

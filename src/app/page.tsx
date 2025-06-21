@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function HomePage() {
+export default function HomePage(): React.ReactElement {
   const { isAuthenticated, isLoading, isInitialized } = useAuth();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);

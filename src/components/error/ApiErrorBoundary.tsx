@@ -52,11 +52,11 @@ class ApiErrorBoundary extends Component<Props, State> {
     };
   }
 
-  override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  override componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     console.error('ApiErrorBoundary caught an error:', error, errorInfo);
     
     // Call custom error handler if provided
-    if (this.props.onError) {
+    if (this.props.onError !== undefined) {
       this.props.onError(error, errorInfo);
     }
 
@@ -92,22 +92,21 @@ class ApiErrorBoundary extends Component<Props, State> {
     ];
 
     return apiKeywords.some(keyword => errorMessage.includes(keyword)) ||
-           error.name === 'TypeError' && errorMessage.includes('fetch') ||
-           error.stack?.includes('/api/') ||
-           false;
+           (error.name === 'TypeError' && errorMessage.includes('fetch')) ||
+           (error.stack?.includes('/api/') ?? false);
   }
 
   static analyzeApiError(error: Error): State['errorDetails'] {
     const message = error.message;
-    const stack = error.stack || '';
+    const stack = error.stack ?? '';
 
     // Extract status code if present
     const statusMatch = message.match(/(\d{3})/);
-    const status = statusMatch && statusMatch[1] ? parseInt(statusMatch[1]) : undefined;
+    const status = statusMatch !== null && statusMatch[1] !== undefined ? parseInt(statusMatch[1], 10) : undefined;
 
     // Extract endpoint if present
-    const endpointMatch = stack.match(/\/api\/[^\s)]+/) || message.match(/\/api\/[^\s)]+/);
-    const endpoint = endpointMatch ? endpointMatch[0] : undefined;
+    const endpointMatch = stack.match(/\/api\/[^\s)]+/) ?? message.match(/\/api\/[^\s)]+/);
+    const endpoint = endpointMatch !== null ? endpointMatch[0] : undefined;
 
     // Determine error type and suggestions
     let type = 'Unknown API Error';
@@ -135,7 +134,7 @@ class ApiErrorBoundary extends Component<Props, State> {
         'Contact an administrator for access',
         'Verify your user role allows this action'
       ];
-    } else if (status && status >= 500) {
+    } else if (status !== undefined && status >= 500) {
       type = 'Server Error';
       suggestions = [
         'Try again in a few moments',
@@ -167,7 +166,7 @@ class ApiErrorBoundary extends Component<Props, State> {
     };
   }
 
-  handleRetry = () => {
+  handleRetry = (): void => {
     this.setState({
       hasError: false,
       error: null,
@@ -177,14 +176,14 @@ class ApiErrorBoundary extends Component<Props, State> {
     });
   };
 
-  handleReload = () => {
+  handleReload = (): void => {
     window.location.reload();
   };
 
-  override render() {
+  override render(): React.ReactNode {
     if (this.state.hasError) {
       // Use custom fallback if provided
-      if (this.props.fallback) {
+      if (this.props.fallback !== undefined) {
         return this.props.fallback;
       }
 
@@ -210,12 +209,12 @@ class ApiErrorBoundary extends Component<Props, State> {
 
             <CardContent className="space-y-4">
               {/* Error Details */}
-              {errorDetails && (
+              {errorDetails !== null && (
                 <Alert>
                   <Bug className="h-4 w-4" />
                   <AlertTitle className="flex items-center gap-2">
                     {errorDetails.type}
-                    {errorDetails.status && (
+                    {errorDetails.status !== undefined && (
                       <Badge variant="destructive">
                         {errorDetails.status}
                       </Badge>
@@ -224,7 +223,7 @@ class ApiErrorBoundary extends Component<Props, State> {
                   <AlertDescription className="mt-2">
                     <div className="space-y-2">
                       <p className="font-medium">{errorDetails.message}</p>
-                      {errorDetails.endpoint && (
+                      {errorDetails.endpoint !== undefined && (
                         <p className="text-sm text-gray-600">
                           <strong>Endpoint:</strong> <code className="bg-gray-100 px-1 rounded">{errorDetails.endpoint}</code>
                         </p>
@@ -235,7 +234,7 @@ class ApiErrorBoundary extends Component<Props, State> {
               )}
 
               {/* Suggestions */}
-              {errorDetails?.suggestions && errorDetails.suggestions.length > 0 && (
+              {errorDetails?.suggestions !== undefined && errorDetails.suggestions.length > 0 && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <h4 className="font-medium text-blue-900 mb-2">Suggested Solutions:</h4>
                   <ul className="list-disc list-inside space-y-1 text-sm text-blue-800">
@@ -247,7 +246,7 @@ class ApiErrorBoundary extends Component<Props, State> {
               )}
 
               {/* Technical Details (Development Mode) */}
-              {process.env.NODE_ENV === 'development' && error && (
+              {process.env.NODE_ENV === 'development' && error !== null && (
                 <details className="bg-gray-100 border rounded-lg p-4">
                   <summary className="cursor-pointer font-medium text-gray-700 mb-2">
                     Technical Details (Development)
@@ -259,7 +258,7 @@ class ApiErrorBoundary extends Component<Props, State> {
                         {error.message}
                       </pre>
                     </div>
-                    {error.stack && (
+                    {error.stack !== undefined && (
                       <div>
                         <strong>Stack Trace:</strong>
                         <pre className="bg-white p-2 rounded border mt-1 overflow-auto text-xs max-h-40">
@@ -303,15 +302,18 @@ class ApiErrorBoundary extends Component<Props, State> {
 export default ApiErrorBoundary;
 
 // Hook for handling API errors in functional components
-export function useApiErrorHandler() {
-  const handleApiError = (error: unknown) => {
+export function useApiErrorHandler(): { handleApiError: (error: unknown) => void } {
+  const handleApiError = (error: unknown): void => {
     console.error('API Error:', error);
     
     // You can add custom error handling logic here
     // such as showing toast notifications, logging to external services, etc.
     
-    if (error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 404) {
-      console.warn('Route mismatch detected:', error);
+    if (error !== null && typeof error === 'object' && 'status' in error) {
+      const errorWithStatus = error as Record<string, unknown>;
+      if (typeof errorWithStatus.status === 'number' && errorWithStatus.status === 404) {
+        console.warn('Route mismatch detected:', error);
+      }
     }
   };
 
@@ -322,9 +324,9 @@ export function useApiErrorHandler() {
 export function withApiErrorHandling<T extends (...args: unknown[]) => Promise<unknown>>(
   apiFunction: T
 ): T {
-  return (async (...args: Parameters<T>) => {
+  return (async (...args: Parameters<T>): Promise<Awaited<ReturnType<T>>> => {
     try {
-      return await apiFunction(...args);
+      return await apiFunction(...args) as Awaited<ReturnType<T>>;
     } catch (error) {
       console.error('API call failed:', error);
       

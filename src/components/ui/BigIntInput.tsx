@@ -60,7 +60,7 @@ function valueToString(value: SafeBigInt | string | number | bigint | null | und
  * Validates if a string represents a valid integer
  */
 function isValidInteger(value: string, allowNegative: boolean = false): boolean {
-  if (!value) return true; // Empty is valid
+  if (value === '') return true; // Empty is valid
   
   const pattern = allowNegative ? /^-?\d+$/ : /^\d+$/;
   return pattern.test(value);
@@ -70,7 +70,7 @@ function isValidInteger(value: string, allowNegative: boolean = false): boolean 
  * Converts string to SafeBigInt if valid
  */
 function stringToSafeBigInt(value: string): SafeBigInt | undefined {
-  if (!value) return undefined;
+  if (value === '') return undefined;
   
   try {
     const bigIntValue = BigInt(value);
@@ -123,7 +123,7 @@ export function BigIntInput({
   id,
   'data-testid': dataTestId,
   ...props
-}: BigIntInputProps) {
+}: BigIntInputProps): React.ReactElement {
   const [stringValue, setStringValue] = useState(() => valueToString(value));
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -139,7 +139,7 @@ export function BigIntInput({
 
   // Validation
   const { isValid, error } = useMemo(() => {
-    if (!stringValue) {
+    if (stringValue === '') {
       return { isValid: true, error: null };
     }
 
@@ -173,7 +173,7 @@ export function BigIntInput({
 
   // Update error state
   useEffect(() => {
-    setHasError(!isValid);
+    setHasError(isValid === false);
     setErrorMessage(error);
   }, [isValid, error]);
 
@@ -181,7 +181,7 @@ export function BigIntInput({
     const newValue = e.target.value;
     
     // Allow empty value
-    if (!newValue) {
+    if (newValue === '') {
       setStringValue('');
       onChange?.(undefined);
       onValueChange?.('');
@@ -206,7 +206,7 @@ export function BigIntInput({
 
   const handleBlur = useCallback(() => {
     // Clean up the value on blur
-    if (stringValue && isValidInteger(stringValue, allowNegative)) {
+    if (stringValue !== '' && isValidInteger(stringValue, allowNegative)) {
       try {
         const bigIntValue = BigInt(stringValue);
         const cleanedValue = bigIntValue.toString();
@@ -225,7 +225,7 @@ export function BigIntInput({
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault();
       
-      const currentBigInt = stringToSafeBigInt(stringValue) || BigInt(0);
+      const currentBigInt = stringToSafeBigInt(stringValue) ?? BigInt(0);
       const stepBig = BigInt(step);
       const newValue = e.key === 'ArrowUp' 
         ? currentBigInt + stepBig 
@@ -265,9 +265,9 @@ export function BigIntInput({
         {...props}
       />
       
-      {hasError && showValidationError && errorMessage && (
+      {hasError === true && showValidationError === true && errorMessage !== null && (
         <p className="text-sm text-destructive">
-          {validationErrorMessage || errorMessage}
+          {validationErrorMessage ?? errorMessage}
         </p>
       )}
     </div>
@@ -277,13 +277,13 @@ export function BigIntInput({
 /**
  * Specialized BigInt input for item counts (always positive)
  */
-export function ItemCountInput({ 
-  value, 
-  onChange, 
+export function ItemCountInput({
+  value,
+  onChange,
   placeholder = "Enter count",
   min = 0,
-  ...props 
-}: Omit<BigIntInputProps, 'allowNegative' | 'min'> & { min?: number | string | bigint }) {
+  ...props
+}: Omit<BigIntInputProps, 'allowNegative' | 'min'> & { min?: number | string | bigint }): React.ReactElement {
   return (
     <BigIntInput
       value={value}
@@ -299,13 +299,13 @@ export function ItemCountInput({
 /**
  * Specialized BigInt input for byte sizes
  */
-export function ByteSizeInput({ 
-  value, 
-  onChange, 
+export function ByteSizeInput({
+  value,
+  onChange,
   placeholder = "Enter size in bytes",
   min = 0,
-  ...props 
-}: Omit<BigIntInputProps, 'allowNegative' | 'min'> & { min?: number | string | bigint }) {
+  ...props
+}: Omit<BigIntInputProps, 'allowNegative' | 'min'> & { min?: number | string | bigint }): React.ReactElement {
   return (
     <BigIntInput
       value={value}

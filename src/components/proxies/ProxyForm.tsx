@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -47,17 +48,17 @@ interface ProxyFormProps {
   onCancel: () => void;
 }
 
-export default function ProxyForm({ proxyToEdit, onSaveSuccess, onCancel }: ProxyFormProps) {
+export default function ProxyForm({ proxyToEdit, onSaveSuccess, onCancel }: ProxyFormProps): React.ReactElement {
   const { toast } = useToast();
   const { user } = useAuth();
-  const isEditing = !!proxyToEdit;
+  const isEditing = proxyToEdit !== null && proxyToEdit !== undefined;
 
   const form = useForm<ProxyFormValues>({
     resolver: zodResolver(proxyFormSchema),
-    defaultValues: isEditing && proxyToEdit ? {
+    defaultValues: isEditing === true && proxyToEdit !== null ? {
       address: proxyToEdit.address,
       protocol: proxyToEdit.protocol,
-      notes: proxyToEdit.notes || "",
+      notes: proxyToEdit.notes ?? "",
       // initialStatus is not used for editing, status is managed by test/toggle
     } : {
       address: "",
@@ -68,15 +69,17 @@ export default function ProxyForm({ proxyToEdit, onSaveSuccess, onCancel }: Prox
     mode: "onChange",
   });
 
-  async function onSubmit(data: ProxyFormValues) {
-    if (!user) {
+  async function onSubmit(data: ProxyFormValues): Promise<void> {
+    if (user !== undefined && user !== null) {
+      // Continue with logic
+    } else {
       toast({ title: "Authentication Required", description: "Please log in to create or edit proxies.", variant: "destructive" });
       return;
     }
 
     try {
       let response;
-      if (isEditing && proxyToEdit) {
+      if (isEditing !== false && proxyToEdit !== null && proxyToEdit !== undefined) {
         const payload: UpdateProxyPayload = {
           address: data.address,
           protocol: data.protocol,
@@ -89,20 +92,20 @@ export default function ProxyForm({ proxyToEdit, onSaveSuccess, onCancel }: Prox
           address: data.address,
           protocol: data.protocol,
           notes: data.notes,
-          initialStatus: data.initialStatus || 'Disabled',
+          initialStatus: data.initialStatus ?? 'Disabled',
         };
         response = await createProxy(payload);
       }
 
-      if (response.status === 'success' && response.data) {
+      if (response.status === 'success' && response.data !== undefined && response.data !== null) {
         onSaveSuccess();
       } else {
-        toast({ title: `Error ${isEditing ? "Updating" : "Creating"} Proxy`, description: response.message, variant: "destructive" });
-        if (response.errors) {
+        toast({ title: `Error ${isEditing !== false ? "Updating" : "Creating"} Proxy`, description: response.message, variant: "destructive" });
+        if (response.errors !== undefined && response.errors !== null) {
           response.errors.forEach((err: unknown) => {
             const error = err as { field?: string; message?: string };
-            if (error.field) {
-              form.setError(error.field as keyof ProxyFormValues, { type: "manual", message: error.message || "Validation error" });
+            if (error.field !== undefined && error.field !== null) {
+              form.setError(error.field as keyof ProxyFormValues, { type: "manual", message: error.message ?? "Validation error" });
             }
           });
         }
@@ -115,7 +118,7 @@ export default function ProxyForm({ proxyToEdit, onSaveSuccess, onCancel }: Prox
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
+      <form onSubmit={(e) => void form.handleSubmit(onSubmit)(e)} className="space-y-6 py-4">
         <FormField
           control={form.control}
           name="address"
@@ -167,7 +170,7 @@ export default function ProxyForm({ proxyToEdit, onSaveSuccess, onCancel }: Prox
             </FormItem>
           )}
         />
-        {!isEditing && (
+        {isEditing !== true && (
             <FormField
             control={form.control}
             name="initialStatus"
@@ -198,8 +201,8 @@ export default function ProxyForm({ proxyToEdit, onSaveSuccess, onCancel }: Prox
             Cancel
           </Button>
           <Button type="submit" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isEditing ? 'Save Changes' : 'Add Proxy'}
+            {form.formState.isSubmitting !== false && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isEditing !== false ? 'Save Changes' : 'Add Proxy'}
           </Button>
         </div>
       </form>

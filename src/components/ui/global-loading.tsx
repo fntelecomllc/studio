@@ -11,13 +11,13 @@ import * as React from 'react';
 import { useLoadingStore } from '@/lib/stores/loadingStore';
 import { cn } from '@/lib/utils';
 
-export const GlobalLoadingIndicator: React.FC = () => {
+export const GlobalLoadingIndicator: React.FC = (): React.ReactElement | null => {
   const { hasAnyLoading, getLoadingOperations } = useLoadingStore();
   const isLoading = hasAnyLoading();
   const loadingOperations = getLoadingOperations();
   
   // Don't render if nothing is loading
-  if (!isLoading || loadingOperations.length === 0) {
+  if (isLoading === false || loadingOperations.length === 0) {
     return null;
   }
 
@@ -57,7 +57,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   message = "Loading...",
   children,
   className
-}) => {
+}): React.ReactElement => {
   return (
     <div className={cn("relative", className)}>
       {children}
@@ -89,11 +89,11 @@ export const LoadingButton: React.FC<LoadingButtonProps> = ({
   disabled,
   className,
   ...props
-}) => {
+}): React.ReactElement => {
   return (
     <button
       {...props}
-      disabled={disabled || isLoading}
+      disabled={disabled === true || isLoading === true}
       className={cn(
         "inline-flex items-center justify-center space-x-2",
         "disabled:opacity-50 disabled:cursor-not-allowed",

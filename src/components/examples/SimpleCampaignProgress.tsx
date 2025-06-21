@@ -14,26 +14,26 @@ interface CampaignProgressProps {
   campaignId: string;
 }
 
-export function SimpleCampaignProgress({ campaignId }: CampaignProgressProps) {
+export function SimpleCampaignProgress({ campaignId }: CampaignProgressProps): React.ReactElement {
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState('Unknown');
   const [phase, setPhase] = useState('');
 
   // Handle campaign messages with automatic connection management
-  const handleMessage = (message: WebSocketMessage) => {
+  const handleMessage = (message: WebSocketMessage): void => {
     console.log('Received campaign message:', message);
     
     switch (message.type) {
       case 'campaign_progress':
-        if (message.data && typeof message.data === 'object') {
+        if ((message.data !== null && message.data !== undefined) && typeof message.data === 'object') {
           const data = message.data as { progress?: number; status?: string; phase?: string };
           if (data.progress !== undefined) {
             setProgress(data.progress);
           }
-          if (data.status) {
+          if (data.status !== undefined) {
             setStatus(data.status);
           }
-          if (data.phase) {
+          if (data.phase !== undefined) {
             setPhase(data.phase);
           }
         }
@@ -71,9 +71,9 @@ export function SimpleCampaignProgress({ campaignId }: CampaignProgressProps) {
 
       {/* Connection Status */}
       <div className="mb-4 text-sm text-gray-600">
-        {isConnecting && 'Connecting to real-time updates...'}
-        {isConnected && 'Receiving live updates'}
-        {error && (
+        {isConnecting === true && 'Connecting to real-time updates...'}
+        {isConnected === true && 'Receiving live updates'}
+        {(error !== null && error !== undefined) && (
           <div className="text-red-600">
             Connection error: {error.message}
           </div>
@@ -102,7 +102,7 @@ export function SimpleCampaignProgress({ campaignId }: CampaignProgressProps) {
           </div>
           <div>
             <span className="text-gray-600">Phase:</span>
-            <span className="ml-2 font-medium">{phase || 'N/A'}</span>
+            <span className="ml-2 font-medium">{(phase !== null && phase !== undefined && phase !== '') ? phase : 'N/A'}</span>
           </div>
         </div>
 
@@ -110,12 +110,12 @@ export function SimpleCampaignProgress({ campaignId }: CampaignProgressProps) {
         <details className="text-xs text-gray-500">
           <summary className="cursor-pointer">Debug Info ({messageCount} messages)</summary>
           <div className="mt-2 space-y-1">
-            {latestMessage && (
+            {(latestMessage !== null && latestMessage !== undefined) && (
               <div>
                 <strong>Latest:</strong> {latestMessage.type} at {latestMessage.timestamp}
               </div>
             )}
-            <div>Connection: {isConnected ? 'Active' : 'Inactive'}</div>
+            <div>Connection: {isConnected === true ? 'Active' : 'Inactive'}</div>
           </div>
         </details>
       </div>
@@ -130,15 +130,16 @@ interface CampaignsListProps {
   campaigns: Array<{ id: string; name: string; status: string }>;
 }
 
-export function SimpleCampaignsList({ campaigns }: CampaignsListProps) {
+export function SimpleCampaignsList({ campaigns }: CampaignsListProps): React.ReactElement {
   const [campaignUpdates, setCampaignUpdates] = useState<Record<string, WebSocketMessage>>({});
 
   // Single global connection for all campaign updates
-  const handleGlobalMessage = (message: WebSocketMessage) => {
-    if (message.campaignId && message.type === 'campaign_progress') {
+  const handleGlobalMessage = (message: WebSocketMessage): void => {
+    if ((message.campaignId !== undefined) && (message.type === 'campaign_progress')) {
+      const campaignId = message.campaignId;
       setCampaignUpdates(prev => ({
         ...prev,
-        [message.campaignId!]: message
+        [campaignId]: message
       }));
     }
   };
@@ -153,14 +154,14 @@ export function SimpleCampaignsList({ campaigns }: CampaignsListProps) {
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Campaigns</h2>
         <div className="text-sm text-gray-600">
-          Real-time updates: {isConnected ? '✅ Active' : '❌ Inactive'}
+          Real-time updates: {isConnected === true ? '✅ Active' : '❌ Inactive'}
         </div>
       </div>
 
       <div className="grid gap-4">
         {campaigns.map(campaign => {
           const liveData = campaignUpdates[campaign.id] as { progress?: number; status?: string } | undefined;
-          const progress = liveData?.progress || 0;
+          const progress = liveData?.progress ?? 0;
           
           return (
             <div key={campaign.id} className="border rounded-lg p-4">
@@ -170,7 +171,7 @@ export function SimpleCampaignsList({ campaigns }: CampaignsListProps) {
               </div>
               
               <div className="text-sm text-gray-600 mb-2">
-                Status: {liveData?.status || campaign.status}
+                Status: {liveData?.status ?? campaign.status}
               </div>
               
               {progress > 0 && (

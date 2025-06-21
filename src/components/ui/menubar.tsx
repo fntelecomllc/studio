@@ -8,31 +8,31 @@ import { cn } from "@/lib/utils"
 
 function MenubarMenu({
   ...props
-}: React.ComponentProps<typeof MenubarPrimitive.Menu>) {
+}: React.ComponentProps<typeof MenubarPrimitive.Menu>): React.ReactElement {
   return <MenubarPrimitive.Menu {...props} />
 }
 
 function MenubarGroup({
   ...props
-}: React.ComponentProps<typeof MenubarPrimitive.Group>) {
+}: React.ComponentProps<typeof MenubarPrimitive.Group>): React.ReactElement {
   return <MenubarPrimitive.Group {...props} />
 }
 
 function MenubarPortal({
   ...props
-}: React.ComponentProps<typeof MenubarPrimitive.Portal>) {
+}: React.ComponentProps<typeof MenubarPrimitive.Portal>): React.ReactElement {
   return <MenubarPrimitive.Portal {...props} />
 }
 
 function MenubarRadioGroup({
   ...props
-}: React.ComponentProps<typeof MenubarPrimitive.RadioGroup>) {
+}: React.ComponentProps<typeof MenubarPrimitive.RadioGroup>): React.ReactElement {
   return <MenubarPrimitive.RadioGroup {...props} />
 }
 
 function MenubarSub({
   ...props
-}: React.ComponentProps<typeof MenubarPrimitive.Sub>) {
+}: React.ComponentProps<typeof MenubarPrimitive.Sub>): React.ReactElement {
   return <MenubarPrimitive.Sub data-slot="menubar-sub" {...props} />
 }
 
@@ -76,7 +76,7 @@ const MenubarSubTrigger = React.forwardRef<
     ref={ref}
     className={cn(
       "flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
-      inset && "pl-8",
+      inset === true ? "pl-8" : undefined,
       className
     )}
     {...props}
@@ -137,7 +137,7 @@ const MenubarItem = React.forwardRef<
     ref={ref}
     className={cn(
       "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-      inset && "pl-8",
+      inset === true ? "pl-8" : undefined,
       className
     )}
     {...props}
@@ -200,7 +200,7 @@ const MenubarLabel = React.forwardRef<
     ref={ref}
     className={cn(
       "px-2 py-1.5 text-sm font-semibold",
-      inset && "pl-8",
+      inset === true ? "pl-8" : undefined,
       className
     )}
     {...props}
@@ -223,7 +223,7 @@ MenubarSeparator.displayName = MenubarPrimitive.Separator.displayName
 const MenubarShortcut = ({
   className,
   ...props
-}: React.HTMLAttributes<HTMLSpanElement>) => {
+}: React.HTMLAttributes<HTMLSpanElement>): React.ReactElement => {
   return (
     <span
       className={cn(

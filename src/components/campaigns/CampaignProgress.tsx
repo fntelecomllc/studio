@@ -118,11 +118,11 @@ const getProgressWidthClass = (width: number): string => {
 
 // Memoized main component for optimal performance
 const CampaignProgress = memo(({ campaign }: CampaignProgressProps) => {
-  const selectedType = campaign.selectedType || campaign.campaignType;
+  const selectedType = campaign.selectedType ?? campaign.campaignType;
   
   // Memoize display phases calculation to prevent recalculation on every render
   const displayPhases = useMemo(() => {
-    const orderedPhases = (CAMPAIGN_PHASES_ORDERED[selectedType] || []) as CampaignPhase[];
+    const orderedPhases = (CAMPAIGN_PHASES_ORDERED[selectedType] ?? []) as CampaignPhase[];
     return campaign.currentPhase === "Idle" ?
       ["Idle" as CampaignPhase, ...orderedPhases] :
       orderedPhases;
@@ -130,13 +130,13 @@ const CampaignProgress = memo(({ campaign }: CampaignProgressProps) => {
   
   // Memoize operational phases for the selected type
   const operationalPhasesForType = useMemo(() => {
-    return (CAMPAIGN_PHASES_ORDERED[selectedType] || []) as CampaignPhase[];
+    return (CAMPAIGN_PHASES_ORDERED[selectedType] ?? []) as CampaignPhase[];
   }, [selectedType]);
 
   // Memoize current operational phase calculations
   const { currentOperationalPhase: _currentOperationalPhase, currentOperationalPhaseIndex } = useMemo(() => {
     const currentPhase = campaign.currentPhase === "Idle" ? null : campaign.currentPhase;
-    const phaseIndex = currentPhase ? displayPhases.indexOf(currentPhase) : -1;
+    const phaseIndex = currentPhase !== null && currentPhase !== undefined ? displayPhases.indexOf(currentPhase) : -1;
     return {
       currentOperationalPhase: currentPhase,
       currentOperationalPhaseIndex: phaseIndex
@@ -155,11 +155,11 @@ const CampaignProgress = memo(({ campaign }: CampaignProgressProps) => {
        return 'Succeeded'; // All operational phases are succeeded
     } else if (campaign.phaseStatus === "Failed" && isActivePhaseNode) {
        return 'Failed';
-    } else if (operationalPhaseIndexInType !== -1 && campaign.currentPhase && operationalPhaseIndexInType < operationalPhasesForType.indexOf(campaign.currentPhase)) {
+    } else if (operationalPhaseIndexInType !== -1 && campaign.currentPhase !== null && campaign.currentPhase !== undefined && operationalPhaseIndexInType < operationalPhasesForType.indexOf(campaign.currentPhase)) {
        return 'Succeeded'; // Phase is before the current active/failed one
     } else if (isActivePhaseNode) {
-       return campaign.phaseStatus || 'Pending'; // Current phase takes its own status
-    } else if (campaign.phaseStatus === 'Succeeded' && operationalPhaseIndexInType !== -1 && campaign.currentPhase && operationalPhaseIndexInType === operationalPhasesForType.indexOf(campaign.currentPhase)) {
+       return campaign.phaseStatus ?? 'Pending'; // Current phase takes its own status
+    } else if (campaign.phaseStatus === 'Succeeded' && operationalPhaseIndexInType !== -1 && campaign.currentPhase !== null && campaign.currentPhase !== undefined && operationalPhaseIndexInType === operationalPhasesForType.indexOf(campaign.currentPhase)) {
        return 'Succeeded'; // Current phase has succeeded
     }
     return 'Pending';
@@ -214,7 +214,7 @@ const CampaignProgress = memo(({ campaign }: CampaignProgressProps) => {
       {campaign.phaseStatus === 'InProgress' && campaign.currentPhase !== "Idle" && (
         <div className="mt-4">
           <div className="flex justify-between text-sm mb-1">
-            <span>Current Phase Progress ({campaign.currentPhase ? phaseDisplayNames[campaign.currentPhase] : 'Unknown'})</span>
+            <span>Current Phase Progress ({campaign.currentPhase !== null && campaign.currentPhase !== undefined ? phaseDisplayNames[campaign.currentPhase] : 'Unknown'})</span>
             <span>{campaign.progress}%</span>
           </div>
           <Progress value={campaign.progress} className="w-full h-3 [&>div]:bg-gradient-to-r [&>div]:from-blue-400 [&>div]:to-blue-600" />
@@ -231,7 +231,7 @@ const CampaignProgress = memo(({ campaign }: CampaignProgressProps) => {
          <div className="mt-4 text-center p-4 bg-red-50 dark:bg-red-900/30 rounded-md border border-red-200 dark:border-red-700">
           <AlertTriangle className="h-10 w-10 text-red-600 dark:text-red-400 mx-auto mb-2"/>
           <h3 className="text-lg font-semibold text-red-700 dark:text-red-300">Phase Failed</h3>
-          <p className="text-sm text-red-600 dark:text-red-400">The {campaign.currentPhase ? phaseDisplayNames[campaign.currentPhase] : 'Unknown'} phase encountered an error.</p>
+          <p className="text-sm text-red-600 dark:text-red-400">The {campaign.currentPhase !== null && campaign.currentPhase !== undefined ? phaseDisplayNames[campaign.currentPhase] : 'Unknown'} phase encountered an error.</p>
         </div>
       )}
     </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { usePathname } from 'next/navigation';
 import AppLayout from './AppLayout';
 
@@ -7,7 +8,7 @@ interface ConditionalLayoutProps {
   children: React.ReactNode;
 }
 
-export default function ConditionalLayout({ children }: ConditionalLayoutProps) {
+export default function ConditionalLayout({ children }: ConditionalLayoutProps): React.ReactElement {
   const pathname = usePathname();
   
   // Pages that should NOT use AppLayout (no sidebar/navigation)
@@ -15,7 +16,7 @@ export default function ConditionalLayout({ children }: ConditionalLayoutProps) 
   
   const shouldExcludeLayout = excludedPaths.includes(pathname);
   
-  if (shouldExcludeLayout) {
+  if (shouldExcludeLayout === true) {
     // Return children without AppLayout wrapper
     return <>{children}</>;
   }

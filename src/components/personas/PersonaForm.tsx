@@ -44,12 +44,12 @@ const DNS_RESOLVER_STRATEGIES: DnsResolverStrategy[] = [
 
 // Utility functions
 function parseStringToArray(input: string | undefined): string[] {
-  if (!input) return [];
+  if (input === undefined || input === '') return [];
   return input.split(',').map(s => s.trim()).filter(s => s.length > 0);
 }
 
 function parseJsonOrUndefined<T>(jsonString: string | undefined): T | undefined {
-  if (!jsonString || jsonString.trim() === "" || jsonString.trim() === "{}") {
+  if (jsonString === undefined || jsonString.trim() === "" || jsonString.trim() === "{}") {
     return undefined;
   }
   try {
@@ -106,30 +106,30 @@ interface PersonaFormProps {
 }
 
 // HTTP Persona Form Component
-function HttpPersonaForm({ persona, isEditing = false }: { persona?: Persona; isEditing?: boolean }) {
+function HttpPersonaForm({ persona, isEditing = false }: { persona?: Persona; isEditing?: boolean }): React.ReactElement {
   const router = useRouter();
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const stringifyJsonForForm = (obj: Record<string, unknown> | null | undefined) => obj ? JSON.stringify(obj, null, 2) : "{}";
+  const stringifyJsonForForm = (obj: Record<string, unknown> | null | undefined): string => obj !== null && obj !== undefined ? JSON.stringify(obj, null, 2) : "{}";
 
   const form = useForm<HttpPersonaFormValues>({
     resolver: zodResolver(httpPersonaFormSchema),
-    defaultValues: persona
+    defaultValues: persona !== undefined
       ? {
           name: persona.name,
-          description: persona.description || "",
-          tagsInput: (persona as HttpPersona).tags?.join(', ') || "",
-          userAgent: ((persona as HttpPersona).configDetails as HTTPConfigDetails).userAgent || "",
+          description: persona.description ?? "",
+          tagsInput: (persona as HttpPersona).tags?.join(', ') ?? "",
+          userAgent: ((persona as HttpPersona).configDetails as HTTPConfigDetails).userAgent ?? "",
           headersJson: stringifyJsonForForm(((persona as HttpPersona).configDetails as HTTPConfigDetails).headers),
-          headerOrderInput: ((persona as HttpPersona).configDetails as HTTPConfigDetails).headerOrder?.join(', ') || "",
+          headerOrderInput: ((persona as HttpPersona).configDetails as HTTPConfigDetails).headerOrder?.join(', ') ?? "",
           tlsClientHelloJson: stringifyJsonForForm(((persona as HttpPersona).configDetails as HTTPConfigDetails).tlsClientHello as unknown as Record<string, unknown>),
           http2SettingsJson: stringifyJsonForForm(((persona as HttpPersona).configDetails as HTTPConfigDetails).http2Settings as unknown as Record<string, unknown>),
           cookieHandlingJson: stringifyJsonForForm(((persona as HttpPersona).configDetails as HTTPConfigDetails).cookieHandling as unknown as Record<string, unknown>),
-          allowInsecureTls: ((persona as HttpPersona).configDetails as HTTPConfigDetails).allowInsecureTls || false,
-          requestTimeoutSec: ((persona as HttpPersona).configDetails as HTTPConfigDetails).requestTimeoutSec || ((persona as HttpPersona).configDetails as HTTPConfigDetails).requestTimeoutSeconds || 30,
-          maxRedirects: ((persona as HttpPersona).configDetails as HTTPConfigDetails).maxRedirects || 5,
-          notes: ((persona as HttpPersona).configDetails as HTTPConfigDetails).notes || "",
+          allowInsecureTls: ((persona as HttpPersona).configDetails as HTTPConfigDetails).allowInsecureTls ?? false,
+          requestTimeoutSec: ((persona as HttpPersona).configDetails as HTTPConfigDetails).requestTimeoutSec ?? ((persona as HttpPersona).configDetails as HTTPConfigDetails).requestTimeoutSeconds ?? 30,
+          maxRedirects: ((persona as HttpPersona).configDetails as HTTPConfigDetails).maxRedirects ?? 5,
+          notes: ((persona as HttpPersona).configDetails as HTTPConfigDetails).notes ?? "",
         }
       : {
           name: "",
@@ -149,16 +149,16 @@ function HttpPersonaForm({ persona, isEditing = false }: { persona?: Persona; is
     mode: "onChange",
   });
 
-  async function onSubmit(data: HttpPersonaFormValues) {
-    if (!user) {
+  async function onSubmit(data: HttpPersonaFormValues): Promise<void> {
+    if (user === null || user === undefined) {
       toast({ title: "Authentication Required", description: "Please log in to create or edit personas.", variant: "destructive" });
       return;
     }
 
     const commonPayloadData = {
         name: data.name,
-        description: data.description || undefined,
-        tags: parseStringToArray(data.tagsInput || ""),
+        description: data.description === '' ? undefined : data.description,
+        tags: parseStringToArray(data.tagsInput ?? ""),
     };
 
     try {
@@ -166,20 +166,20 @@ function HttpPersonaForm({ persona, isEditing = false }: { persona?: Persona; is
           ...commonPayloadData,
           configDetails: {
             userAgent: data.userAgent,
-            headers: parseJsonOrUndefined<Record<string,string>>(data.headersJson || ""),
-            headerOrder: parseStringToArray(data.headerOrderInput || ""),
-            tlsClientHello: parseJsonOrUndefined(data.tlsClientHelloJson || ""),
-            http2Settings: parseJsonOrUndefined(data.http2SettingsJson || ""),
-            cookieHandling: parseJsonOrUndefined(data.cookieHandlingJson || ""),
+            headers: parseJsonOrUndefined<Record<string,string>>(data.headersJson ?? ""),
+            headerOrder: parseStringToArray(data.headerOrderInput ?? ""),
+            tlsClientHello: parseJsonOrUndefined(data.tlsClientHelloJson ?? ""),
+            http2Settings: parseJsonOrUndefined(data.http2SettingsJson ?? ""),
+            cookieHandling: parseJsonOrUndefined(data.cookieHandlingJson ?? ""),
             allowInsecureTls: data.allowInsecureTls,
             requestTimeoutSec: data.requestTimeoutSec,
             maxRedirects: data.maxRedirects,
-            notes: data.notes || undefined,
+            notes: data.notes === '' ? undefined : data.notes,
           }
       };
 
       let response;
-      if (isEditing && persona) {
+      if (isEditing === true && persona !== undefined) {
         response = await updatePersona(persona.id, payload, 'http');
       } else {
         response = await createPersona(payload as CreateHttpPersonaPayload);
@@ -190,10 +190,10 @@ function HttpPersonaForm({ persona, isEditing = false }: { persona?: Persona; is
         router.push("/personas");
         router.refresh();
       } else {
-        toast({ title: "Save Failed", description: response.message || "Could not save persona.", variant: "destructive" });
-        if (response.errors) {
+        toast({ title: "Save Failed", description: response.message ?? "Could not save persona.", variant: "destructive" });
+        if (response.errors !== undefined && response.errors !== null) {
             response.errors.forEach((err: ApiErrorDetail) => {
-                if (err.field) {
+                if (err.field !== null && err.field !== undefined) {
                     form.setError(err.field as keyof HttpPersonaFormValues, { type: "manual", message: err.message });
                 } else {
                      toast({ title: "Operation Failed", description: err.message, variant: "destructive"})
@@ -221,7 +221,7 @@ function HttpPersonaForm({ persona, isEditing = false }: { persona?: Persona; is
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={(e) => void form.handleSubmit(onSubmit)(e)} className="space-y-8">
             <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Persona Name</FormLabel><FormControl><Input placeholder="e.g., Stealth Chrome US" {...field} /></FormControl><FormDescription>A unique and descriptive name for this persona.</FormDescription><FormMessage /></FormItem>)} />
             <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description (Optional)</FormLabel><FormControl><Textarea placeholder="Describe the purpose or key characteristics of this persona." {...field} /></FormControl><FormMessage /></FormItem>)} />
             <FormField control={form.control} name="userAgent" render={({ field }) => (<FormItem><FormLabel>User-Agent String</FormLabel><FormControl><Input placeholder="Mozilla/5.0 (Windows NT 10.0; Win64; x64)..." {...field} /></FormControl><FormDescription>The User-Agent string this persona will use.</FormDescription><FormMessage /></FormItem>)} />
@@ -230,14 +230,14 @@ function HttpPersonaForm({ persona, isEditing = false }: { persona?: Persona; is
             <FormField control={form.control} name="tlsClientHelloJson" render={({ field }) => (<FormItem><FormLabel>TLS ClientHello Config (JSON, Optional)</FormLabel><FormControl><Textarea placeholder='{ &quot;minVersion&quot;: &quot;TLS12&quot;, &quot;cipherSuites&quot;: [...] }' className="font-mono min-h-[100px]" {...field} /></FormControl><FormDescription>Define TLS handshake parameters (e.g., JA3/JA4 related).</FormDescription><FormMessage /></FormItem>)} />
             <FormField control={form.control} name="http2SettingsJson" render={({ field }) => (<FormItem><FormLabel>HTTP/2 Settings (JSON, Optional)</FormLabel><FormControl><Textarea placeholder='{ &quot;headerTableSize&quot;: 4096, &quot;enablePush&quot;: false }' className="font-mono min-h-[80px]" {...field} /></FormControl><FormDescription>Configure HTTP/2 protocol parameters.</FormDescription><FormMessage /></FormItem>)} />
             <FormField control={form.control} name="cookieHandlingJson" render={({ field }) => (<FormItem><FormLabel>Cookie Handling Config (JSON, Optional)</FormLabel><FormControl><Textarea placeholder='{ &quot;mode&quot;: &quot;session&quot; }' className="font-mono min-h-[60px]" {...field} /></FormControl><FormDescription>Define how cookies are handled (e.g., &quot;none&quot;, &quot;session&quot;, &quot;file&quot;).</FormDescription><FormMessage /></FormItem>)} />
-            <FormField control={form.control} name="requestTimeoutSec" render={({ field }) => (<FormItem><FormLabel>Request Timeout (seconds)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
-            <FormField control={form.control} name="maxRedirects" render={({ field }) => (<FormItem><FormLabel>Max Redirects</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="requestTimeoutSec" render={({ field }) => (<FormItem><FormLabel>Request Timeout (seconds)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} /></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="maxRedirects" render={({ field }) => (<FormItem><FormLabel>Max Redirects</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} /></FormControl><FormMessage /></FormItem>)} />
             <FormField control={form.control} name="allowInsecureTls" render={({ field }) => (<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm"><div className="space-y-0.5"><FormLabel>Allow Insecure TLS</FormLabel><FormDescription>Allow connections to servers with invalid/self-signed TLS certificates.</FormDescription></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
             <FormField control={form.control} name="notes" render={({ field }) => (<FormItem><FormLabel>Notes (Optional)</FormLabel><FormControl><Textarea placeholder="Internal notes about this HTTP persona." {...field} /></FormControl><FormMessage /></FormItem>)} />
             <FormField control={form.control} name="tagsInput" render={({ field }) => (<FormItem><FormLabel>Tags (comma-separated - Optional)</FormLabel><FormControl><Input placeholder="e.g., stealth, primary-dns, us-region-proxy" {...field} /></FormControl><FormDescription>Help organize and filter personas. Use for grouping or classification.</FormDescription><FormMessage /></FormItem>)} />
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => router.push("/personas")} disabled={form.formState.isSubmitting}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={() => void router.push("/personas")} disabled={form.formState.isSubmitting}>Cancel</Button>
               <Button type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {form.formState.isSubmitting ? (isEditing ? "Saving..." : "Creating...") : (isEditing ? "Save Changes" : "Create Persona")}
@@ -251,31 +251,31 @@ function HttpPersonaForm({ persona, isEditing = false }: { persona?: Persona; is
 }
 
 // DNS Persona Form Component
-function DnsPersonaForm({ persona, isEditing = false }: { persona?: Persona; isEditing?: boolean }) {
+function DnsPersonaForm({ persona, isEditing = false }: { persona?: Persona; isEditing?: boolean }): React.ReactElement {
   const router = useRouter();
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const stringifyJsonObjectForForm = (obj: Record<string, number> | null | undefined) => obj ? JSON.stringify(obj, null, 2) : "{}";
+  const stringifyJsonObjectForForm = (obj: Record<string, number> | null | undefined): string => obj !== null && obj !== undefined ? JSON.stringify(obj, null, 2) : "{}";
 
   const form = useForm<DnsPersonaFormValues>({
     resolver: zodResolver(dnsPersonaFormSchema),
-    defaultValues: persona
+    defaultValues: persona !== undefined
       ? {
           name: persona.name,
-          description: persona.description || "",
-          tagsInput: (persona as DnsPersona).tags?.join(', ') || "",
-          config_resolversInput: ((persona as DnsPersona).configDetails as DNSConfigDetails).resolvers?.join(', ') || "",
-          config_useSystemResolvers: ((persona as DnsPersona).configDetails as DNSConfigDetails).useSystemResolvers || false,
-          config_queryTimeoutSeconds: ((persona as DnsPersona).configDetails as DNSConfigDetails).queryTimeoutSeconds || 5,
+          description: persona.description ?? "",
+          tagsInput: (persona as DnsPersona).tags?.join(', ') ?? "",
+          config_resolversInput: ((persona as DnsPersona).configDetails as DNSConfigDetails).resolvers?.join(', ') ?? "",
+          config_useSystemResolvers: ((persona as DnsPersona).configDetails as DNSConfigDetails).useSystemResolvers ?? false,
+          config_queryTimeoutSeconds: ((persona as DnsPersona).configDetails as DNSConfigDetails).queryTimeoutSeconds ?? 5,
           config_maxDomainsPerRequest: ((persona as DnsPersona).configDetails as DNSConfigDetails).maxDomainsPerRequest,
-          config_resolverStrategy: (((persona as DnsPersona).configDetails as DNSConfigDetails).resolverStrategy as DnsResolverStrategy) || "random_rotation",
-          config_resolversWeightedJson: stringifyJsonObjectForForm(((persona as DnsPersona).configDetails as DNSConfigDetails).resolversWeighted || {}),
-          config_resolversPreferredOrderInput: ((persona as DnsPersona).configDetails as DNSConfigDetails).resolversPreferredOrder?.join(', ') || "",
-          config_concurrentQueriesPerDomain: ((persona as DnsPersona).configDetails as DNSConfigDetails).concurrentQueriesPerDomain || 2,
+          config_resolverStrategy: (((persona as DnsPersona).configDetails as DNSConfigDetails).resolverStrategy as DnsResolverStrategy) ?? "random_rotation",
+          config_resolversWeightedJson: stringifyJsonObjectForForm(((persona as DnsPersona).configDetails as DNSConfigDetails).resolversWeighted ?? {}),
+          config_resolversPreferredOrderInput: ((persona as DnsPersona).configDetails as DNSConfigDetails).resolversPreferredOrder?.join(', ') ?? "",
+          config_concurrentQueriesPerDomain: ((persona as DnsPersona).configDetails as DNSConfigDetails).concurrentQueriesPerDomain ?? 2,
           config_queryDelayMinMs: ((persona as DnsPersona).configDetails as DNSConfigDetails).queryDelayMinMs,
           config_queryDelayMaxMs: ((persona as DnsPersona).configDetails as DNSConfigDetails).queryDelayMaxMs,
-          config_maxConcurrentGoroutines: ((persona as DnsPersona).configDetails as DNSConfigDetails).maxConcurrentGoroutines || 10,
+          config_maxConcurrentGoroutines: ((persona as DnsPersona).configDetails as DNSConfigDetails).maxConcurrentGoroutines ?? 10,
           config_rateLimitDps: ((persona as DnsPersona).configDetails as DNSConfigDetails).rateLimitDps,
           config_rateLimitBurst: ((persona as DnsPersona).configDetails as DNSConfigDetails).rateLimitBurst,
         }
@@ -295,33 +295,33 @@ function DnsPersonaForm({ persona, isEditing = false }: { persona?: Persona; isE
     mode: "onChange",
   });
 
-  async function onSubmit(data: DnsPersonaFormValues) {
-    if (!user) {
+  async function onSubmit(data: DnsPersonaFormValues): Promise<void> {
+    if (user === null || user === undefined) {
       toast({ title: "Authentication Required", description: "Please log in to create or edit personas.", variant: "destructive" });
       return;
     }
 
     const commonPayloadData = {
         name: data.name,
-        description: data.description || undefined,
-        tags: parseStringToArray(data.tagsInput || ""),
+        description: data.description === '' ? undefined : data.description,
+        tags: parseStringToArray(data.tagsInput ?? ""),
     };
 
     try {
       const dnsConfig: DnsPersonaConfig = {
-          resolvers: parseStringToArray(data.config_resolversInput || ""),
+          resolvers: parseStringToArray(data.config_resolversInput ?? ""),
           useSystemResolvers: data.config_useSystemResolvers,
           queryTimeoutSeconds: data.config_queryTimeoutSeconds,
-          maxDomainsPerRequest: data.config_maxDomainsPerRequest || 100,
+          maxDomainsPerRequest: data.config_maxDomainsPerRequest ?? 100,
           resolverStrategy: data.config_resolverStrategy,
-          resolversWeighted: parseJsonOrUndefined<Record<string, number>>(data.config_resolversWeightedJson || ""),
-          resolversPreferredOrder: parseStringToArray(data.config_resolversPreferredOrderInput || ""),
+          resolversWeighted: parseJsonOrUndefined<Record<string, number>>(data.config_resolversWeightedJson ?? ""),
+          resolversPreferredOrder: parseStringToArray(data.config_resolversPreferredOrderInput ?? ""),
           concurrentQueriesPerDomain: data.config_concurrentQueriesPerDomain,
-          queryDelayMinMs: data.config_queryDelayMinMs || 100,
-          queryDelayMaxMs: data.config_queryDelayMaxMs || 1000,
+          queryDelayMinMs: data.config_queryDelayMinMs ?? 100,
+          queryDelayMaxMs: data.config_queryDelayMaxMs ?? 1000,
           maxConcurrentGoroutines: data.config_maxConcurrentGoroutines,
-          rateLimitDps: data.config_rateLimitDps || 100,
-          rateLimitBurst: data.config_rateLimitBurst || 10,
+          rateLimitDps: data.config_rateLimitDps ?? 100,
+          rateLimitBurst: data.config_rateLimitBurst ?? 10,
       };
 
       const payload: CreateDnsPersonaPayload | UpdateDnsPersonaPayload = {
@@ -330,7 +330,7 @@ function DnsPersonaForm({ persona, isEditing = false }: { persona?: Persona; isE
       };
 
       let response;
-      if (isEditing && persona) {
+      if (isEditing === true && persona !== undefined) {
         response = await updatePersona(persona.id, payload, 'dns');
       } else {
         response = await createPersona(payload as CreateDnsPersonaPayload);
@@ -341,10 +341,10 @@ function DnsPersonaForm({ persona, isEditing = false }: { persona?: Persona; isE
         router.push("/personas");
         router.refresh();
       } else {
-        toast({ title: "Save Failed", description: response.message || "Could not save persona.", variant: "destructive" });
-        if (response.errors) {
+        toast({ title: "Save Failed", description: response.message ?? "Could not save persona.", variant: "destructive" });
+        if (response.errors !== undefined && response.errors !== null) {
             response.errors.forEach((err: ApiErrorDetail) => {
-                if (err.field) {
+                if (err.field !== null && err.field !== undefined) {
                     form.setError(err.field as keyof DnsPersonaFormValues, { type: "manual", message: err.message });
                 } else {
                      toast({ title: "Operation Failed", description: err.message, variant: "destructive"})
@@ -354,7 +354,7 @@ function DnsPersonaForm({ persona, isEditing = false }: { persona?: Persona; isE
       }
     } catch (error: unknown) {
       console.error("Failed to save persona:", error);
-      toast({ title: "Save Failed", description: (error as Error).message || "An unexpected error occurred. Please try again.", variant: "destructive" });
+      toast({ title: "Save Failed", description: error instanceof Error ? error.message : "An unexpected error occurred. Please try again.", variant: "destructive" });
     }
   }
 
@@ -368,26 +368,26 @@ function DnsPersonaForm({ persona, isEditing = false }: { persona?: Persona; isE
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={(e) => void form.handleSubmit(onSubmit)(e)} className="space-y-8">
             <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Persona Name</FormLabel><FormControl><Input placeholder="e.g., Quad9 Secure DNS" {...field} /></FormControl><FormDescription>A unique and descriptive name for this persona.</FormDescription><FormMessage /></FormItem>)} />
             <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description (Optional)</FormLabel><FormControl><Textarea placeholder="Describe the purpose or key characteristics of this persona." {...field} /></FormControl><FormMessage /></FormItem>)} />
             <FormField control={form.control} name="config_resolverStrategy" render={({ field }) => ( <FormItem><FormLabel>Resolver Strategy</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a strategy" /></SelectTrigger></FormControl><SelectContent>{DNS_RESOLVER_STRATEGIES.map(s => (<SelectItem key={s} value={s}>{s.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
             <FormField control={form.control} name="config_resolversInput" render={({ field }) => (<FormItem><FormLabel>Resolvers (comma-separated)</FormLabel><FormControl><Textarea placeholder="8.8.8.8, 1.1.1.1, https://dns.google/dns-query" {...field} /></FormControl><FormDescription>List of DNS resolver IP addresses or DoH/DoT URLs.</FormDescription><FormMessage /></FormItem>)} />
             <FormField control={form.control} name="config_useSystemResolvers" render={({ field }) => (<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm"><div className="space-y-0.5"><FormLabel>Use System Resolvers</FormLabel><FormDescription>Fallback to system&apos;s DNS if custom resolvers fail or are not set.</FormDescription></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
-            <FormField control={form.control} name="config_queryTimeoutSeconds" render={({ field }) => (<FormItem><FormLabel>Query Timeout (seconds)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
-            <FormField control={form.control} name="config_maxDomainsPerRequest" render={({ field }) => (<FormItem><FormLabel>Max Domains Per Request (Optional)</FormLabel><FormControl><Input type="number" placeholder="e.g., 10 (for DoH batching)" {...field} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} /></FormControl><FormDescription>Relevant for protocols like DoH that support batch queries.</FormDescription><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="config_queryTimeoutSeconds" render={({ field }) => (<FormItem><FormLabel>Query Timeout (seconds)</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} /></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="config_maxDomainsPerRequest" render={({ field }) => (<FormItem><FormLabel>Max Domains Per Request (Optional)</FormLabel><FormControl><Input type="number" placeholder="e.g., 10 (for DoH batching)" {...field} onChange={e => field.onChange(e.target.value !== '' ? parseInt(e.target.value, 10) : undefined)} /></FormControl><FormDescription>Relevant for protocols like DoH that support batch queries.</FormDescription><FormMessage /></FormItem>)} />
             <FormField control={form.control} name="config_resolversWeightedJson" render={({ field }) => (<FormItem><FormLabel>Weighted Resolvers (JSON Object - Optional)</FormLabel><FormControl><Textarea placeholder='{&quot;8.8.8.8&quot;: 10, &quot;1.1.1.1&quot;: 5}' className="font-mono min-h-[80px]" {...field} /></FormControl><FormDescription>For &apos;Weighted Rotation&apos; strategy. Object with resolver as key and weight as value.</FormDescription><FormMessage /></FormItem>)} />
             <FormField control={form.control} name="config_resolversPreferredOrderInput" render={({ field }) => (<FormItem><FormLabel>Preferred Order (comma-separated - Optional)</FormLabel><FormControl><Textarea placeholder="1.1.1.1, 8.8.8.8" {...field} /></FormControl><FormDescription>For &apos;Sequential Failover&apos; strategy. Order of resolvers to try.</FormDescription><FormMessage /></FormItem>)} />
-            <FormField control={form.control} name="config_concurrentQueriesPerDomain" render={({ field }) => (<FormItem><FormLabel>Concurrent Queries Per Domain</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
-            <FormField control={form.control} name="config_queryDelayMinMs" render={({ field }) => (<FormItem><FormLabel>Query Delay Min (ms - Optional)</FormLabel><FormControl><Input type="number" placeholder="e.g., 0" {...field} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} /></FormControl><FormDescription>Minimum random delay before a query.</FormDescription><FormMessage /></FormItem>)} />
-            <FormField control={form.control} name="config_queryDelayMaxMs" render={({ field }) => (<FormItem><FormLabel>Query Delay Max (ms - Optional)</FormLabel><FormControl><Input type="number" placeholder="e.g., 100" {...field} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} /></FormControl><FormDescription>Maximum random delay before a query. Must be &gt;= Min Delay.</FormDescription><FormMessage /></FormItem>)} />
-            <FormField control={form.control} name="config_maxConcurrentGoroutines" render={({ field }) => (<FormItem><FormLabel>Max Concurrent Operations</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} /></FormControl><FormDescription>Overall concurrency limit for DNS operations using this persona.</FormDescription><FormMessage /></FormItem>)} />
-            <FormField control={form.control} name="config_rateLimitDps" render={({ field }) => (<FormItem><FormLabel>Rate Limit (DPS - Optional)</FormLabel><FormControl><Input type="number" placeholder="e.g., 100 (Domains Per Second)" {...field} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} /></FormControl><FormDescription>Max domains to process per second.</FormDescription><FormMessage /></FormItem>)} />
-            <FormField control={form.control} name="config_rateLimitBurst" render={({ field }) => (<FormItem><FormLabel>Rate Limit Burst (Optional)</FormLabel><FormControl><Input type="number" placeholder="e.g., 10" {...field} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} /></FormControl><FormDescription>Allowed burst size for rate limiting.</FormDescription><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="config_concurrentQueriesPerDomain" render={({ field }) => (<FormItem><FormLabel>Concurrent Queries Per Domain</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} /></FormControl><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="config_queryDelayMinMs" render={({ field }) => (<FormItem><FormLabel>Query Delay Min (ms - Optional)</FormLabel><FormControl><Input type="number" placeholder="e.g., 0" {...field} onChange={e => field.onChange(e.target.value !== '' ? parseInt(e.target.value, 10) : undefined)} /></FormControl><FormDescription>Minimum random delay before a query.</FormDescription><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="config_queryDelayMaxMs" render={({ field }) => (<FormItem><FormLabel>Query Delay Max (ms - Optional)</FormLabel><FormControl><Input type="number" placeholder="e.g., 100" {...field} onChange={e => field.onChange(e.target.value !== '' ? parseInt(e.target.value, 10) : undefined)} /></FormControl><FormDescription>Maximum random delay before a query. Must be &gt;= Min Delay.</FormDescription><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="config_maxConcurrentGoroutines" render={({ field }) => (<FormItem><FormLabel>Max Concurrent Operations</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} /></FormControl><FormDescription>Overall concurrency limit for DNS operations using this persona.</FormDescription><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="config_rateLimitDps" render={({ field }) => (<FormItem><FormLabel>Rate Limit (DPS - Optional)</FormLabel><FormControl><Input type="number" placeholder="e.g., 100 (Domains Per Second)" {...field} onChange={e => field.onChange(e.target.value !== '' ? parseInt(e.target.value, 10) : undefined)} /></FormControl><FormDescription>Max domains to process per second.</FormDescription><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="config_rateLimitBurst" render={({ field }) => (<FormItem><FormLabel>Rate Limit Burst (Optional)</FormLabel><FormControl><Input type="number" placeholder="e.g., 10" {...field} onChange={e => field.onChange(e.target.value !== '' ? parseInt(e.target.value, 10) : undefined)} /></FormControl><FormDescription>Allowed burst size for rate limiting.</FormDescription><FormMessage /></FormItem>)} />
             <FormField control={form.control} name="tagsInput" render={({ field }) => (<FormItem><FormLabel>Tags (comma-separated - Optional)</FormLabel><FormControl><Input placeholder="e.g., stealth, primary-dns, us-region-proxy" {...field} /></FormControl><FormDescription>Help organize and filter personas. Use for grouping or classification.</FormDescription><FormMessage /></FormItem>)} />
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => router.push("/personas")} disabled={form.formState.isSubmitting}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={() => void router.push("/personas")} disabled={form.formState.isSubmitting}>Cancel</Button>
               <Button type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {form.formState.isSubmitting ? (isEditing ? "Saving..." : "Creating...") : (isEditing ? "Save Changes" : "Create Persona")}
@@ -401,7 +401,7 @@ function DnsPersonaForm({ persona, isEditing = false }: { persona?: Persona; isE
 }
 
 // Main component that renders the appropriate form
-export default function PersonaForm({ persona, isEditing = false, personaType }: PersonaFormProps) {
+export default function PersonaForm({ persona, isEditing = false, personaType }: PersonaFormProps): React.ReactElement {
   if (personaType === 'http') {
     return <HttpPersonaForm persona={persona} isEditing={isEditing} />;
   } else {

@@ -9,7 +9,7 @@ import { Users, Shield, Settings, Activity } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 
-export default function AdminDashboard() {
+export default function AdminDashboard(): React.ReactElement {
   const { user, hasPermission } = useAuth();
 
   return (
@@ -78,7 +78,7 @@ export default function AdminDashboard() {
 
       {/* Admin Actions */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {hasPermission('users:read') && (
+        {hasPermission('users:read') ? (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -104,9 +104,9 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
-        )}
+        ) : null}
 
-        {hasPermission('security:read') && (
+        {hasPermission('security:read') ? (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -128,9 +128,9 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
-        )}
+        ) : null}
 
-        {hasPermission('system:config') && (
+        {hasPermission('system:config') ? (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -152,7 +152,7 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
-        )}
+        ) : null}
       </div>
 
       {/* Current User Info */}
@@ -167,11 +167,11 @@ export default function AdminDashboard() {
           <div className="grid gap-2 text-sm">
             <div className="flex justify-between">
               <span className="font-medium">User:</span>
-              <span>{user?.firstName} {user?.lastName} ({user?.email})</span>
+              <span>{user?.firstName ?? ''} {user?.lastName ?? ''} ({user?.email ?? ''})</span>
             </div>
             <div className="flex justify-between">
               <span className="font-medium">Role:</span>
-              <span>{user?.roles?.map(role => role.name).join(', ') || 'Unknown'}</span>
+              <span>{user?.roles?.map(role => role.name).join(', ') ?? 'Unknown'}</span>
             </div>
             <div className="flex justify-between">
               <span className="font-medium">Permissions:</span>

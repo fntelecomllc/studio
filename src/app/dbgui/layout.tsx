@@ -11,7 +11,7 @@ export default function DatabaseGUILayout({
   children,
 }: {
   children: React.ReactNode;
-}) {
+}): React.ReactNode {
   // Return children directly without any app layout wrapper
   // This ensures complete isolation from the main application
   return children;

@@ -11,7 +11,7 @@ interface TestDomainsResponse {
   message?: string; 
 }
 
-export async function POST() {
+export function POST(): NextResponse {
   try {
     // const body: TestDomainsRequest = await request.json();
     // const { offset, count, config: partialConfig } = body;
@@ -110,7 +110,7 @@ export async function POST() {
   }
 }
 
-export async function OPTIONS() {
+export function OPTIONS(): Response {
   return new Response(null, {
     status: 204,
     headers: {

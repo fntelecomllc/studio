@@ -49,7 +49,7 @@ export function UserProfile({
   showPasswordChange = true,
   showAccountInfo = true,
   onPasswordChanged
-}: UserProfileProps) {
+}: UserProfileProps): React.ReactElement {
   const { user, changePassword, validatePassword } = useAuth();
   
   const [passwordForm, setPasswordForm] = useState<PasswordChangeFormData>({
@@ -70,28 +70,28 @@ export function UserProfile({
   const [passwordValidation, setPasswordValidation] = useState<PasswordValidationResult | null>(null);
 
   // Handle form input changes
-  const handlePasswordInputChange = useCallback((field: keyof PasswordChangeFormData, value: string) => {
+  const handlePasswordInputChange = useCallback((field: keyof PasswordChangeFormData, value: string): void => {
     setPasswordForm(prev => ({ ...prev, [field]: value }));
     
     // Clear field error when user starts typing
-    if (errors[field]) {
+    if (errors[field] !== undefined && errors[field] !== null) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
     
     // Clear messages
-    if (successMessage) setSuccessMessage(null);
-    if (errorMessage) setErrorMessage(null);
+    if (successMessage !== null && successMessage !== undefined) setSuccessMessage(null);
+    if (errorMessage !== null && errorMessage !== undefined) setErrorMessage(null);
     
     // Validate new password in real-time
-    if (field === 'newPassword' && value) {
-      validatePassword(value).then(setPasswordValidation);
-    } else if (field === 'newPassword' && !value) {
+    if (field === 'newPassword' && value !== '') {
+      void validatePassword(value).then(setPasswordValidation);
+    } else if (field === 'newPassword' && value === '') {
       setPasswordValidation(null);
     }
   }, [errors, successMessage, errorMessage, validatePassword]);
 
   // Toggle password visibility
-  const togglePasswordVisibility = useCallback((field: keyof typeof showPasswords) => {
+  const togglePasswordVisibility = useCallback((field: keyof typeof showPasswords): void => {
     setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }));
   }, []);
 
@@ -105,7 +105,7 @@ export function UserProfile({
       if (error instanceof z.ZodError) {
         const fieldErrors: Partial<Record<keyof PasswordChangeFormData, string>> = {};
         error.errors.forEach(err => {
-          if (err.path[0]) {
+          if (err.path[0] !== undefined) {
             fieldErrors[err.path[0] as keyof PasswordChangeFormData] = err.message;
           }
         });
@@ -116,7 +116,7 @@ export function UserProfile({
   }, [passwordForm]);
 
   // Handle password change submission
-  const handlePasswordChange = useCallback(async (e: React.FormEvent) => {
+  const handlePasswordChange = useCallback(async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     
     if (!validatePasswordForm()) {
@@ -124,7 +124,7 @@ export function UserProfile({
     }
 
     // Check password validation
-    if (passwordValidation && !passwordValidation.isValid) {
+    if (passwordValidation !== null && passwordValidation !== undefined && passwordValidation.isValid === false) {
       setErrorMessage('Please fix password requirements before submitting.');
       return;
     }
@@ -145,11 +145,11 @@ export function UserProfile({
         });
         setPasswordValidation(null);
         
-        if (onPasswordChanged) {
+        if (onPasswordChanged !== undefined && onPasswordChanged !== null) {
           onPasswordChanged();
         }
       } else {
-        setErrorMessage(result.error?.message || 'Failed to change password. Please try again.');
+        setErrorMessage(result.error?.message ?? 'Failed to change password. Please try again.');
       }
     } catch (error) {
       console.error('Password change error:', error);
@@ -181,7 +181,7 @@ export function UserProfile({
     });
   }, []);
 
-  if (!user) {
+  if (user === null) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-center space-y-4">
@@ -240,7 +240,7 @@ export function UserProfile({
                 </Badge>
               </div>
               
-              {user.lastLoginAt && (
+              {user.lastLoginAt !== undefined && (
                 <div className="space-y-2">
                   <Label className="flex items-center space-x-2">
                     <Calendar className="h-4 w-4" />
@@ -268,7 +268,7 @@ export function UserProfile({
             </div>
 
             {/* Security Alerts */}
-            {user.mustChangePassword && (
+            {user.mustChangePassword === true && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
@@ -295,7 +295,7 @@ export function UserProfile({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handlePasswordChange} className="space-y-4">
+            <form onSubmit={(e) => void handlePasswordChange(e)} className="space-y-4">
               {/* Current Password */}
               <div className="space-y-2">
                 <Label htmlFor="currentPassword">Current Password</Label>
@@ -307,7 +307,7 @@ export function UserProfile({
                     value={passwordForm.currentPassword}
                     onChange={(e) => handlePasswordInputChange('currentPassword', e.target.value)}
                     disabled={isPasswordChangeLoading}
-                    className={errors.currentPassword ? 'border-destructive pr-10' : 'pr-10'}
+                    className={errors.currentPassword !== undefined ? 'border-destructive pr-10' : 'pr-10'}
                   />
                   <Button
                     type="button"
@@ -324,7 +324,7 @@ export function UserProfile({
                     )}
                   </Button>
                 </div>
-                {errors.currentPassword && (
+                {errors.currentPassword !== undefined && (
                   <p className="text-sm text-destructive">{errors.currentPassword}</p>
                 )}
               </div>
@@ -340,7 +340,7 @@ export function UserProfile({
                     value={passwordForm.newPassword}
                     onChange={(e) => handlePasswordInputChange('newPassword', e.target.value)}
                     disabled={isPasswordChangeLoading}
-                    className={errors.newPassword ? 'border-destructive pr-10' : 'pr-10'}
+                    className={errors.newPassword !== undefined ? 'border-destructive pr-10' : 'pr-10'}
                   />
                   <Button
                     type="button"
@@ -357,12 +357,12 @@ export function UserProfile({
                     )}
                   </Button>
                 </div>
-                {errors.newPassword && (
+                {errors.newPassword !== undefined && (
                   <p className="text-sm text-destructive">{errors.newPassword}</p>
                 )}
 
                 {/* Password Strength Indicator */}
-                {passwordValidation && passwordForm.newPassword && (
+                {passwordValidation !== null && passwordForm.newPassword !== '' && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Password Strength</span>
@@ -407,7 +407,7 @@ export function UserProfile({
                     value={passwordForm.confirmPassword}
                     onChange={(e) => handlePasswordInputChange('confirmPassword', e.target.value)}
                     disabled={isPasswordChangeLoading}
-                    className={errors.confirmPassword ? 'border-destructive pr-10' : 'pr-10'}
+                    className={errors.confirmPassword !== undefined ? 'border-destructive pr-10' : 'pr-10'}
                   />
                   <Button
                     type="button"
@@ -424,13 +424,13 @@ export function UserProfile({
                     )}
                   </Button>
                 </div>
-                {errors.confirmPassword && (
+                {errors.confirmPassword !== undefined && (
                   <p className="text-sm text-destructive">{errors.confirmPassword}</p>
                 )}
               </div>
 
               {/* Success Message */}
-              {successMessage && (
+              {successMessage !== null && (
                 <Alert>
                   <CheckCircle className="h-4 w-4" />
                   <AlertDescription>{successMessage}</AlertDescription>
@@ -438,7 +438,7 @@ export function UserProfile({
               )}
 
               {/* Error Message */}
-              {errorMessage && (
+              {errorMessage !== null && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>{errorMessage}</AlertDescription>
@@ -449,7 +449,7 @@ export function UserProfile({
               <Button
                 type="submit"
                 className="w-full"
-                disabled={isPasswordChangeLoading || Boolean(passwordValidation && !passwordValidation.isValid)}
+                disabled={isPasswordChangeLoading || Boolean(passwordValidation !== null && passwordValidation.isValid === false)}
               >
                 {isPasswordChangeLoading ? (
                   <>

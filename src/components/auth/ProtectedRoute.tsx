@@ -33,30 +33,30 @@ interface AccessDeniedProps {
   redirectTo?: string;
 }
 
-function AccessDenied({ 
-  reason, 
-  requiredPermissions = [], 
-  requiredRoles = [], 
+function AccessDenied({
+  reason,
+  requiredPermissions = [],
+  requiredRoles = [],
   onLogin,
-  redirectTo 
-}: AccessDeniedProps) {
+  redirectTo
+}: AccessDeniedProps): React.ReactElement {
   const router = useRouter();
 
-  const handleLogin = () => {
-    if (onLogin) {
+  const handleLogin = (): void => {
+    if (onLogin !== undefined && onLogin !== null) {
       onLogin();
-    } else if (redirectTo) {
+    } else if (redirectTo !== undefined && redirectTo !== null && redirectTo !== '') {
       router.push(redirectTo);
     } else {
       router.push('/login');
     }
   };
 
-  const handleGoHome = () => {
+  const handleGoHome = (): void => {
     router.push('/');
   };
 
-  const getReasonMessage = () => {
+  const getReasonMessage = (): { title: string; description: string; icon: React.ReactNode } => {
     switch (reason) {
       case 'unauthenticated':
         return {
@@ -115,7 +115,7 @@ function AccessDenied({
   );
 }
 
-function LoadingScreen() {
+function LoadingScreen(): React.ReactElement {
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
       <div className="text-center space-y-4">
@@ -139,7 +139,7 @@ export function ProtectedRoute({
   showSessionWarning = true,
   autoRefreshSession = true,
   requireActiveAccount = true
-}: ProtectedRouteProps) {
+}: ProtectedRouteProps): React.ReactElement {
   const {
     isAuthenticated,
     user,
@@ -178,37 +178,37 @@ export function ProtectedRoute({
 
   // Auto-refresh session when expiring soon
   useEffect(() => {
-    if (isAuthenticated && isSessionExpiringSoon() && autoRefreshSession && !isRefreshingSession) {
-      handleSessionRefresh();
+    if (isAuthenticated && isSessionExpiringSoon() && autoRefreshSession === true && isRefreshingSession === false) {
+      void handleSessionRefresh();
     }
   }, [isAuthenticated, isSessionExpiringSoon, autoRefreshSession, isRefreshingSession, handleSessionRefresh]);
 
   // Handle redirect after authentication check
   useEffect(() => {
-    if (!isLoading && isInitialized && shouldRedirect && redirectTo) {
+    if (isLoading === false && isInitialized === true && shouldRedirect === true && redirectTo !== undefined && redirectTo !== null && redirectTo !== '') {
       const currentPath = encodeURIComponent(pathname);
       router.push(`${redirectTo}?redirect=${currentPath}`);
     }
   }, [isLoading, isInitialized, shouldRedirect, redirectTo, router, pathname]);
 
   // Show loading while auth is initializing
-  if (!isInitialized || isLoading) {
+  if (isInitialized === false || isLoading === true) {
     return <LoadingScreen />;
   }
 
   // Allow unauthenticated access if specified
-  if (allowUnauthenticated) {
+  if (allowUnauthenticated === true) {
     return <>{children}</>;
   }
 
   // Check authentication
-  if (!isAuthenticated) {
-    if (redirectTo && showLoginPrompt) {
+  if (isAuthenticated === false) {
+    if (redirectTo !== undefined && redirectTo !== null && redirectTo !== '' && showLoginPrompt === true) {
       setShouldRedirect(true);
       return <LoadingScreen />;
     }
     
-    if (fallbackComponent) {
+    if (fallbackComponent !== undefined && fallbackComponent !== null) {
       return <>{fallbackComponent}</>;
     }
     
@@ -221,7 +221,7 @@ export function ProtectedRoute({
   }
 
   // Check if account is active (if required)
-  if (requireActiveAccount && user && !user.isActive) {
+  if (requireActiveAccount === true && user !== null && user !== undefined && user.isActive === false) {
     return (
       <div className="flex items-center justify-center min-h-[60vh] p-4">
         <Card className="w-full max-w-md">
@@ -246,7 +246,7 @@ export function ProtectedRoute({
   }
 
   // Check if password change is required
-  if (user && user.mustChangePassword) {
+  if (user !== null && user !== undefined && user.mustChangePassword === true) {
     return (
       <div className="flex items-center justify-center min-h-[60vh] p-4">
         <Card className="w-full max-w-md">
@@ -277,7 +277,7 @@ export function ProtectedRoute({
       : requiredPermissions.some(permission => hasPermission(permission));
 
     if (!hasRequiredPermissions) {
-      if (fallbackComponent) {
+      if (fallbackComponent !== undefined && fallbackComponent !== null) {
         return <>{fallbackComponent}</>;
       }
       
@@ -297,7 +297,7 @@ export function ProtectedRoute({
       : requiredRoles.every(role => hasRole(role));
 
     if (!hasRequiredRoles) {
-      if (fallbackComponent) {
+      if (fallbackComponent !== undefined && fallbackComponent !== null) {
         return <>{fallbackComponent}</>;
       }
       
@@ -314,10 +314,10 @@ export function ProtectedRoute({
   return (
     <>
       {/* Session Expiry Warning */}
-      {showSessionWarning &&
-       isAuthenticated &&
+      {showSessionWarning === true &&
+       isAuthenticated === true &&
        isSessionExpiringSoon() &&
-       !sessionWarningDismissed && (
+       sessionWarningDismissed === false && (
         <Alert className="mb-4">
           <Clock className="h-4 w-4" />
           <AlertDescription>
@@ -331,7 +331,7 @@ export function ProtectedRoute({
               <div className="flex items-center space-x-2 ml-4">
                 <Button
                   size="sm"
-                  onClick={handleSessionRefresh}
+                  onClick={() => void handleSessionRefresh()}
                   disabled={isRefreshingSession}
                 >
                   {isRefreshingSession ? (
@@ -369,7 +369,7 @@ export function withProtectedRoute<T extends object>(
   Component: React.ComponentType<T>,
   options: Omit<ProtectedRouteProps, 'children'>
 ) {
-  return function ProtectedComponent(props: T) {
+  return function ProtectedComponent(props: T): React.ReactElement {
     return (
       <ProtectedRoute {...options}>
         <Component {...props} />
@@ -383,7 +383,13 @@ export function useRouteAccess(
   requiredPermissions: string[] = [],
   requiredRoles: string[] = [],
   requireAnyRole: boolean = false
-) {
+): {
+  hasAccess: boolean;
+  accessReason: 'unauthenticated' | 'insufficient_permissions' | 'insufficient_roles' | null;
+  isAuthenticated: boolean;
+  checkPermission: (permission: string) => boolean;
+  checkRole: (role: string) => boolean;
+} {
   const { 
     isAuthenticated, 
     hasPermission, 
@@ -392,13 +398,13 @@ export function useRouteAccess(
     hasAllPermissions 
   } = useAuth();
 
-  const hasAccess = () => {
-    if (!isAuthenticated) return false;
+  const hasAccess = (): boolean => {
+    if (isAuthenticated === false) return false;
 
     // Check permissions
     if (requiredPermissions.length > 0) {
       const hasRequiredPermissions = hasAllPermissions(requiredPermissions);
-      if (!hasRequiredPermissions) return false;
+      if (hasRequiredPermissions === false) return false;
     }
 
     // Check roles
@@ -406,16 +412,16 @@ export function useRouteAccess(
       const hasRequiredRoles = requireAnyRole
         ? hasAnyRole(requiredRoles)
         : requiredRoles.every(role => hasRole(role));
-      if (!hasRequiredRoles) return false;
+      if (hasRequiredRoles === false) return false;
     }
 
     return true;
   };
 
-  const getAccessReason = () => {
-    if (!isAuthenticated) return 'unauthenticated';
+  const getAccessReason = (): 'unauthenticated' | 'insufficient_permissions' | 'insufficient_roles' | null => {
+    if (isAuthenticated === false) return 'unauthenticated';
     
-    if (requiredPermissions.length > 0 && !hasAllPermissions(requiredPermissions)) {
+    if (requiredPermissions.length > 0 && hasAllPermissions(requiredPermissions) === false) {
       return 'insufficient_permissions';
     }
     
@@ -423,7 +429,7 @@ export function useRouteAccess(
       const hasRequiredRoles = requireAnyRole
         ? hasAnyRole(requiredRoles)
         : requiredRoles.every(role => hasRole(role));
-      if (!hasRequiredRoles) return 'insufficient_roles';
+      if (hasRequiredRoles === false) return 'insufficient_roles';
     }
     
     return null;
@@ -455,18 +461,18 @@ export function ConditionalAccess({
   requireAnyRole = false,
   fallback = null,
   showAccessDenied = false
-}: ConditionalAccessProps) {
+}: ConditionalAccessProps): React.ReactElement | null {
   const { hasAccess, accessReason } = useRouteAccess(
     requiredPermissions,
     requiredRoles,
     requireAnyRole
   );
 
-  if (hasAccess) {
+  if (hasAccess === true) {
     return <>{children}</>;
   }
 
-  if (showAccessDenied && accessReason) {
+  if (showAccessDenied === true && accessReason !== null && accessReason !== undefined) {
     return (
       <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />

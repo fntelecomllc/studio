@@ -56,7 +56,7 @@ export function LoginForm({
   description = 'Enter your credentials to access your account',
   enableCaptcha = false,
   maxAttempts = 5
-}: LoginFormProps) {
+}: LoginFormProps): React.ReactElement {
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -92,10 +92,10 @@ export function LoginForm({
 
   // Lockout timer effect
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: NodeJS.Timeout | undefined;
     
-    if (securityState.isLocked && securityState.lockoutEndTime) {
-      const updateTimer = () => {
+    if (securityState.isLocked && securityState.lockoutEndTime !== null) {
+      const updateTimer = (): void => {
         const remaining = Math.max(0, securityState.lockoutEndTime! - Date.now());
         setLockoutTimeRemaining(remaining);
         
@@ -114,7 +114,7 @@ export function LoginForm({
     }
     
     return () => {
-      if (timer) clearInterval(timer);
+      if (timer !== undefined) clearInterval(timer);
     };
   }, [securityState.isLocked, securityState.lockoutEndTime]);
 
@@ -122,7 +122,7 @@ export function LoginForm({
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
       const redirectParam = searchParams.get('redirect');
-      const redirectUrl = redirectParam || redirectTo || '/dashboard';
+      const redirectUrl = (redirectParam !== null && redirectParam !== '') ? redirectParam : ((redirectTo !== undefined && redirectTo !== '') ? redirectTo : '/dashboard');
       router.push(redirectUrl);
     }
   }, [isAuthenticated, authLoading, router, searchParams, redirectTo]);
@@ -175,16 +175,16 @@ export function LoginForm({
   }, []);
 
   // Handle form input changes
-  const handleInputChange = (field: keyof LoginFormData, value: string | boolean) => {
+  const handleInputChange = (field: keyof LoginFormData, value: string | boolean): void => {
     setFormData(prev => ({ ...prev, [field]: value }));
     
     // Clear field error when user starts typing
-    if (fieldErrors[field]) {
+    if (fieldErrors[field] !== undefined && fieldErrors[field] !== null) {
       errorManager.clearFieldError(field);
     }
     
     // Clear login error
-    if (loginError) {
+    if (loginError !== null && loginError !== undefined) {
       setLoginError(null);
     }
   };
@@ -204,7 +204,7 @@ export function LoginForm({
   };
 
   // Handle form submission with enhanced security
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     
     // Check if account is locked
@@ -236,12 +236,12 @@ export function LoginForm({
         handleSecurityLockout(securityState.failedAttempts);
         
         // Handle field-specific errors from backend
-        if (result.fieldErrors && Object.keys(result.fieldErrors).length > 0) {
+        if (result.fieldErrors !== null && result.fieldErrors !== undefined && Object.keys(result.fieldErrors).length > 0) {
           setFieldErrors(result.fieldErrors);
           setLoginError('Please correct the highlighted fields.');
         } else {
           // Parse specific error messages
-          const errorMessage = result.error || 'Login failed. Please try again.';
+          const errorMessage = (result.error !== null && result.error !== undefined && result.error !== '') ? result.error : 'Login failed. Please try again.';
           if (errorMessage.includes('locked')) {
             setLoginError('Account is temporarily locked due to security reasons. Please try again later or contact support.');
           } else if (errorMessage.includes('rate limit')) {
@@ -252,7 +252,7 @@ export function LoginForm({
             setLoginError('Network error. Please check your connection and ensure the backend is running.');
           } else {
             // Don't show the specific error from handleSecurityLockout if we already set a custom message
-            if (!loginError) {
+            if (loginError === null || loginError === undefined) {
               setLoginError(errorMessage);
             }
           }
@@ -287,7 +287,7 @@ export function LoginForm({
           <CardDescription>{description}</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
             {/* Email Field */}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>                <Input
@@ -297,7 +297,7 @@ export function LoginForm({
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   disabled={isMainLoginLoading}
-                  className={fieldErrors.email ? 'border-destructive' : ''}
+                  className={(fieldErrors.email !== undefined && fieldErrors.email !== null) ? 'border-destructive' : ''}
                 />
               <FormFieldError error={fieldErrors.email} />
             </div>
@@ -313,7 +313,7 @@ export function LoginForm({
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
                   disabled={isMainLoginLoading}
-                  className={fieldErrors.password ? 'border-destructive pr-10' : 'pr-10'}
+                  className={(fieldErrors.password !== undefined && fieldErrors.password !== null) ? 'border-destructive pr-10' : 'pr-10'}
                 />
                 <Button
                   type="button"
@@ -338,7 +338,7 @@ export function LoginForm({
               <Checkbox
                 id="rememberMe"
                 checked={formData.rememberMe}
-                onCheckedChange={(checked) => handleInputChange('rememberMe', !!checked)}
+                onCheckedChange={(checked) => handleInputChange('rememberMe', checked === true)}
                 disabled={isMainLoginLoading}
               />
               <Label htmlFor="rememberMe" className="text-sm">

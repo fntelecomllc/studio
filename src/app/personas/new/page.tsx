@@ -7,7 +7,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 
-function NewPersonaPageContent() {
+function NewPersonaPageContent(): React.ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [personaType, setPersonaType] = useState<'http' | 'dns' | null>(null);
@@ -41,7 +41,7 @@ function NewPersonaPageContent() {
     );
   }
   
-  if (!isValidType || !personaType) {
+  if (!isValidType || personaType === null) {
      return (
         <>
          <PageHeader title="Invalid Persona Type" description="Please select a valid persona type to create using the buttons below or ensure the URL includes '?type=http' or '?type=dns'." icon={AlertCircle} />
@@ -72,7 +72,7 @@ function NewPersonaPageContent() {
   );
 }
 
-export default function NewPersonaPage() {
+export default function NewPersonaPage(): React.ReactElement {
   return (
     <Suspense fallback={<div className="p-6 text-center">Loading new persona form...<Skeleton className="h-60 w-full mt-4" /></div>}>
       <NewPersonaPageContent />

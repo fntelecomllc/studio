@@ -23,11 +23,11 @@ interface MonitoringProviderProps {
   enableConsoleLogging?: boolean;
 }
 
-export function MonitoringProvider({ 
-  children, 
+export function MonitoringProvider({
+  children,
   customHooks = {},
-  enableConsoleLogging = false 
-}: MonitoringProviderProps) {
+  enableConsoleLogging = false
+}: MonitoringProviderProps): React.ReactElement {
   useEffect(() => {
     const config = getMonitoringConfig();
     
@@ -77,9 +77,13 @@ export function MonitoringProvider({
 
     // Record initial page load
     if (MONITORING_FEATURES.API_TRACKING) {
-      const loadTime = window.performance.timing?.loadEventEnd - window.performance.timing?.navigationStart;
-      if (loadTime > 0) {
-        monitoringService.recordPageLoad(window.location.href, loadTime);
+      const navigationStart = window.performance.timing?.navigationStart;
+      const loadEventEnd = window.performance.timing?.loadEventEnd;
+      if ((navigationStart !== undefined && navigationStart !== null) && (loadEventEnd !== undefined && loadEventEnd !== null)) {
+        const loadTime = loadEventEnd - navigationStart;
+        if (loadTime > 0) {
+          monitoringService.recordPageLoad(window.location.href, loadTime);
+        }
       }
     }
 
@@ -119,7 +123,7 @@ export function MonitoringProvider({
 
 export function useMonitoringContext(): MonitoringContextValue {
   const context = useContext(MonitoringContext);
-  if (!context) {
+  if (context === null || context === undefined) {
     throw new Error('useMonitoringContext must be used within a MonitoringProvider');
   }
   return context;
@@ -129,10 +133,16 @@ export function useMonitoringContext(): MonitoringContextValue {
 export function withMonitoring<P extends object>(
   WrappedComponent: React.ComponentType<P>,
   componentName?: string
-) {
-  const name = componentName || WrappedComponent.displayName || WrappedComponent.name || 'Unknown';
+): React.ComponentType<P> {
+  const name = (componentName !== null && componentName !== undefined && componentName !== '')
+    ? componentName
+    : (WrappedComponent.displayName !== null && WrappedComponent.displayName !== undefined && WrappedComponent.displayName !== '')
+      ? WrappedComponent.displayName
+      : (WrappedComponent.name !== null && WrappedComponent.name !== undefined && WrappedComponent.name !== '')
+        ? WrappedComponent.name
+        : 'Unknown';
   
-  const MonitoredComponent = (props: P) => {
+  const MonitoredComponent = (props: P): React.ReactElement => {
     const { isEnabled, recordMetric } = useMonitoringContext();
     
     useEffect(() => {

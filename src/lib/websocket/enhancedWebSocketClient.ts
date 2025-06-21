@@ -10,13 +10,13 @@
  * - Backward compatibility with simple service
  */
 
-import { getEnhancedWebSocketService, type EnhancedWebSocketServiceOptions } from '@/lib/services/websocketService.enhanced';
+import { getEnhancedWebSocketService } from '@/lib/services/websocketService.enhanced';
 import type { WebSocketMessage as EnhancedMessage } from '@/lib/types/websocket-types-fixed';
 import { 
   parseWebSocketMessage, 
   routeWebSocketMessage, 
   type WebSocketHandlers,
-  type TypedWebSocketMessage 
+  // type TypedWebSocketMessage
 } from '@/lib/types/websocket-types-fixed';
 import { UUID, ISODateString, SafeBigInt } from '@/lib/types/branded';
 
@@ -56,7 +56,7 @@ export interface CampaignProgressMessage extends WebSocketMessage {
   type: 'campaign_progress' | 'progress' | 'domain_generated' | 'domain_generation_progress' | 'validation_progress' | 'phase_complete' | 'error' | 'subscription_confirmed' | 'validation_complete' | 'system_notification';
   campaignId?: UUID;
   status?: string;
-  data: any; // Required to match WebSocketMessage interface
+  data: Record<string, unknown>; // Required to match WebSocketMessage interface
   progress?: number;
   phase?: string;
   error?: string;
@@ -109,9 +109,9 @@ export class EnhancedWebSocketClient {
         });
 
         // Call campaign-specific handlers
-        if (simpleMessage.campaignId) {
+        if (simpleMessage.campaignId !== undefined && simpleMessage.campaignId !== null && simpleMessage.campaignId !== '') {
           const handlers = this.campaignHandlers.get(simpleMessage.campaignId);
-          if (handlers) {
+          if (handlers !== undefined && handlers !== null) {
             handlers.forEach(handler => {
               try {
                 handler(simpleMessage);
@@ -125,7 +125,7 @@ export class EnhancedWebSocketClient {
         // Route typed messages
         try {
           const typedMessage = parseWebSocketMessage(JSON.stringify(message));
-          if (typedMessage) {
+          if (typedMessage !== undefined && typedMessage !== null) {
             routeWebSocketMessage(typedMessage, this.typedHandlers);
           }
         } catch (error) {
@@ -155,7 +155,7 @@ export class EnhancedWebSocketClient {
   private convertToSimpleMessage(enhancedMessage: EnhancedMessage): WebSocketMessage {
     const simpleMessage: WebSocketMessage = {
       type: enhancedMessage.type,
-      data: (enhancedMessage.data || {}) as Record<string, unknown>
+      data: (enhancedMessage.data ?? {}) as Record<string, unknown>
     };
 
     // Add optional fields if they exist
@@ -165,20 +165,23 @@ export class EnhancedWebSocketClient {
     if ('timestamp' in enhancedMessage) {
       simpleMessage.timestamp = enhancedMessage.timestamp as ISODateString;
     }
-    if ('message' in enhancedMessage) {
-      simpleMessage.message = (enhancedMessage as any).message;
+    
+    // Type-safe access to additional properties
+    const extendedMessage = enhancedMessage as unknown as Record<string, unknown>;
+    if ('message' in extendedMessage && typeof extendedMessage.message === 'string') {
+      simpleMessage.message = extendedMessage.message;
     }
-    if ('campaignId' in enhancedMessage) {
-      simpleMessage.campaignId = (enhancedMessage as any).campaignId as UUID;
+    if ('campaignId' in extendedMessage && typeof extendedMessage.campaignId === 'string') {
+      simpleMessage.campaignId = extendedMessage.campaignId as UUID;
     }
-    if ('phase' in enhancedMessage) {
-      simpleMessage.phase = (enhancedMessage as any).phase;
+    if ('phase' in extendedMessage && typeof extendedMessage.phase === 'string') {
+      simpleMessage.phase = extendedMessage.phase;
     }
-    if ('status' in enhancedMessage) {
-      simpleMessage.status = (enhancedMessage as any).status;
+    if ('status' in extendedMessage && typeof extendedMessage.status === 'string') {
+      simpleMessage.status = extendedMessage.status;
     }
-    if ('progress' in enhancedMessage) {
-      simpleMessage.progress = (enhancedMessage as any).progress;
+    if ('progress' in extendedMessage && typeof extendedMessage.progress === 'number') {
+      simpleMessage.progress = extendedMessage.progress;
     }
 
     return simpleMessage;
@@ -214,8 +217,8 @@ export class EnhancedWebSocketClient {
   }
 
   isConnected(campaignId?: string): boolean {
-    if (campaignId) {
-      return this.campaignConnections.get(campaignId) || false;
+    if (campaignId !== undefined && campaignId !== '') {
+      return this.campaignConnections.get(campaignId) === true && this.service.isConnected();
     }
     return this.service.isConnected();
   }
@@ -228,7 +231,7 @@ export class EnhancedWebSocketClient {
   ): () => void {
     // Connect if not already connected
     if (!this.service.isConnected()) {
-      this.connect();
+      void this.connect();
     }
 
     // Subscribe to campaign
@@ -236,13 +239,13 @@ export class EnhancedWebSocketClient {
     this.campaignConnections.set(campaignId, true);
 
     // Add handlers
-    if (onMessage) {
-      const handlers = this.campaignHandlers.get(campaignId) || [];
+    if (onMessage !== undefined) {
+      const handlers = this.campaignHandlers.get(campaignId) ?? [];
       handlers.push(onMessage);
       this.campaignHandlers.set(campaignId, handlers);
     }
 
-    if (onError) {
+    if (onError !== undefined) {
       this.errorHandlers.push(onError);
     }
 
@@ -252,8 +255,8 @@ export class EnhancedWebSocketClient {
       this.campaignConnections.delete(campaignId);
       
       // Remove handlers
-      if (onMessage) {
-        const handlers = this.campaignHandlers.get(campaignId) || [];
+      if (onMessage !== undefined) {
+        const handlers = this.campaignHandlers.get(campaignId) ?? [];
         const filtered = handlers.filter(h => h !== onMessage);
         if (filtered.length > 0) {
           this.campaignHandlers.set(campaignId, filtered);
@@ -262,7 +265,7 @@ export class EnhancedWebSocketClient {
         }
       }
 
-      if (onError) {
+      if (onError !== undefined) {
         this.errorHandlers = this.errorHandlers.filter(h => h !== onError);
       }
 
@@ -279,23 +282,23 @@ export class EnhancedWebSocketClient {
   ): () => void {
     // Connect if not already connected
     if (!this.service.isConnected()) {
-      this.connect();
+      void this.connect();
     }
 
-    if (onMessage) {
+    if (onMessage !== undefined) {
       this.messageHandlers.push(onMessage);
     }
 
-    if (onError) {
+    if (onError !== undefined) {
       this.errorHandlers.push(onError);
     }
 
     // Return cleanup function
     return () => {
-      if (onMessage) {
+      if (onMessage !== undefined) {
         this.messageHandlers = this.messageHandlers.filter(h => h !== onMessage);
       }
-      if (onError) {
+      if (onError !== undefined) {
         this.errorHandlers = this.errorHandlers.filter(h => h !== onError);
       }
 
@@ -359,7 +362,7 @@ export class EnhancedWebSocketClient {
 
   // Testing
   simulateMessage(message: WebSocketMessage): void {
-    const simpleMessage = this.convertToSimpleMessage(message as any);
+    const simpleMessage = this.convertToSimpleMessage(message as EnhancedMessage);
     this.messageHandlers.forEach(handler => {
       try {
         handler(simpleMessage);

@@ -34,7 +34,7 @@ interface PersonaListItemProps {
 }
 
 const getStatusBadgeInfo = (status: PersonaStatus | undefined): { variant: "default" | "secondary" | "destructive" | "outline", icon: JSX.Element, text: string } => {
-  status = status || 'Active'; // Default to Active if undefined for some reason
+  status = status ?? 'Active'; // Default to Active if undefined for some reason
   switch (status) {
     case 'Active':
       return { variant: 'default', icon: <CheckCircle className="h-3.5 w-3.5 text-green-500" />, text: 'Active' };
@@ -50,15 +50,15 @@ const getStatusBadgeInfo = (status: PersonaStatus | undefined): { variant: "defa
 };
 
 
-export default function PersonaListItem({ persona, onDelete, onTest, onToggleStatus, isTesting, isTogglingStatus }: PersonaListItemProps) {
+export default function PersonaListItem({ persona, onDelete, onTest, onToggleStatus, isTesting, isTogglingStatus }: PersonaListItemProps): React.ReactElement {
   const { toast } = useToast();
   const statusInfo = getStatusBadgeInfo(persona.status as PersonaStatus);
 
-  const handleDelete = () => {
+  const handleDelete = (): void => {
     onDelete(persona.id, persona.personaType);
   };
 
-  const handleExport = () => {
+  const handleExport = (): void => {
     try {
       // Create a new object for export, omitting 'personaType' if it's http, and flattening 'config' for dns
       const exportablePersona: Record<string, unknown> = { ...persona };
@@ -88,48 +88,48 @@ export default function PersonaListItem({ persona, onDelete, onTest, onToggleSta
     }
   };
 
-  const copyToClipboard = (data: unknown, fieldName: string) => {
-    if (data === undefined || data === null || (typeof data === 'object' && Object.keys(data).length === 0)) {
+  const copyToClipboard = (data: unknown, fieldName: string): void => {
+    if (data === undefined || data === null || (typeof data === 'object' && data !== null && Object.keys(data).length === 0)) {
         toast({ title: `Copy Failed`, description: `${fieldName} is empty or not available.`, variant: "destructive" });
         return;
     }
     const textToCopy = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
-    navigator.clipboard.writeText(textToCopy).then(() => {
+    void navigator.clipboard.writeText(textToCopy).then(() => {
       toast({ title: `${fieldName} Copied`, description: `${fieldName} copied to clipboard.` });
     }).catch(() => {
       toast({ title: `Copy Failed`, description: `Could not copy ${fieldName} to clipboard.`, variant: "destructive" });
     });
   };
 
-  const renderHttpPersonaDetails = (p: HttpPersona) => {
+  const renderHttpPersonaDetails = (p: HttpPersona): React.ReactElement => {
     const config = p.configDetails as import('@/lib/types').HTTPConfigDetails;
     return (
       <>
         <div className="text-sm space-y-1 mb-3">
-          <div><strong>User-Agent:</strong> <p className="font-mono text-xs truncate block ml-1" title={config.userAgent}>{config.userAgent || "Not set"}</p></div>
+          <div><strong>User-Agent:</strong> <p className="font-mono text-xs truncate block ml-1" title={config.userAgent}>{config.userAgent ?? "Not set"}</p></div>
           
           <div className="flex items-center mt-1"><strong>Allow Insecure TLS:</strong>
-            <Badge variant={config.allowInsecureTls ? "destructive" : "secondary"} className="ml-2 text-xs">{config.allowInsecureTls ? "Yes" : "No"}</Badge>
+            <Badge variant={config.allowInsecureTls === true ? "destructive" : "secondary"} className="ml-2 text-xs">{config.allowInsecureTls === true ? "Yes" : "No"}</Badge>
           </div>
-          <p><strong>Timeout:</strong> {config.requestTimeoutSec || config.requestTimeoutSeconds}s</p>
+          <p><strong>Timeout:</strong> {config.requestTimeoutSec ?? config.requestTimeoutSeconds}s</p>
           <p><strong>Redirects:</strong> {config.maxRedirects}</p>
-          {config.cookieHandling?.mode && <p><strong>Cookie Handling:</strong> {config.cookieHandling.mode}</p>}
-          {config.notes && <p><strong>Notes:</strong> <span className="text-muted-foreground italic truncate" title={config.notes}>{config.notes}</span></p>}
+          {config.cookieHandling?.mode !== undefined && <p><strong>Cookie Handling:</strong> {config.cookieHandling.mode}</p>}
+          {config.notes !== undefined && config.notes !== '' && <p><strong>Notes:</strong> <span className="text-muted-foreground italic truncate" title={config.notes}>{config.notes}</span></p>}
         </div>
         <Separator className="my-3" />
         <div className="space-y-2">
-          {config.headers && Object.keys(config.headers).length > 0 &&
-              <Button variant="outline" size="sm" onClick={() => copyToClipboard(config.headers, "HTTP Headers")} className="w-full justify-start text-left text-xs">
+          {config.headers !== undefined && config.headers !== null && Object.keys(config.headers).length > 0 &&
+              <Button variant="outline" size="sm" onClick={() => { copyToClipboard(config.headers, "HTTP Headers"); }} className="w-full justify-start text-left text-xs">
                 <Copy className="mr-2 h-3 w-3"/> Copy HTTP Headers ({Object.keys(config.headers).length} headers)
               </Button>
           }
-          {config.tlsClientHello && Object.keys(config.tlsClientHello).length > 0 &&
-              <Button variant="outline" size="sm" onClick={() => copyToClipboard(config.tlsClientHello, "TLS ClientHello Config")} className="w-full justify-start text-left text-xs">
+          {config.tlsClientHello !== undefined && config.tlsClientHello !== null && Object.keys(config.tlsClientHello).length > 0 &&
+              <Button variant="outline" size="sm" onClick={() => { copyToClipboard(config.tlsClientHello, "TLS ClientHello Config"); }} className="w-full justify-start text-left text-xs">
                 <Copy className="mr-2 h-3 w-3"/> Copy TLS Config
               </Button>
           }
-          {config.http2Settings && Object.keys(config.http2Settings).length > 0 &&
-              <Button variant="outline" size="sm" onClick={() => copyToClipboard(config.http2Settings, "HTTP/2 Settings")} className="w-full justify-start text-left text-xs">
+          {config.http2Settings !== undefined && config.http2Settings !== null && Object.keys(config.http2Settings).length > 0 &&
+              <Button variant="outline" size="sm" onClick={() => { copyToClipboard(config.http2Settings, "HTTP/2 Settings"); }} className="w-full justify-start text-left text-xs">
                 <Copy className="mr-2 h-3 w-3"/> Copy HTTP/2 Config
               </Button>
           }
@@ -138,7 +138,7 @@ export default function PersonaListItem({ persona, onDelete, onTest, onToggleSta
     );
   };
 
-  const renderDnsPersonaDetails = (p: DnsPersona) => {
+  const renderDnsPersonaDetails = (p: DnsPersona): React.ReactElement => {
     const config = p.configDetails as import('@/lib/types').DNSConfigDetails;
     return (
       <>
@@ -148,11 +148,11 @@ export default function PersonaListItem({ persona, onDelete, onTest, onToggleSta
           <p><strong>Concurrent Queries/Domain:</strong> {config.concurrentQueriesPerDomain}</p>
           <p><strong>Max Goroutines:</strong> {config.maxConcurrentGoroutines}</p>
           {(config.queryDelayMinMs !== undefined && config.queryDelayMaxMs !== undefined) && <p><strong>Query Delay:</strong> {config.queryDelayMinMs}-{config.queryDelayMaxMs}ms</p>}
-          {config.useSystemResolvers && <p><strong>Uses System Resolvers:</strong> Yes</p>}
-          {config.maxDomainsPerRequest && <p><strong>Max Domains/Request:</strong> {config.maxDomainsPerRequest}</p>}
-          {config.rateLimitDps && <p><strong>Rate Limit (DPS):</strong> {config.rateLimitDps}</p>}
-          {config.rateLimitBurst && <p><strong>Rate Limit Burst:</strong> {config.rateLimitBurst}</p>}
-          {config.resolvers && config.resolvers.length > 0 && (
+          {config.useSystemResolvers === true && <p><strong>Uses System Resolvers:</strong> Yes</p>}
+          {config.maxDomainsPerRequest !== undefined && <p><strong>Max Domains/Request:</strong> {config.maxDomainsPerRequest}</p>}
+          {config.rateLimitDps !== undefined && <p><strong>Rate Limit (DPS):</strong> {config.rateLimitDps}</p>}
+          {config.rateLimitBurst !== undefined && <p><strong>Rate Limit Burst:</strong> {config.rateLimitBurst}</p>}
+          {config.resolvers !== undefined && config.resolvers.length > 0 && (
               <div className="mt-1">
                   <strong>Resolvers:</strong>
                   <p className="text-xs font-mono truncate ml-1" title={config.resolvers.join(', ')}>{config.resolvers.join(', ').substring(0,35)}{config.resolvers.join(', ').length > 35 ? '...' : ''}</p>
@@ -161,7 +161,7 @@ export default function PersonaListItem({ persona, onDelete, onTest, onToggleSta
         </div>
         <Separator className="my-3" />
          <div className="space-y-2">
-           <Button variant="outline" size="sm" onClick={() => copyToClipboard(config, "Full DNS Config")} className="w-full justify-start text-left text-xs">
+           <Button variant="outline" size="sm" onClick={() => { copyToClipboard(config, "Full DNS Config"); }} className="w-full justify-start text-left text-xs">
                 <Copy className="mr-2 h-3 w-3"/> Copy Full DNS Config
               </Button>
         </div>
@@ -179,7 +179,7 @@ export default function PersonaListItem({ persona, onDelete, onTest, onToggleSta
             {persona.personaType === 'http' ? <Globe className="h-5 w-5 text-primary" /> : <Wifi className="h-5 w-5 text-primary" />}
             {persona.name}
           </CardTitle>
-          <CardDescription className="line-clamp-2 text-xs mt-1">{persona.description || "No description provided."}</CardDescription>
+          <CardDescription className="line-clamp-2 text-xs mt-1">{persona.description ?? "No description provided."}</CardDescription>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -194,16 +194,16 @@ export default function PersonaListItem({ persona, onDelete, onTest, onToggleSta
                 <FilePenLine className="mr-2 h-4 w-4" /> Edit
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onTest(persona.id, persona.personaType)} disabled={isActionDisabled || persona.status === 'Testing'}>
+            <DropdownMenuItem onClick={() => { onTest(persona.id, persona.personaType); }} disabled={isActionDisabled || persona.status === 'Testing'}>
               {isTesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <TestTubeDiagonal className="mr-2 h-4 w-4" />} Test Persona
             </DropdownMenuItem>
             {persona.status !== 'Disabled' && (
-                <DropdownMenuItem onClick={() => onToggleStatus(persona.id, persona.personaType, 'Disabled')} disabled={isActionDisabled || persona.status === 'Testing'}>
+                <DropdownMenuItem onClick={() => { onToggleStatus(persona.id, persona.personaType, 'Disabled'); }} disabled={isActionDisabled || persona.status === 'Testing'}>
                    {isTogglingStatus ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PowerOff className="mr-2 h-4 w-4" />} Disable Persona
                 </DropdownMenuItem>
             )}
             {persona.status === 'Disabled' && (
-                 <DropdownMenuItem onClick={() => onToggleStatus(persona.id, persona.personaType, 'Active')} disabled={isActionDisabled}>
+                 <DropdownMenuItem onClick={() => { onToggleStatus(persona.id, persona.personaType, 'Active'); }} disabled={isActionDisabled}>
                     {isTogglingStatus ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Power className="mr-2 h-4 w-4" />} Enable Persona
                 </DropdownMenuItem>
             )}
@@ -216,7 +216,7 @@ export default function PersonaListItem({ persona, onDelete, onTest, onToggleSta
                 <DropdownMenuItem 
                     className="flex items-center text-destructive hover:!bg-destructive hover:!text-destructive-foreground focus:!bg-destructive focus:!text-destructive-foreground"
                     disabled={isActionDisabled}
-                    onSelect={(e) => e.preventDefault()} // Prevents dropdown from closing
+                    onSelect={(e) => { e.preventDefault(); }} // Prevents dropdown from closing
                 >
                     <Trash2 className="mr-2 h-4 w-4" /> Delete
                 </DropdownMenuItem>
@@ -246,17 +246,17 @@ export default function PersonaListItem({ persona, onDelete, onTest, onToggleSta
                 {statusInfo.icon}
                 <span className="ml-1">{statusInfo.text}</span>
             </Badge>
-            {persona.lastTested && (
+            {persona.lastTested !== undefined && (
                 <span className="text-muted-foreground">
                     Tested: {formatDistance(new Date(persona.lastTested), new Date(), { addSuffix: true })}
                 </span>
             )}
         </div>
-        {persona.lastError && <p className="text-xs text-destructive mb-1" title={persona.lastError}>Error: {persona.lastError.substring(0,50)}{persona.lastError.length > 50 ? '...' : ''}</p>}
+        {persona.lastError !== undefined && persona.lastError !== '' && <p className="text-xs text-destructive mb-1" title={persona.lastError}>Error: {persona.lastError.substring(0,50)}{persona.lastError.length > 50 ? '...' : ''}</p>}
 
         {persona.personaType === 'http' ? renderHttpPersonaDetails(persona as HttpPersona) : renderDnsPersonaDetails(persona as DnsPersona)}
         
-        {persona.tags && persona.tags.length > 0 && (
+        {persona.tags !== undefined && persona.tags.length > 0 && (
           <div className="mt-2">
             <Separator className="my-2" />
             <h4 className="font-semibold text-xs text-muted-foreground mb-1 flex items-center"><Tag className="mr-1 h-3 w-3"/>Tags:</h4>
@@ -269,9 +269,9 @@ export default function PersonaListItem({ persona, onDelete, onTest, onToggleSta
       <CardFooter className="text-xs text-muted-foreground border-t pt-3">
         <div className="flex items-center">
           <Clock className="mr-1.5 h-3 w-3" />
-          Created: {persona.createdAt ? format(new Date(persona.createdAt), 'PP') : 'N/A'}
+          Created: {persona.createdAt !== undefined && persona.createdAt !== null && persona.createdAt !== '' ? format(new Date(persona.createdAt), 'PP') : 'N/A'}
         </div>
-         {persona.updatedAt && persona.updatedAt !== persona.createdAt && (
+         {persona.updatedAt !== undefined && persona.updatedAt !== persona.createdAt && (
            <div className="flex items-center ml-auto">
             <Settings2 className="mr-1.5 h-3 w-3" />
              Updated: {format(new Date(persona.updatedAt), 'PP')}

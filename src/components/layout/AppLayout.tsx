@@ -61,27 +61,27 @@ const navigationItems = [
 ];
 
 // Memoized sidebar component to prevent unnecessary re-renders
-const AppSidebar = memo(() => {
+const AppSidebar = memo((): React.ReactElement => {
   const { user, hasPermission, logout, isLoading, isAuthenticated, isInitialized } = useAuth();
 
   // ENTERPRISE AUTH FIX: Wait for auth to be fully ready before filtering menu items
   // This prevents empty sidebar when permissions load after component render
   const filteredItems = useMemo(() => {
     // Show only Dashboard while auth is loading
-    if (isLoading || !isInitialized || !isAuthenticated || !user) {
+    if (isLoading === true || isInitialized === false || isAuthenticated === false || user === null || user === undefined) {
       const dashboardItem = navigationItems.find(item => item.title === "Dashboard");
-      return dashboardItem ? [dashboardItem] : [];
+      return dashboardItem !== undefined ? [dashboardItem] : [];
     }
     
     return navigationItems.filter(item => {
-      if (!item.permission) return true;
+      if (item.permission === null) return true;
       return hasPermission(item.permission);
     });
   }, [hasPermission, isLoading, isInitialized, isAuthenticated, user]);
 
   // Memoize logout handler to prevent re-creation on every render
-  const handleLogout = useCallback(() => {
-    logout();
+  const handleLogout = useCallback((): void => {
+    void logout();
   }, [logout]);
 
   return (
@@ -115,9 +115,9 @@ const AppSidebar = memo(() => {
       <SidebarFooter className="p-4 border-t">
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
-            <span className="text-sm font-medium">{user?.email}</span>
+            <span className="text-sm font-medium">{user?.email ?? ''}</span>
             <span className="text-xs text-muted-foreground">
-              {user?.roles.map(role => role.displayName).join(', ')}
+              {user?.roles.map(role => role.displayName).join(', ') ?? ''}
             </span>
           </div>
           <button
@@ -136,7 +136,7 @@ const AppSidebar = memo(() => {
 AppSidebar.displayName = 'AppSidebar';
 
 // Memoized main layout component for optimal performance
-const AppLayout = memo(({ children }: AppLayoutProps) => {
+const AppLayout = memo(({ children }: AppLayoutProps): React.ReactElement => {
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
 
@@ -156,7 +156,7 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
     
     console.log('[AppLayout] 🚀 Initializing auth service...');
     
-    const initializeAuthService = async () => {
+    const initializeAuthService = async (): Promise<void> => {
       try {
         const { authService } = await import('@/lib/services/authService');
         
@@ -172,7 +172,7 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
       }
     };
 
-    initializeAuthService();
+    void initializeAuthService();
 
     // Cleanup function to prevent memory leaks
     return () => {
@@ -183,7 +183,7 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
   // Optimized WebSocket cleanup with proper lifecycle management
   useEffect(() => {
     // Setup function (if needed in the future)
-    const setupWebSocketServices = () => {
+    const setupWebSocketServices = (): void => {
       // WebSocket services are already initialized elsewhere
       // This effect is primarily for cleanup
     };
@@ -216,7 +216,7 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
       <SidebarProvider>
         <div className="min-h-screen bg-background flex" suppressHydrationWarning>
           {/* Performance optimized conditional rendering - only after mount */}
-          {mounted && (
+          {mounted === true && (
             <>
               <MemoryMonitor position="bottom-right" />
             </>

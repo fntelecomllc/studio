@@ -13,7 +13,7 @@ import { getCampaignById } from '@/lib/services/campaignService.production';
 import { useToast } from '@/hooks/use-toast';
 import { useLoadingStore } from '@/lib/stores/loadingStore';
 
-function EditCampaignPageContent() {
+function EditCampaignPageContent(): React.ReactElement {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
@@ -29,22 +29,22 @@ function EditCampaignPageContent() {
   const loading = isLoading(loadingOperationId);
 
   useEffect(() => {
-    if (!campaignId) {
+    if (campaignId === '') {
       setError("Campaign ID is missing from URL.");
       return;
     }
     
-    async function fetchCampaign() {
+    async function fetchCampaign(): Promise<void> {
       startLoading(loadingOperationId, "Loading campaign for editing");
       setError(null);
       try {
         const response: CampaignDetailResponse = await getCampaignById(campaignId);
-        if (response.status === 'success' && response.data) {
+        if (response.status === 'success' && response.data !== null && response.data !== undefined) {
           setCampaign(response.data);
         } else {
-          setError(response.message || "Campaign not found.");
+          setError(response.message ?? "Campaign not found.");
           setCampaign(null);
-          toast({ title: "Error Loading Campaign", description: response.message || "Campaign not found.", variant: "destructive" });
+          toast({ title: "Error Loading Campaign", description: response.message ?? "Campaign not found.", variant: "destructive" });
         }
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : "Failed to load campaign data.";
@@ -55,7 +55,7 @@ function EditCampaignPageContent() {
         stopLoading(loadingOperationId);
       }
     }
-    fetchCampaign();
+    void fetchCampaign();
   }, [campaignId, toast, startLoading, stopLoading, loadingOperationId]);
 
   if (loading) {
@@ -73,11 +73,11 @@ function EditCampaignPageContent() {
     );
   }
 
-  if (error || !campaign) {
+  if (error !== null || campaign === null) {
     return (
        <div className="text-center py-10">
         <AlertCircle className="mx-auto h-12 w-12 text-destructive" />
-        <PageHeader title="Error Loading Campaign" description={error || "Campaign data could not be loaded or found."} icon={FilePenLine} />
+        <PageHeader title="Error Loading Campaign" description={error ?? "Campaign data could not be loaded or found."} icon={FilePenLine} />
         <Button onClick={() => router.push('/campaigns')} className="mt-6">Back to Campaigns</Button>
       </div>
     );
@@ -95,7 +95,7 @@ function EditCampaignPageContent() {
   );
 }
 
-export default function EditCampaignPage() {
+export default function EditCampaignPage(): React.ReactElement {
   return (
     // Suspense can be used here if CampaignForm or EditCampaignPageContent has internal async ops not tied to the main data fetch
     <Suspense fallback={<div className="p-6 text-center">Loading campaign editor...<Skeleton className="h-80 w-full mt-4" /></div>}>

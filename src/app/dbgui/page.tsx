@@ -28,7 +28,7 @@ interface DatabaseStats {
   schemaVersion: string;
 }
 
-export default function DatabaseGUI() {
+export default function DatabaseGUI(): React.ReactElement {
   const [sqlQuery, setSqlQuery] = useState('SELECT * FROM auth.users LIMIT 10;');
   const [queryResult, setQueryResult] = useState<QueryResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -44,8 +44,8 @@ export default function DatabaseGUI() {
   });
 
   // Simple authentication function
-  const authenticate = async () => {
-    if (!credentials.username || !credentials.password) {
+  const authenticate = async (): Promise<void> => {
+    if (credentials.username.length === 0 || credentials.password.length === 0) {
       setError('Please enter both email and password.');
       return;
     }
@@ -70,7 +70,7 @@ export default function DatabaseGUI() {
       if (response.ok) {
         setAuthSuccess(true);
         setConnectionStatus('connected');
-        loadDatabaseStats();
+        void loadDatabaseStats();
       } else {
         setError('Login failed. Please check your credentials.');
         setConnectionStatus('error');
@@ -84,7 +84,7 @@ export default function DatabaseGUI() {
   };
 
   // Load database statistics
-  const loadDatabaseStats = async () => {
+  const loadDatabaseStats = async (): Promise<void> => {
     try {
       const response = await fetch('http://localhost:8080/api/database/stats', {
         method: 'GET',
@@ -95,7 +95,7 @@ export default function DatabaseGUI() {
       });
 
       if (response.ok) {
-        const stats = await response.json();
+        const stats = await response.json() as DatabaseStats;
         setDbStats(stats);
       }
     } catch (err) {
@@ -104,8 +104,8 @@ export default function DatabaseGUI() {
   };
 
   // Execute SQL query
-  const executeQuery = async () => {
-    if (!sqlQuery.trim()) return;
+  const executeQuery = async (): Promise<void> => {
+    if (sqlQuery.trim().length === 0) return;
 
     setLoading(true);
     setError(null);
@@ -121,12 +121,12 @@ export default function DatabaseGUI() {
         body: JSON.stringify({ query: sqlQuery }),
       });
 
-      const result = await response.json();
+      const result = await response.json() as QueryResult | { error?: string };
 
       if (response.ok) {
-        setQueryResult(result);
+        setQueryResult(result as QueryResult);
       } else {
-        setError(result.error || 'Query execution failed');
+        setError((result as { error?: string }).error ?? 'Query execution failed');
       }
     } catch (_err) {
       setError('Network error executing query');
@@ -160,7 +160,7 @@ export default function DatabaseGUI() {
   ];
 
 
-  if (!authSuccess) {
+  if (authSuccess === false) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
@@ -207,17 +207,17 @@ export default function DatabaseGUI() {
                     value={credentials.password}
                     onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
                     className="bg-white/5 border-gray-600 text-white placeholder:text-gray-400 focus:border-blue-400"
-                    onKeyPress={(e) => e.key === 'Enter' && authenticate()}
+                    onKeyPress={(e) => { if (e.key === 'Enter') void authenticate(); }}
                   />
                 </div>
               </div>
 
               <Button
-                onClick={authenticate}
+                onClick={() => void authenticate()}
                 disabled={loading}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-medium"
               >
-                {loading ? (
+                {loading === true ? (
                   <div className="flex items-center">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                     Authenticating...
@@ -227,7 +227,7 @@ export default function DatabaseGUI() {
                 )}
               </Button>
 
-              {error && (
+              {error !== null && (
                 <Alert className="bg-red-500/10 border-red-500/20">
                   <AlertDescription className="text-red-400">{error}</AlertDescription>
                 </Alert>
@@ -273,7 +273,7 @@ export default function DatabaseGUI() {
                   <div
                     key={table}
                     className="flex items-center gap-2 px-2 py-1 text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-700 cursor-pointer rounded"
-                    onClick={() => setSqlQuery(`SELECT * FROM auth.${table} LIMIT 50;`)}
+                    onClick={() => { setSqlQuery(`SELECT * FROM auth.${table} LIMIT 50;`); }}
                   >
                     <div className="h-4 w-4 flex items-center justify-center">
                       <div className="h-2 w-2 bg-blue-500 rounded-sm"></div>
@@ -295,7 +295,7 @@ export default function DatabaseGUI() {
                   <div
                     key={table}
                     className="flex items-center gap-2 px-2 py-1 text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-700 cursor-pointer rounded"
-                    onClick={() => setSqlQuery(`SELECT * FROM public.${table} LIMIT 50;`)}
+                    onClick={() => { setSqlQuery(`SELECT * FROM public.${table} LIMIT 50;`); }}
                   >
                     <div className="h-4 w-4 flex items-center justify-center">
                       <div className="h-2 w-2 bg-green-500 rounded-sm"></div>
@@ -382,7 +382,7 @@ export default function DatabaseGUI() {
                             auth schema
                           </TableCell>
                         </TableRow>
-                        {['users', 'sessions', 'roles', 'permissions', 'user_roles'].map((table, _index) => (
+                        {['users', 'sessions', 'roles', 'permissions', 'user_roles'].map((table) => (
                           <TableRow key={`auth-${table}`} className="hover:bg-gray-50">
                             <TableCell>
                               <input type="checkbox" className="rounded" />
@@ -392,10 +392,10 @@ export default function DatabaseGUI() {
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
-                                <Button variant="ghost" size="sm" onClick={() => setSqlQuery(`SELECT * FROM auth.${table} LIMIT 50;`)}>
+                                <Button variant="ghost" size="sm" onClick={() => { setSqlQuery(`SELECT * FROM auth.${table} LIMIT 50;`); }}>
                                   Browse
                                 </Button>
-                                <Button variant="ghost" size="sm" onClick={() => setSqlQuery(`\\d auth.${table}`)}>
+                                <Button variant="ghost" size="sm" onClick={() => { setSqlQuery(`\\d auth.${table}`); }}>
                                   Structure
                                 </Button>
                                 <Button variant="ghost" size="sm">
@@ -417,7 +417,7 @@ export default function DatabaseGUI() {
                             public schema
                           </TableCell>
                         </TableRow>
-                        {['campaigns', 'generated_domains', 'personas', 'keyword_sets', 'proxies'].map((table, _index) => (
+                        {['campaigns', 'generated_domains', 'personas', 'keyword_sets', 'proxies'].map((table) => (
                           <TableRow key={`public-${table}`} className="hover:bg-gray-50">
                             <TableCell>
                               <input type="checkbox" className="rounded" />
@@ -427,10 +427,10 @@ export default function DatabaseGUI() {
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
-                                <Button variant="ghost" size="sm" onClick={() => setSqlQuery(`SELECT * FROM public.${table} LIMIT 50;`)}>
+                                <Button variant="ghost" size="sm" onClick={() => { setSqlQuery(`SELECT * FROM public.${table} LIMIT 50;`); }}>
                                   Browse
                                 </Button>
-                                <Button variant="ghost" size="sm" onClick={() => setSqlQuery(`\\d public.${table}`)}>
+                                <Button variant="ghost" size="sm" onClick={() => { setSqlQuery(`\\d public.${table}`); }}>
                                   Structure
                                 </Button>
                                 <Button variant="ghost" size="sm">
@@ -451,7 +451,7 @@ export default function DatabaseGUI() {
 
                   {/* Summary */}
                   <div className="flex items-center justify-between text-sm text-gray-600 pt-4 border-t border-gray-200">
-                    <div>{dbStats ? `${dbStats.totalTables} tables` : '10 tables'}</div>
+                    <div>{dbStats !== null ? `${dbStats.totalTables} tables` : '10 tables'}</div>
                     <div>Sum: {Math.floor(Math.random() * 10000)} rows | Size: {(Math.random() * 100).toFixed(1)} KiB</div>
                   </div>
                 </div>
@@ -473,21 +473,21 @@ export default function DatabaseGUI() {
                     />
                   </div>
                   <div className="flex gap-2">
-                    <Button onClick={executeQuery} disabled={loading}>
-                      {loading ? 'Executing...' : 'Execute'}
+                    <Button onClick={() => void executeQuery()} disabled={loading}>
+                      {loading === true ? 'Executing...' : 'Execute'}
                     </Button>
-                    <Button variant="outline" onClick={() => setSqlQuery('')}>
+                    <Button variant="outline" onClick={() => { setSqlQuery(''); }}>
                       Clear
                     </Button>
                   </div>
                   
-                  {error && (
+                  {error !== null && (
                     <Alert>
                       <AlertDescription className="text-red-600">{error}</AlertDescription>
                     </Alert>
                   )}
 
-                  {queryResult && (
+                  {queryResult !== null && (
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold">Query Results</h3>

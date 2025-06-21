@@ -26,18 +26,18 @@ interface AccessDeniedProps {
   onRetry?: () => void;
 }
 
-function AccessDenied({ 
-  reason, 
-  requiredPermissions = [], 
+function AccessDenied({
+  reason,
+  requiredPermissions = [],
   requiredRoles = [],
   onRetry
-}: AccessDeniedProps) {
-  const handleLogin = () => {
+}: AccessDeniedProps): React.ReactElement {
+  const handleLogin = (): void => {
     // Force redirect to login
     window.location.href = '/login';
   };
 
-  const getReasonMessage = () => {
+  const getReasonMessage = (): { title: string; description: string; icon: React.ReactNode; action: string } => {
     switch (reason) {
       case 'unauthenticated':
         return {
@@ -98,7 +98,7 @@ function AccessDenied({
               {action}
             </Button>
           )}
-          {onRetry && (
+          {onRetry !== undefined && (
             <Button variant="outline" onClick={onRetry} className="w-full">
               Try Again
             </Button>
@@ -109,7 +109,7 @@ function AccessDenied({
   );
 }
 
-function LoadingScreen({ message = 'Verifying access...' }: { message?: string }) {
+function LoadingScreen({ message = 'Verifying access...' }: { message?: string }): React.ReactElement {
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
       <div className="text-center space-y-4">
@@ -127,7 +127,7 @@ export function StrictProtectedRoute({
   requireAnyRole = false,
   requireAllPermissions = true,
   allowUnauthenticated = false
-}: StrictProtectedRouteProps) {
+}: StrictProtectedRouteProps): React.ReactElement {
   const {
     isAuthenticated,
     user,
@@ -147,7 +147,7 @@ export function StrictProtectedRoute({
 
   // Handle session refresh if expiring soon
   useEffect(() => {
-    if (isAuthenticated && isSessionExpiringSoon() && !isRefreshingSession) {
+    if (isAuthenticated === true && isSessionExpiringSoon() && isRefreshingSession === false) {
       setIsRefreshingSession(true);
       refreshSession()
         .then(() => {
@@ -163,8 +163,8 @@ export function StrictProtectedRoute({
 
   // Strict authentication check
   useEffect(() => {
-    if (isInitialized && !isLoading && !allowUnauthenticated) {
-      if (!isAuthenticated) {
+    if (isInitialized === true && isLoading === false && allowUnauthenticated === false) {
+      if (isAuthenticated === false) {
         // Immediate redirect for unauthenticated users
         const loginUrl = new URL('/login', window.location.origin);
         if (pathname !== '/') {
@@ -174,7 +174,7 @@ export function StrictProtectedRoute({
         return;
       }
       setAccessCheckComplete(true);
-    } else if (allowUnauthenticated) {
+    } else if (allowUnauthenticated === true) {
       setAccessCheckComplete(true);
     }
   }, [isInitialized, isLoading, isAuthenticated, allowUnauthenticated, pathname]);
@@ -182,19 +182,19 @@ export function StrictProtectedRoute({
   // Show loading while auth is initializing or session is refreshing
   if (!isInitialized || isLoading || isRefreshingSession || !accessCheckComplete) {
     return <LoadingScreen message={
-      isRefreshingSession ? 'Refreshing session...' : 
-      !isInitialized ? 'Initializing security...' : 
+      isRefreshingSession === true ? 'Refreshing session...' :
+      isInitialized === false ? 'Initializing security...' :
       'Verifying access...'
     } />;
   }
 
   // Allow unauthenticated access if specified
-  if (allowUnauthenticated) {
+  if (allowUnauthenticated === true) {
     return <>{children}</>;
   }
 
   // Final authentication check
-  if (!isAuthenticated) {
+  if (isAuthenticated === false) {
     return (
       <AccessDenied
         reason="unauthenticated"
@@ -204,7 +204,7 @@ export function StrictProtectedRoute({
   }
 
   // Check if user object exists
-  if (!user) {
+  if (user === null) {
     return (
       <AccessDenied
         reason="session_expired"
@@ -214,7 +214,7 @@ export function StrictProtectedRoute({
   }
 
   // Check if account is active
-  if (!user.isActive) {
+  if (user.isActive === false) {
     return (
       <AccessDenied
         reason="insufficient_permissions"
@@ -225,11 +225,11 @@ export function StrictProtectedRoute({
 
   // Check permissions
   if (requiredPermissions.length > 0) {
-    const hasRequiredPermissions = requireAllPermissions
+    const hasRequiredPermissions = requireAllPermissions === true
       ? hasAllPermissions(requiredPermissions)
       : requiredPermissions.some(permission => hasPermission(permission));
 
-    if (!hasRequiredPermissions) {
+  if (hasRequiredPermissions === false) {
       return (
         <AccessDenied 
           reason="insufficient_permissions" 
@@ -241,11 +241,11 @@ export function StrictProtectedRoute({
 
   // Check roles
   if (requiredRoles.length > 0) {
-    const hasRequiredRoles = requireAnyRole
+    const hasRequiredRoles = requireAnyRole === true
       ? hasAnyRole(requiredRoles)
       : requiredRoles.every(role => hasRole(role));
 
-    if (!hasRequiredRoles) {
+    if (hasRequiredRoles === false) {
       return (
         <AccessDenied 
           reason="insufficient_roles" 
@@ -264,7 +264,7 @@ export function withStrictProtection<T extends object>(
   Component: React.ComponentType<T>,
   options: Omit<StrictProtectedRouteProps, 'children'>
 ) {
-  return function StrictProtectedComponent(props: T) {
+  return function StrictProtectedComponent(props: T): React.ReactElement {
     return (
       <StrictProtectedRoute {...options}>
         <Component {...props} />

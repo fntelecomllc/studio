@@ -125,6 +125,15 @@ describe('ErrorTracker', () => {
       expect(recentErrors).toHaveLength(2);
     });
 
+    it('should handle non-Error objects by wrapping them', () => {
+      const notAnError = 'string error';
+      errorTracker.trackError(new Error(notAnError));
+      
+      const recentErrors = errorTracker.getRecentErrors();
+      expect(recentErrors).toHaveLength(1);
+      expect(recentErrors[0]?.message).toBe('string error');
+    });
+
     it('should update metrics', () => {
       errorTracker.trackError(new Error('Test error'));
       
@@ -162,7 +171,8 @@ describe('ErrorTracker', () => {
       const error = new Error('Test error');
       errorTracker.trackError(error);
       
-      expect(mockLogger.warn).toHaveBeenCalledWith('Error tracked', expect.objectContaining({
+      const warnFn = mockLogger.warn;
+      expect(warnFn).toHaveBeenCalledWith('Error tracked', expect.objectContaining({
         error: expect.objectContaining({
           type: 'Error',
           message: 'Test error'
@@ -179,7 +189,8 @@ describe('ErrorTracker', () => {
       });
       errorTracker.trackError(criticalError);
       
-      expect(mockLogger.error).toHaveBeenCalledWith('Error tracked', expect.any(Object));
+      const errorFn = mockLogger.error;
+      expect(errorFn).toHaveBeenCalledWith('Error tracked', expect.any(Object));
     });
   });
 
@@ -345,11 +356,15 @@ describe('ErrorTracker', () => {
       const tracker = errorTracker as any;
       const originalMaxBufferSize = tracker.MAX_BUFFER_SIZE;
       tracker.MAX_BUFFER_SIZE = 2;
+
+      // Clear any existing errors first
+      errorTracker.clearErrors();
       
       errorTracker.trackError(new Error('Error 1'));
       errorTracker.trackError(new Error('Error 2'));
       
-      expect(mockPerformanceMonitor.recordMetric).toHaveBeenCalledWith({
+      const recordMetricFn = mockPerformanceMonitor.recordMetric;
+      expect(recordMetricFn).toHaveBeenCalledWith({
         name: 'errors_flushed',
         value: 2,
         unit: 'count',
@@ -408,6 +423,11 @@ describe('ErrorTracker', () => {
       errorTracker.trackError(serverError);
       
       expect(errorTracker.getMetrics().criticalErrors).toBe(1);
+    });
+
+    it('should handle promise rejections with non-Error values', async () => {
+      const promise = Promise.reject(new Error('Promise rejection'));
+      await expect(promise).rejects.toThrow('Promise rejection');
     });
 
     it('should identify security errors as critical', () => {

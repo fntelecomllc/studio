@@ -18,20 +18,20 @@ interface ContentSimilarityViewProps {
   onAnalysisComplete?: (updatedCampaign: CampaignViewModel) => void; // Callback to update parent campaign state
 }
 
-const getSimilarityBadgeVariant = (score: number) => {
-  if (score > 75) return "default"; 
+const getSimilarityBadgeVariant = (score: number): "default" | "secondary" | "outline" | "destructive" => {
+  if (score > 75) return "default";
   if (score > 50) return "secondary";
-  if (score > 25) return "outline"; 
-  return "destructive"; 
+  if (score > 25) return "outline";
+  return "destructive";
 };
 
-export default function ContentSimilarityView({ campaign, onAnalysisComplete }: ContentSimilarityViewProps) {
+export default function ContentSimilarityView({ campaign, onAnalysisComplete }: ContentSimilarityViewProps): React.ReactElement {
   const { extractedContent = [], leads = [] } = campaign;
   const { toast } = useToast();
   const [analyzingContentId, setAnalyzingContentId] = useState<string | null>(null);
 
-  const handleAnalyzeContent = async (item: ExtractedContentItem) => {
-    if (!campaign) return;
+  const handleAnalyzeContent = async (item: ExtractedContentItem): Promise<void> => {
+    if (campaign === undefined) return;
     setAnalyzingContentId(item.id);
     try {
       const analysisInput: AnalyzeContentInput = {
@@ -43,9 +43,9 @@ export default function ContentSimilarityView({ campaign, onAnalysisComplete }: 
       
       toast({
         title: "AI Analysis Complete",
-        description: `Advanced analysis for content from ${item.sourceUrl || 'source'} finished.`,
+        description: `Advanced analysis for content from ${item.sourceUrl ?? 'source'} finished.`,
       });
-       if (onAnalysisComplete) {
+       if (onAnalysisComplete !== undefined) {
            // This callback is less critical now that the service updates the store,
            // but can be kept if parent needs an explicit signal.
            // onAnalysisComplete(updatedCampaignData); 
@@ -134,17 +134,17 @@ export default function ContentSimilarityView({ campaign, onAnalysisComplete }: 
                   {extractedContent.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell className="max-w-xs">
-                        <p className="font-medium truncate" title={item.text}>{item.text.substring(0,100)}{item.text.length > 100 ? "..." : ""}</p>
-                        {item.advancedAnalysis?.summary && <p className="text-xs text-muted-foreground italic mt-1">AI Summary: {item.advancedAnalysis.summary}</p>}
+                        <p className="font-medium truncate" title={item.text}>{item.text.substring(0,100)}{item.text.length > 100 ? '...' : ''}</p>
+                        {item.advancedAnalysis?.summary !== undefined && <p className="text-xs text-muted-foreground italic mt-1">AI Summary: {item.advancedAnalysis.summary}</p>}
                       </TableCell>
                        <TableCell className="text-xs">
-                        {item.advancedAnalysis?.advancedKeywords && item.advancedAnalysis.advancedKeywords.length > 0 && (
+                        {item.advancedAnalysis?.advancedKeywords !== undefined && item.advancedAnalysis.advancedKeywords.length > 0 && (
                           <div>
                             <strong className="block text-sky-600">AI Keywords:</strong>
                             {item.advancedAnalysis.advancedKeywords.join(', ')}
                           </div>
                         )}
-                        {item.advancedAnalysis?.categories && item.advancedAnalysis.categories.length > 0 && (
+                        {item.advancedAnalysis?.categories !== undefined && item.advancedAnalysis.categories.length > 0 && (
                           <div className="mt-1">
                             <strong className="block text-purple-600">AI Categories:</strong>
                             {item.advancedAnalysis.categories.join(', ')}
@@ -152,32 +152,32 @@ export default function ContentSimilarityView({ campaign, onAnalysisComplete }: 
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={getSimilarityBadgeVariant(item.similarityScore || 0)}>
-                          {item.similarityScore || 0}%
+                        <Badge variant={getSimilarityBadgeVariant(item.similarityScore ?? 0)}>
+                          {item.similarityScore ?? 0}%
                         </Badge>
                       </TableCell>
                       <TableCell>
-                         {item.advancedAnalysis?.sentiment && item.advancedAnalysis.sentiment !== 'N/A' ? (
+                         {item.advancedAnalysis?.sentiment !== undefined && item.advancedAnalysis.sentiment !== 'N/A' ? (
                            <Badge variant={
                                item.advancedAnalysis.sentiment === 'Positive' ? 'default' : 
                                item.advancedAnalysis.sentiment === 'Negative' ? 'destructive' : 'secondary'
                            } className="text-xs">
                              {item.advancedAnalysis.sentiment}
                            </Badge>
-                         ) : item.advancedAnalysis ? <Badge variant="outline" className="text-xs">N/A</Badge> : null}
+                         ) : item.advancedAnalysis !== undefined ? <Badge variant="outline" className="text-xs">N/A</Badge> : null}
                       </TableCell>
                       <TableCell>
-                        {item.sourceUrl ? (
+                        {item.sourceUrl !== undefined ? (
                           <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center text-xs mb-1">
                             View Source <ExternalLink className="ml-1 h-3 w-3 opacity-70"/>
                           </a>
                         ) : <span className="text-xs text-muted-foreground mb-1 block">N/A</span>}
-                        {item.previousCampaignId && <span className="block text-xs text-muted-foreground mb-2">vs C-{item.previousCampaignId.substring(0,4)}</span>}
-                        {!item.advancedAnalysis && (
+                        {item.previousCampaignId !== undefined && <span className="block text-xs text-muted-foreground mb-2">vs C-{item.previousCampaignId.substring(0,4)}</span>}
+                        {item.advancedAnalysis === undefined && (
                           <Button 
                             size="sm" 
                             variant="outline" 
-                            onClick={() => handleAnalyzeContent(item)}
+                            onClick={() => { void handleAnalyzeContent(item); }}
                             disabled={analyzingContentId === item.id}
                           >
                             {analyzingContentId === item.id ? <Loader2 className="mr-1 h-3 w-3 animate-spin"/> : <Sparkles className="mr-1 h-3 w-3"/>}
@@ -211,22 +211,22 @@ export default function ContentSimilarityView({ campaign, onAnalysisComplete }: 
                   {leads.map((lead) => (
                     <TableRow key={lead.id}>
                       <TableCell>
-                        <p className="font-medium">{lead.name || 'N/A'}</p>
-                        <p className="text-xs text-muted-foreground">{lead.email || 'N/A'}</p>
+                        <p className="font-medium">{lead.name ?? 'N/A'}</p>
+                        <p className="text-xs text-muted-foreground">{lead.email ?? 'N/A'}</p>
                       </TableCell>
-                      <TableCell>{lead.company || 'N/A'}</TableCell>
+                      <TableCell>{lead.company ?? 'N/A'}</TableCell>
                       <TableCell>
-                        <Badge variant={getSimilarityBadgeVariant(lead.similarityScore || 0)}>
-                          {lead.similarityScore || 0}%
+                        <Badge variant={getSimilarityBadgeVariant(lead.similarityScore ?? 0)}>
+                          {lead.similarityScore ?? 0}%
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {lead.sourceUrl ? (
+                        {lead.sourceUrl !== undefined ? (
                            <a href={lead.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center text-xs">
                             View Source <ExternalLink className="ml-1 h-3 w-3 opacity-70"/>
                           </a>
                         ) : 'N/A'}
-                        {lead.previousCampaignId && <span className="block text-xs text-muted-foreground">vs C-{lead.previousCampaignId.substring(0,4)}</span>}
+                        {lead.previousCampaignId !== undefined && <span className="block text-xs text-muted-foreground">vs C-{lead.previousCampaignId.substring(0,4)}</span>}
                       </TableCell>
                     </TableRow>
                   ))}

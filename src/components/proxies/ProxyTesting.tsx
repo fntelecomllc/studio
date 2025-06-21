@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -63,7 +63,7 @@ interface TestSession {
   isRunning: boolean;
 }
 
-export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: ProxyTestingProps) {
+export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: ProxyTestingProps): React.ReactElement {
   const { toast } = useToast();
   const { 
     healthMetrics, 
@@ -86,7 +86,7 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
   /**
    * Start testing selected proxies or all proxies
    */
-  const handleStartTesting = useCallback(async () => {
+  const handleStartTesting = useCallback(async (): Promise<void> => {
     const proxiesToTest = selectedProxyIds.size > 0 
       ? proxies.filter(p => selectedProxyIds.has(p.id))
       : proxies;
@@ -126,11 +126,11 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
         await Promise.allSettled(batchPromises);
         
         // Check if session was cancelled
-        if (!currentSession?.isRunning) break;
+        if (currentSession === null || currentSession === undefined || currentSession.isRunning === false) break;
       }
 
       // Complete session
-      setCurrentSession(prev => prev ? {
+      setCurrentSession(prev => prev !== null ? {
         ...prev,
         endTime: new Date(),
         isRunning: false
@@ -153,7 +153,7 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
         variant: "destructive"
       });
       
-      setCurrentSession(prev => prev ? {
+      setCurrentSession(prev => prev !== null ? {
         ...prev,
         endTime: new Date(),
         isRunning: false
@@ -182,7 +182,7 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
 
       // Update session
       setCurrentSession(prev => {
-        if (!prev || prev.id !== sessionId) return prev;
+        if (prev === null || prev.id !== sessionId) return prev;
         
         return {
           ...prev,
@@ -203,7 +203,7 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
       };
 
       setCurrentSession(prev => {
-        if (!prev || prev.id !== sessionId) return prev;
+        if (prev === null || prev.id !== sessionId) return prev;
         
         return {
           ...prev,
@@ -218,8 +218,8 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
   /**
    * Stop current testing session
    */
-  const handleStopTesting = useCallback(() => {
-    setCurrentSession(prev => prev ? {
+  const handleStopTesting = useCallback((): void => {
+    setCurrentSession(prev => prev !== null ? {
       ...prev,
       endTime: new Date(),
       isRunning: false
@@ -235,7 +235,7 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
   /**
    * Toggle proxy selection
    */
-  const toggleProxySelection = useCallback((proxyId: string) => {
+  const toggleProxySelection = useCallback((proxyId: string): void => {
     setSelectedProxyIds(prev => {
       const newSet = new Set(prev);
       if (newSet.has(proxyId)) {
@@ -250,7 +250,7 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
   /**
    * Select all/none proxies
    */
-  const toggleSelectAll = useCallback(() => {
+  const toggleSelectAll = useCallback((): void => {
     if (selectedProxyIds.size === proxies.length) {
       setSelectedProxyIds(new Set());
     } else {
@@ -258,14 +258,14 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
     }
   }, [selectedProxyIds.size, proxies]);
 
-  const progressPercentage = currentSession 
+  const progressPercentage = currentSession !== null
     ? Math.round((currentSession.completedTests / currentSession.totalProxies) * 100)
     : 0;
 
-  const averageResponseTime = currentSession?.results && currentSession.results.length > 0
+  const averageResponseTime = currentSession?.results !== undefined && currentSession.results.length > 0
     ? currentSession.results
         .filter(r => r.responseTime !== null)
-        .reduce((sum, r) => sum + (r.responseTime || 0), 0) / 
+        .reduce((sum, r) => sum + (r.responseTime !== null ? r.responseTime : 0), 0) /
         Math.max(1, currentSession.results.filter(r => r.responseTime !== null).length)
     : 0;
 
@@ -291,7 +291,7 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
                 value={testUrl}
                 onChange={(e) => setTestUrl(e.target.value)}
                 placeholder="https://httpbin.org/ip"
-                disabled={disabled || currentSession?.isRunning}
+                disabled={disabled !== false || currentSession?.isRunning !== false}
               />
             </div>
             
@@ -304,7 +304,7 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
                 onChange={(e) => setTestTimeout(Number(e.target.value))}
                 min={1}
                 max={60}
-                disabled={disabled || currentSession?.isRunning}
+                disabled={disabled !== false || currentSession?.isRunning !== false}
               />
             </div>
             
@@ -313,7 +313,7 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
               <Select
                 value={parallelTests.toString()}
                 onValueChange={(value) => setParallelTests(Number(value))}
-                disabled={disabled || currentSession?.isRunning}
+                disabled={disabled !== false || currentSession?.isRunning !== false}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -336,7 +336,7 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
                 onChange={(e) => setTestInterval(Number(e.target.value))}
                 min={30}
                 max={3600}
-                disabled={disabled || !continuousMode}
+                disabled={disabled !== false || continuousMode !== true}
               />
             </div>
           </div>
@@ -345,18 +345,18 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
             <Switch
               checked={continuousMode}
               onCheckedChange={setContinuousMode}
-              disabled={disabled || currentSession?.isRunning}
+              disabled={disabled !== false || currentSession?.isRunning !== false}
             />
             <Label>Continuous Testing Mode</Label>
           </div>
 
           <div className="flex gap-2">
             <Button
-              onClick={handleStartTesting}
-              disabled={disabled || currentSession?.isRunning}
+              onClick={() => { void handleStartTesting(); }}
+              disabled={disabled !== false || currentSession?.isRunning !== false}
               className="flex-1"
             >
-              {currentSession?.isRunning ? (
+              {currentSession?.isRunning !== false ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Testing...
@@ -369,7 +369,7 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
               )}
             </Button>
             
-            {currentSession?.isRunning && (
+            {currentSession?.isRunning !== false && (
               <Button
                 variant="destructive"
                 onClick={handleStopTesting}
@@ -381,10 +381,10 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
             
             <Button
               variant="outline"
-              onClick={runHealthChecks}
-              disabled={disabled || healthCheckInProgress}
+              onClick={() => { void runHealthChecks(); }}
+              disabled={disabled !== false || healthCheckInProgress !== false}
             >
-              {healthCheckInProgress ? (
+              {healthCheckInProgress !== false ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Health Check
@@ -401,7 +401,7 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
       </Card>
 
       {/* Testing Progress */}
-      {currentSession && (
+      {currentSession !== null && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
@@ -409,8 +409,8 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
                 <Clock className="h-5 w-5" />
                 Testing Progress
               </span>
-              <Badge variant={currentSession.isRunning ? "default" : "secondary"}>
-                {currentSession.isRunning ? "Running" : "Completed"}
+              <Badge variant={currentSession.isRunning !== false ? "default" : "secondary"}>
+                {currentSession.isRunning !== false ? "Running" : "Completed"}
               </Badge>
             </CardTitle>
           </CardHeader>
@@ -456,10 +456,10 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
                             ) : (
                               <XCircle className="h-4 w-4 text-red-500" />
                             )}
-                            {proxy?.address || result.proxyId}
+                            {(proxy?.address !== undefined && proxy.address !== null) ? proxy.address : result.proxyId}
                           </span>
                           <span className="text-muted-foreground">
-                            {result.responseTime ? `${result.responseTime}ms` : 'Failed'}
+                            {(result.responseTime !== null && result.responseTime !== undefined) ? `${result.responseTime}ms` : 'Failed'}
                           </span>
                         </div>
                       );
@@ -472,7 +472,7 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
       )}
 
       {/* Health Metrics */}
-      {healthMetrics && (
+      {healthMetrics !== null && healthMetrics !== undefined && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -522,7 +522,7 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
               variant="outline"
               size="sm"
               onClick={toggleSelectAll}
-              disabled={disabled || proxies.length === 0}
+              disabled={disabled !== false || proxies.length === 0}
             >
               {selectedProxyIds.size === proxies.length ? 'Deselect All' : 'Select All'}
             </Button>
@@ -540,7 +540,7 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
                 <div
                   key={proxy.id}
                   className={`flex items-center space-x-2 p-2 rounded border cursor-pointer hover:bg-muted/50 ${
-                    selectedProxyIds.has(proxy.id) ? 'bg-primary/10 border-primary' : ''
+                    selectedProxyIds.has(proxy.id) !== false ? 'bg-primary/10 border-primary' : ''
                   }`}
                   onClick={() => toggleProxySelection(proxy.id)}
                 >
@@ -557,7 +557,7 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
                       <Badge variant="outline" className="text-xs">
                         {proxy.protocol}
                       </Badge>
-                      {proxy.successCount && proxy.failureCount && (
+                      {proxy.successCount !== undefined && proxy.successCount !== null && proxy.failureCount !== undefined && proxy.failureCount !== null && (
                         <span className="text-xs text-muted-foreground">
                           {safeBigIntToNumber(proxy.successCount)}/{safeBigIntToNumber(proxy.failureCount)}
                         </span>

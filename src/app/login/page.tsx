@@ -5,7 +5,7 @@
 import { LoginForm } from '@/components/auth/LoginForm';
 import { Suspense } from 'react';
 
-function LoginPageContent() {
+function LoginPageContent(): React.ReactElement {
   return (
     <div className="min-h-screen bg-background">
       <LoginForm 
@@ -17,7 +17,7 @@ function LoginPageContent() {
   );
 }
 
-export default function LoginPage() {
+export default function LoginPage(): React.ReactElement {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-screen">

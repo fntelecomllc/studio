@@ -88,7 +88,7 @@ const availableRoles: Role[] = [
   }
 ];
 
-export default function CreateUserPage() {
+export default function CreateUserPage(): React.ReactElement {
   const { hasPermission, createUser } = useAuth();
   const router = useRouter();
 
@@ -117,13 +117,13 @@ export default function CreateUserPage() {
     setFormData(prev => ({ ...prev, [field]: value }));
     
     // Clear field error when user starts typing
-    if (errors[field]) {
+    if (errors[field] !== undefined) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
     
     // Clear messages
-    if (successMessage) setSuccessMessage(null);
-    if (errorMessage) setErrorMessage(null);
+    if (successMessage !== null) setSuccessMessage(null);
+    if (errorMessage !== null) setErrorMessage(null);
   }, [errors, successMessage, errorMessage]);
 
   // Validate form
@@ -170,7 +170,7 @@ export default function CreateUserPage() {
       
       const result = await createUser(createUserRequest);
 
-      if (result.success && result.data) {
+      if (result.success && result.data !== undefined) {
         setSuccessMessage('User created successfully! Redirecting...');
         
         // Redirect after a short delay to show success message
@@ -178,7 +178,7 @@ export default function CreateUserPage() {
           router.push('/admin/users');
         }, 2000);
       } else {
-        setErrorMessage(result.error?.message || 'Failed to create user');
+        setErrorMessage(result.error?.message ?? 'Failed to create user');
       }
     } catch (error) {
       console.error('Create user error:', error);
@@ -224,14 +224,14 @@ export default function CreateUserPage() {
       </div>
 
       {/* Messages */}
-      {successMessage && (
+      {successMessage !== null && (
         <Alert>
           <CheckCircle className="h-4 w-4" />
           <AlertDescription>{successMessage}</AlertDescription>
         </Alert>
       )}
       
-      {errorMessage && (
+      {errorMessage !== null && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{errorMessage}</AlertDescription>
@@ -247,7 +247,7 @@ export default function CreateUserPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={(e) => void handleSubmit(e)} className="space-y-6">
             {/* Personal Information */}
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
@@ -260,9 +260,9 @@ export default function CreateUserPage() {
                   value={formData.firstName}
                   onChange={(e) => handleInputChange('firstName', e.target.value)}
                   placeholder="Enter first name"
-                  className={errors.firstName ? 'border-red-500' : ''}
+                  className={errors.firstName !== undefined ? 'border-red-500' : ''}
                 />
-                {errors.firstName && (
+                {errors.firstName !== undefined && (
                   <p className="text-sm text-red-500">{errors.firstName}</p>
                 )}
               </div>
@@ -277,9 +277,9 @@ export default function CreateUserPage() {
                   value={formData.lastName}
                   onChange={(e) => handleInputChange('lastName', e.target.value)}
                   placeholder="Enter last name"
-                  className={errors.lastName ? 'border-red-500' : ''}
+                  className={errors.lastName !== undefined ? 'border-red-500' : ''}
                 />
-                {errors.lastName && (
+                {errors.lastName !== undefined && (
                   <p className="text-sm text-red-500">{errors.lastName}</p>
                 )}
               </div>
@@ -298,10 +298,10 @@ export default function CreateUserPage() {
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   placeholder="Enter email address"
-                  className={`pl-10 ${errors.email ? 'border-red-500' : ''}`}
+                  className={`pl-10 ${errors.email !== undefined ? 'border-red-500' : ''}`}
                 />
               </div>
-              {errors.email && (
+              {errors.email !== undefined && (
                 <p className="text-sm text-red-500">{errors.email}</p>
               )}
             </div>
@@ -319,7 +319,7 @@ export default function CreateUserPage() {
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
                   placeholder="Enter a secure password"
-                  className={`pl-10 pr-10 ${errors.password ? 'border-red-500' : ''}`}
+                  className={`pl-10 pr-10 ${errors.password !== undefined ? 'border-red-500' : ''}`}
                 />
                 <Button
                   type="button"
@@ -335,7 +335,7 @@ export default function CreateUserPage() {
                   )}
                 </Button>
               </div>
-              {errors.password && (
+              {errors.password !== undefined && (
                 <p className="text-sm text-red-500">{errors.password}</p>
               )}
               <p className="text-xs text-muted-foreground">
@@ -351,7 +351,7 @@ export default function CreateUserPage() {
               <Select
                 onValueChange={(value) => handleInputChange('roleIds', [value])}
               >
-                <SelectTrigger className={errors.roleIds ? 'border-red-500' : ''}>
+                <SelectTrigger className={errors.roleIds !== undefined ? 'border-red-500' : ''}>
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
@@ -370,7 +370,7 @@ export default function CreateUserPage() {
                   ))}
                 </SelectContent>
               </Select>
-              {errors.roleIds && (
+              {errors.roleIds !== undefined && (
                 <p className="text-sm text-red-500">{errors.roleIds}</p>
               )}
             </div>
@@ -380,7 +380,7 @@ export default function CreateUserPage() {
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="mustChangePassword"
-                  checked={formData.mustChangePassword}
+                  checked={formData.mustChangePassword ?? true}
                   onCheckedChange={(checked) => 
                     handleInputChange('mustChangePassword', Boolean(checked))
                   }

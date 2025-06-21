@@ -10,7 +10,7 @@ interface QueryResult {
   executionTime: number;
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify this is a legitimate request
     const xRequestedWith = request.headers.get('X-Requested-With');
@@ -22,9 +22,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the SQL query from request body
-    const { query } = await request.json();
+    const body = await request.json() as { query?: unknown };
+    const { query } = body;
     
-    if (!query || typeof query !== 'string') {
+    if (typeof query !== 'string' || query === '') {
       return NextResponse.json(
         { error: 'SQL query is required' },
         { status: 400 }
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Forward the request to the backend API
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
     
     // Get session cookies to forward authentication
     const cookies = request.headers.get('cookie');
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
       headers: {
         'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
-        ...(cookies && { 'Cookie': cookies })
+        ...(cookies !== null ? { 'Cookie': cookies } : {})
       },
       body: JSON.stringify({ query })
     });
@@ -77,12 +78,12 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       const errorText = await response.text();
       return NextResponse.json(
-        { error: errorText || 'Database query failed' },
+        { error: errorText !== '' ? errorText : 'Database query failed' },
         { status: response.status }
       );
     }
 
-    const result = await response.json();
+    const result = await response.json() as Omit<QueryResult, 'executionTime'>;
     
     // Add execution time to result
     const queryResult: QueryResult = {

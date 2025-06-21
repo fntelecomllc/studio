@@ -15,7 +15,7 @@ interface ResolveDomainIndexResponse {
 
 // const DEV_RESOLVER_SEARCH_LIMIT = 2000000; // Cap iterations for this dev tool // Commented out as core logic is removed
 
-export async function POST() {
+export function POST(): NextResponse {
   try {
     // const body: ResolveDomainIndexRequest = await request.json();
     // const { domainToFind, config: partialConfig } = body;
@@ -118,7 +118,7 @@ export async function POST() {
 }
 
 // Basic OPTIONS handler for CORS preflight if needed by frontend dev tools
-export async function OPTIONS() {
+export function OPTIONS(): Response {
   return new Response(null, {
     status: 204,
     headers: {

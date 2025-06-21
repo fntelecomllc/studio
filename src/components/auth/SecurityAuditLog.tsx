@@ -114,7 +114,7 @@ const MOCK_AUDIT_LOG: AuditLogEntry[] = [
 export function SecurityAuditLog({
   showSecurityEvents = true,
   showAuditLog = true
-}: SecurityAuditLogProps) {
+}: SecurityAuditLogProps): React.ReactElement {
   const { hasPermission } = useAuth();
   
   const [securityEvents, setSecurityEvents] = useState<SecurityEvent[]>([]);
@@ -128,11 +128,11 @@ export function SecurityAuditLog({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Check if user has admin permissions
-  const canViewSecurityLogs = hasPermission('security:read') || hasPermission('admin:all');
+  const canViewSecurityLogs = hasPermission('security:read') === true || hasPermission('admin:all') === true;
 
   // Load security events
-  const loadSecurityEvents = useCallback(async () => {
-    if (!canViewSecurityLogs) return;
+  const loadSecurityEvents = useCallback(async (): Promise<void> => {
+    if (canViewSecurityLogs === false) return;
     
     setIsLoading(true);
     try {
@@ -148,8 +148,8 @@ export function SecurityAuditLog({
   }, [canViewSecurityLogs]);
 
   // Load audit log
-  const loadAuditLog = useCallback(async () => {
-    if (!canViewSecurityLogs) return;
+  const loadAuditLog = useCallback(async (): Promise<void> => {
+    if (canViewSecurityLogs === false) return;
     
     setIsLoading(true);
     try {
@@ -166,11 +166,11 @@ export function SecurityAuditLog({
 
   // Load data on component mount
   useEffect(() => {
-    if (showSecurityEvents) {
-      loadSecurityEvents();
+    if (showSecurityEvents === true) {
+      void loadSecurityEvents();
     }
-    if (showAuditLog) {
-      loadAuditLog();
+    if (showAuditLog === true) {
+      void loadAuditLog();
     }
   }, [showSecurityEvents, showAuditLog, loadSecurityEvents, loadAuditLog]);
 
@@ -206,16 +206,16 @@ export function SecurityAuditLog({
 
   // Filter security events
   const filteredSecurityEvents = securityEvents.filter(event => {
-    const matchesSearch = (event.ipAddress || '').includes(searchTerm) ||
-                         (event.userAgent || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (event.userId && event.userId.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSearch = (event.ipAddress ?? '').includes(searchTerm) ||
+                         (event.userAgent ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (event.userId !== undefined && event.userId !== null && event.userId.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesEventType = eventTypeFilter === 'all' || event.eventType === eventTypeFilter;
     
     const matchesRiskLevel = riskLevelFilter === 'all' ||
-                            (riskLevelFilter === 'high' && (event.riskScore || 0) >= 8) ||
-                            (riskLevelFilter === 'medium' && (event.riskScore || 0) >= 5 && (event.riskScore || 0) < 8) ||
-                            (riskLevelFilter === 'low' && (event.riskScore || 0) < 5);
+                            (riskLevelFilter === 'high' && (event.riskScore ?? 0) >= 8) ||
+                            (riskLevelFilter === 'medium' && (event.riskScore ?? 0) >= 5 && (event.riskScore ?? 0) < 8) ||
+                            (riskLevelFilter === 'low' && (event.riskScore ?? 0) < 5);
     
     const matchesDate = dateFilter === 'all' || 
                        (dateFilter === 'today' && new Date(event.timestamp).toDateString() === new Date().toDateString()) ||
@@ -228,9 +228,9 @@ export function SecurityAuditLog({
   // Filter audit log
   const filteredAuditLog = auditLog.filter(entry => {
     const matchesSearch = entry.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (entry.resource && entry.resource.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                         (entry.userId && entry.userId.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                         (entry.ipAddress || '').includes(searchTerm);
+                         (entry.resource !== undefined && entry.resource !== null && entry.resource.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                         (entry.userId !== undefined && entry.userId !== null && entry.userId.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                         (entry.ipAddress ?? '').includes(searchTerm);
     
     const matchesDate = dateFilter === 'all' || 
                        (dateFilter === 'today' && new Date(entry.timestamp).toDateString() === new Date().toDateString()) ||
@@ -265,7 +265,7 @@ export function SecurityAuditLog({
     alert('Export functionality would be implemented here');
   }, []);
 
-  if (!canViewSecurityLogs) {
+  if (canViewSecurityLogs === false) {
     return (
       <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
@@ -293,11 +293,11 @@ export function SecurityAuditLog({
             <Download className="mr-2 h-4 w-4" />
             Export
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => {
-              if (activeTab === 'security') loadSecurityEvents();
-              else loadAuditLog();
+              if (activeTab === 'security') void loadSecurityEvents();
+              else void loadAuditLog();
             }}
             disabled={isLoading}
           >
@@ -347,7 +347,7 @@ export function SecurityAuditLog({
             </div>
 
             {/* Event Type Filter (Security Events only) */}
-            {(activeTab === 'security' || !showAuditLog) && (
+            {(activeTab === 'security' || showAuditLog === false) && (
               <Select value={eventTypeFilter} onValueChange={setEventTypeFilter}>
                 <SelectTrigger className="w-full sm:w-48">
                   <SelectValue placeholder="Filter by event type" />
@@ -366,7 +366,7 @@ export function SecurityAuditLog({
             )}
 
             {/* Risk Level Filter (Security Events only) */}
-            {(activeTab === 'security' || !showAuditLog) && (
+            {(activeTab === 'security' || showAuditLog === false) && (
               <Select value={riskLevelFilter} onValueChange={setRiskLevelFilter}>
                 <SelectTrigger className="w-full sm:w-48">
                   <SelectValue placeholder="Filter by risk level" />
@@ -397,7 +397,7 @@ export function SecurityAuditLog({
       </Card>
 
       {/* Error Message */}
-      {errorMessage && (
+      {(errorMessage !== null && errorMessage !== '') && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>{errorMessage}</AlertDescription>
@@ -405,7 +405,7 @@ export function SecurityAuditLog({
       )}
 
       {/* Security Events Table */}
-      {(activeTab === 'security' || !showAuditLog) && (
+      {(activeTab === 'security' || showAuditLog === false) && (
         <Card>
           <CardHeader>
             <CardTitle>Security Events ({filteredSecurityEvents.length})</CardTitle>
@@ -414,7 +414,7 @@ export function SecurityAuditLog({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {isLoading === true ? (
               <div className="flex items-center justify-center p-8">
                 <Loader2 className="h-8 w-8 animate-spin" />
               </div>
@@ -438,7 +438,7 @@ export function SecurityAuditLog({
                 <TableBody>
                   {filteredSecurityEvents.map((event) => {
                     const eventBadge = getEventTypeBadge(event.eventType);
-                    const riskBadge = getRiskLevelBadge(event.riskScore || 0);
+                    const riskBadge = getRiskLevelBadge(event.riskScore ?? 0);
                     const IconComponent = eventBadge.icon;
                     
                     return (
@@ -452,7 +452,7 @@ export function SecurityAuditLog({
                           </div>
                         </TableCell>
                         <TableCell>
-                          {event.userId ? (
+                          {(event.userId !== undefined && event.userId !== null) ? (
                             <div className="flex items-center space-x-1">
                               <User className="h-3 w-3" />
                               <span className="text-sm">{event.userId}</span>
@@ -463,12 +463,12 @@ export function SecurityAuditLog({
                         </TableCell>
                         <TableCell>
                           <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                            {event.ipAddress || 'N/A'}
+                            {event.ipAddress ?? 'N/A'}
                           </code>
                         </TableCell>
                         <TableCell>
                           <Badge variant={riskBadge.variant}>
-                            {riskBadge.label} ({event.riskScore || 0})
+                            {riskBadge.label} ({event.riskScore ?? 0})
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -480,9 +480,9 @@ export function SecurityAuditLog({
                         <TableCell>
                           <div className="space-y-1">
                             <p className="text-xs text-muted-foreground">
-                              {formatUserAgent(event.userAgent || 'Unknown')}
+                              {formatUserAgent(event.userAgent ?? 'Unknown')}
                             </p>
-                            {event.details && Object.keys(event.details).length > 0 && (
+                            {event.details !== undefined && event.details !== null && Object.keys(event.details).length > 0 && (
                               <div className="text-xs">
                                 {Object.entries(event.details).map(([key, value]) => (
                                   <span key={key} className="mr-2">
@@ -504,7 +504,7 @@ export function SecurityAuditLog({
       )}
 
       {/* Audit Log Table */}
-      {(activeTab === 'audit' || !showSecurityEvents) && (
+      {(activeTab === 'audit' || showSecurityEvents === false) && (
         <Card>
           <CardHeader>
             <CardTitle>Audit Log ({filteredAuditLog.length})</CardTitle>
@@ -513,7 +513,7 @@ export function SecurityAuditLog({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {isLoading === true ? (
               <div className="flex items-center justify-center p-8">
                 <Loader2 className="h-8 w-8 animate-spin" />
               </div>
@@ -541,7 +541,7 @@ export function SecurityAuditLog({
                         <Badge variant="outline">{entry.action}</Badge>
                       </TableCell>
                       <TableCell>
-                        {entry.userId ? (
+                        {(entry.userId !== undefined && entry.userId !== null) ? (
                           <div className="flex items-center space-x-1">
                             <User className="h-3 w-3" />
                             <span className="text-sm">{entry.userId}</span>
@@ -553,14 +553,14 @@ export function SecurityAuditLog({
                       <TableCell>
                         <div>
                           <p className="text-sm font-medium">{entry.resource}</p>
-                          {entry.resourceId && (
+                          {entry.resourceId !== undefined && entry.resourceId !== null && (
                             <p className="text-xs text-muted-foreground">{entry.resourceId}</p>
                           )}
                         </div>
                       </TableCell>
                       <TableCell>
                         <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                          {entry.ipAddress || 'N/A'}
+                          {entry.ipAddress ?? 'N/A'}
                         </code>
                       </TableCell>
                       <TableCell>
@@ -570,7 +570,7 @@ export function SecurityAuditLog({
                         </div>
                       </TableCell>
                       <TableCell>
-                        {entry.details && Object.keys(entry.details).length > 0 && (
+                        {entry.details !== undefined && entry.details !== null && Object.keys(entry.details).length > 0 && (
                           <div className="text-xs space-y-1">
                             {Object.entries(entry.details).map(([key, value]) => (
                               <div key={key}>

@@ -14,12 +14,12 @@ interface FormFieldErrorProps {
 /**
  * Displays field-specific validation errors with consistent styling
  */
-export function FormFieldError({ 
-  error, 
+export function FormFieldError({
+  error,
   className,
-  showIcon = true 
-}: FormFieldErrorProps) {
-  if (!error) return null;
+  showIcon = true
+}: FormFieldErrorProps): React.ReactElement | null {
+  if (error === undefined || error === '') return null;
 
   return (
     <div className={cn(
@@ -42,18 +42,18 @@ interface FormFieldWrapperProps {
 /**
  * Wrapper component that adds error styling and display to form fields
  */
-export function FormFieldWrapper({ 
-  children, 
-  error, 
+export function FormFieldWrapper({
+  children,
+  error,
   className,
-  errorClassName 
-}: FormFieldWrapperProps) {
+  errorClassName
+}: FormFieldWrapperProps): React.ReactElement {
   return (
     <div className={cn('space-y-1', className)}>
       {React.cloneElement(children as React.ReactElement, {
         className: cn(
-          (children as React.ReactElement).props.className,
-          error ? 'border-destructive focus:border-destructive' : ''
+          (children as React.ReactElement<{ className?: string }>).props.className,
+          error !== undefined && error !== '' ? 'border-destructive focus:border-destructive' : ''
         )
       })}
       <FormFieldError error={error} className={errorClassName} />
@@ -71,16 +71,16 @@ interface FormErrorSummaryProps {
 /**
  * Displays a summary of all form errors
  */
-export function FormErrorSummary({ 
-  errors, 
-  mainError, 
+export function FormErrorSummary({
+  errors,
+  mainError,
   className,
-  title = 'Please correct the following errors:' 
-}: FormErrorSummaryProps) {
+  title = 'Please correct the following errors:'
+}: FormErrorSummaryProps): React.ReactElement | null {
   const fieldErrorCount = Object.keys(errors).length;
-  const hasErrors = fieldErrorCount > 0 || !!mainError;
+  const hasErrors = fieldErrorCount > 0 || (mainError !== null && mainError !== undefined && mainError !== '');
   
-  if (!hasErrors) return null;
+  if (hasErrors === false) return null;
 
   return (
     <div className={cn(
@@ -90,11 +90,11 @@ export function FormErrorSummary({
       <div className="flex items-start gap-2">
         <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
         <div className="space-y-2">
-          {mainError && (
+          {mainError !== null && mainError !== undefined && mainError !== '' && (
             <p className="font-medium text-destructive">{mainError}</p>
           )}
           
-          {fieldErrorCount > 0 && !mainError && (
+          {fieldErrorCount > 0 && (mainError === null || mainError === undefined || mainError === '') && (
             <p className="font-medium text-destructive">{title}</p>
           )}
           

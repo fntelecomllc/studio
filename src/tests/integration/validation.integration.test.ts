@@ -139,14 +139,14 @@ describe('Campaign API Transformations', () => {
     const transformed = transformCampaignArrayResponse(campaigns);
     
     expect(transformed).toHaveLength(2);
-    expect(transformed[0]?.totalItems).toBe(1000000n);
-    expect(transformed[1]?.totalItems).toBe(1000000n);
+    expect(transformed[0]!.totalItems).toBe(1000000n);
+    expect(transformed[1]!.totalItems).toBe(1000000n);
   });
 
   it('should handle empty or undefined arrays', () => {
     expect(transformCampaignArrayResponse([])).toEqual([]);
-    expect(transformCampaignArrayResponse(undefined)).toEqual([]);
-    expect(transformCampaignArrayResponse(null)).toEqual([]);
+    expect(transformCampaignArrayResponse(undefined as ModelsCampaignAPI[] | undefined)).toEqual([]);
+    expect(transformCampaignArrayResponse(null as ModelsCampaignAPI[] | null)).toEqual([]);
   });
 });
 
@@ -181,7 +181,7 @@ describe('Authentication API Transformations', () => {
       requiresCaptcha: true // Backend sends this
     };
     
-    const transformed = transformLoginResponse(mockLoginResponse as any);
+    const transformed = transformLoginResponse(mockLoginResponse);
     expect(transformed.requiresCaptcha).toBe(true);
     expect(transformed.user).toBeDefined();
     expect(transformed.user?.id).toBeDefined();
@@ -193,7 +193,7 @@ describe('Authentication API Transformations', () => {
       requires_captcha: true // Generated API client expects this
     };
     
-    const transformed = transformLoginResponse(mockLoginResponse as any);
+    const transformed = transformLoginResponse(mockLoginResponse);
     expect(transformed.requiresCaptcha).toBe(true);
   });
 });
@@ -382,7 +382,7 @@ describe('Performance Tests for BigInt Operations', () => {
     }));
     
     const start = performance.now();
-    const transformed = transformCampaignArrayResponse(campaigns as any);
+    const transformed = transformCampaignArrayResponse(campaigns as ModelsCampaignAPI[]);
     const duration = performance.now() - start;
     
     expect(duration).toBeLessThan(100); // Should complete in under 100ms

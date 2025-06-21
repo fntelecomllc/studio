@@ -24,11 +24,11 @@ export function WithPermission({
   fallback = null,
   showFallback = true,
   onPermissionDenied
-}: WithPermissionProps) {
+}: WithPermissionProps): React.ReactNode {
   const { hasPermission, hasAllPermissions, isAuthenticated, isLoading } = useAuth();
 
   // Wait for auth to be ready
-  if (isLoading || !isAuthenticated) {
+  if (isLoading === true || isAuthenticated === false) {
     return showFallback ? fallback : null;
   }
 
@@ -40,9 +40,9 @@ export function WithPermission({
     ? hasAllPermissions(permissions)
     : permissions.some(permission => hasPermission(permission));
 
-  if (!hasRequiredPermissions) {
+  if (hasRequiredPermissions === false) {
     // Call callback if provided
-    if (onPermissionDenied) {
+    if (onPermissionDenied !== undefined) {
       onPermissionDenied();
     }
     
@@ -71,7 +71,7 @@ export function WithRole({
   fallback = null,
   showFallback = true,
   onRoleDenied
-}: WithRoleProps) {
+}: WithRoleProps): React.ReactNode {
   const { hasRole, hasAnyRole, isAuthenticated, isLoading } = useAuth();
 
   // Wait for auth to be ready
@@ -89,7 +89,7 @@ export function WithRole({
 
   if (!hasRequiredRoles) {
     // Call callback if provided
-    if (onRoleDenied) {
+    if (onRoleDenied !== undefined) {
       onRoleDenied();
     }
     
@@ -114,7 +114,7 @@ export function ConditionalPermission({
   condition,
   fallback = null,
   showFallback = true
-}: ConditionalPermissionProps) {
+}: ConditionalPermissionProps): React.ReactNode {
   const { hasPermission, hasRole, isAuthenticated, isLoading } = useAuth();
 
   // Wait for auth to be ready
@@ -152,7 +152,7 @@ export function PermissionGuard({
   fallback,
   redirectTo,
   showUnauthorized = false
-}: PermissionGuardProps) {
+}: PermissionGuardProps): React.ReactNode {
   const { hasPermission, hasRole, isAuthenticated, isLoading } = useAuth();
 
   // Wait for auth to be ready
@@ -163,12 +163,12 @@ export function PermissionGuard({
   }
 
   if (!isAuthenticated) {
-    if (redirectTo) {
+    if (redirectTo !== undefined) {
       // In a real app, you might use Next.js router here
       window.location.href = redirectTo;
       return null;
     }
-    return fallback || (showUnauthorized ? <UnauthorizedMessage /> : null);
+    return fallback ?? (showUnauthorized ? <UnauthorizedMessage /> : null);
   }
 
   // Check permissions
@@ -189,11 +189,11 @@ export function PermissionGuard({
   const hasAccess = permissionCheck && roleCheck;
 
   if (!hasAccess) {
-    if (redirectTo) {
+    if (redirectTo !== undefined) {
       window.location.href = redirectTo;
       return null;
     }
-    return fallback || (showUnauthorized ? <UnauthorizedMessage /> : null);
+    return fallback ?? (showUnauthorized ? <UnauthorizedMessage /> : null);
   }
 
   return <>{children}</>;
@@ -202,7 +202,7 @@ export function PermissionGuard({
 /**
  * Default unauthorized message component
  */
-function UnauthorizedMessage() {
+function UnauthorizedMessage(): React.ReactElement {
   return (
     <div className="flex items-center justify-center p-8">
       <div className="text-center">

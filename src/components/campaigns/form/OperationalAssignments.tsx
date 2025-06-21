@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React, { memo } from 'react';
 import { Control, Controller } from 'react-hook-form';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,7 +28,7 @@ const OperationalAssignments = memo<OperationalAssignmentsProps>(({
   httpPersonas,
   dnsPersonas,
   isLoading
-}) => {
+}): React.ReactElement => {
   return (
     <Card className="p-4 pt-2 border-dashed">
       <CardHeader className="p-2">
@@ -41,8 +42,8 @@ const OperationalAssignments = memo<OperationalAssignmentsProps>(({
                 <Globe className="h-4 w-4"/>HTTP Persona
               </FormLabel>
               <Select 
-                onValueChange={(val) => field.onChange(val === CampaignFormConstants.NONE_VALUE_PLACEHOLDER ? undefined : val)} 
-                value={field.value || CampaignFormConstants.NONE_VALUE_PLACEHOLDER} 
+                onValueChange={(val) => { field.onChange(val === CampaignFormConstants.NONE_VALUE_PLACEHOLDER ? undefined : val); }}
+                value={field.value ?? CampaignFormConstants.NONE_VALUE_PLACEHOLDER}
                 disabled={isLoading}
               >
                 <FormControl>
@@ -72,8 +73,8 @@ const OperationalAssignments = memo<OperationalAssignmentsProps>(({
                 <Wifi className="h-4 w-4"/>DNS Persona
               </FormLabel>
               <Select 
-                onValueChange={(val) => field.onChange(val === CampaignFormConstants.NONE_VALUE_PLACEHOLDER ? undefined : val)} 
-                value={field.value || CampaignFormConstants.NONE_VALUE_PLACEHOLDER} 
+                onValueChange={(val) => { field.onChange(val === CampaignFormConstants.NONE_VALUE_PLACEHOLDER ? undefined : val); }}
+                value={field.value ?? CampaignFormConstants.NONE_VALUE_PLACEHOLDER}
                 disabled={isLoading}
               >
                 <FormControl>
@@ -101,7 +102,7 @@ const OperationalAssignments = memo<OperationalAssignmentsProps>(({
             <FormLabel className="flex items-center gap-1">
               <ShieldCheck className="h-4 w-4" />Proxy Assignment
             </FormLabel>
-            <Select onValueChange={field.onChange} value={field.value || 'none'} disabled={isLoading}>
+            <Select onValueChange={field.onChange} value={field.value ?? 'none'} disabled={isLoading}>
               <FormControl>
                 <SelectTrigger>
                   <SelectValue placeholder="Select proxy mode" />

@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2, LogOut, Home } from 'lucide-react';
 import Link from 'next/link';
 
-export default function LogoutPage() {
+export default function LogoutPage(): React.ReactElement {
   const { logout, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -35,11 +35,11 @@ export default function LogoutPage() {
   // Auto-logout if user is authenticated
   useEffect(() => {
     if (isAuthenticated && !isLoading && !isLoggingOut) {
-      handleLogout();
+      void handleLogout();
     }
   }, [isAuthenticated, isLoading, isLoggingOut, handleLogout]);
 
-  const handleManualLogout = async () => {
+  const handleManualLogout = async (): Promise<void> => {
     await handleLogout();
   };
 
@@ -118,7 +118,7 @@ export default function LogoutPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button onClick={handleManualLogout} className="w-full" disabled={isLoggingOut}>
+          <Button onClick={() => void handleManualLogout()} className="w-full" disabled={isLoggingOut}>
             {isLoggingOut ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

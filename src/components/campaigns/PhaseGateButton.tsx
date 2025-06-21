@@ -22,10 +22,10 @@ export default function PhaseGateButton({
   Icon,
   variant = "default",
   className
-}: PhaseGateButtonProps) {
+}: PhaseGateButtonProps): React.ReactElement {
   return (
     <Button
-      onClick={onClick}
+      onClick={() => { void onClick(); }}
       disabled={disabled || isLoading}
       variant={variant}
       className={className}
@@ -33,7 +33,7 @@ export default function PhaseGateButton({
       {isLoading ? (
         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
       ) : (
-        Icon && <Icon className="mr-2 h-4 w-4" />
+        Icon !== undefined && <Icon className="mr-2 h-4 w-4" />
       )}
       {isLoading ? "Processing..." : label}
     </Button>

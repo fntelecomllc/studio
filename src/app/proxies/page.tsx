@@ -31,7 +31,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useLoadingStore, LOADING_OPERATIONS } from '@/lib/stores/loadingStore';
 
-function ProxiesPageContent() {
+function ProxiesPageContent(): React.ReactElement {
   const [proxies, setProxies] = useState<Proxy[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProxy, setEditingProxy] = useState<Proxy | null>(null);
@@ -53,14 +53,14 @@ function ProxiesPageContent() {
     refreshInterval: 30000 
   });
 
-  const fetchProxiesData = useCallback(async (showLoadingSpinner = true) => {
+  const fetchProxiesData = useCallback(async (showLoadingSpinner = true): Promise<void> => {
     if (showLoadingSpinner) startLoading(LOADING_OPERATIONS.FETCH_PROXIES, "Loading proxies");
     try {
       const response: ProxiesListResponse = await getProxies();
-      if (response.status === 'success' && response.data) {
+      if (response.status === 'success' && response.data !== null && response.data !== undefined) {
         setProxies(response.data);
       } else {
-        toast({ title: "Error Loading Proxies", description: response.message || "Failed to load proxies.", variant: "destructive" });
+        toast({ title: "Error Loading Proxies", description: response.message !== null && response.message !== undefined && response.message !== '' ? response.message : "Failed to load proxies.", variant: "destructive" });
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "An unexpected error occurred.";
@@ -71,41 +71,41 @@ function ProxiesPageContent() {
   }, [toast, startLoading, stopLoading]);
 
   useEffect(() => {
-    fetchProxiesData();
-    const intervalId = setInterval(() => fetchProxiesData(false), 7000); // Poll for updates
+    void fetchProxiesData();
+    const intervalId = setInterval(() => void fetchProxiesData(false), 7000); // Poll for updates
     return () => clearInterval(intervalId);
   }, [fetchProxiesData]);
 
-  const handleAddProxy = () => {
+  const handleAddProxy = (): void => {
     setEditingProxy(null);
     setIsFormOpen(true);
   };
 
-  const handleEditProxy = (proxy: Proxy) => {
+  const handleEditProxy = (proxy: Proxy): void => {
     setEditingProxy(proxy);
     setIsFormOpen(true);
   };
 
-  const handleFormSaveSuccess = () => {
+  const handleFormSaveSuccess = (): void => {
     setIsFormOpen(false);
     setEditingProxy(null);
-    fetchProxiesData(false); // Re-fetch without full loading spinner
-    toast({ title: editingProxy ? "Proxy Updated" : "Proxy Added", description: `Proxy has been successfully ${editingProxy ? 'updated' : 'added'}.` });
+    void fetchProxiesData(false); // Re-fetch without full loading spinner
+    toast({ title: editingProxy !== null ? "Proxy Updated" : "Proxy Added", description: `Proxy has been successfully ${editingProxy !== null ? 'updated' : 'added'}.` });
   };
   
-  const openDeleteConfirmation = (proxy: Proxy) => {
+  const openDeleteConfirmation = (proxy: Proxy): void => {
     setProxyToDelete(proxy);
     setIsConfirmDeleteOpen(true);
   };
 
-  const handleDeleteProxy = async () => {
-    if (!proxyToDelete) return;
+  const handleDeleteProxy = async (): Promise<void> => {
+    if (proxyToDelete === null) return;
     setActionLoading(prev => ({ ...prev, [`delete-${proxyToDelete.id}`]: true }));
     try {
       const response: ProxyDeleteResponse = await deleteProxy(proxyToDelete.id);
       if (response.status === 'success') {
         toast({ title: "Proxy Deleted", description: response.message });
-        setProxies(prev => prev.filter(p => p.id !== proxyToDelete!.id));
+        setProxies(prev => prev.filter(p => p.id !== proxyToDelete.id));
       } else {
         toast({ title: "Error Deleting Proxy", description: response.message, variant: "destructive" });
       }
@@ -113,19 +113,19 @@ function ProxiesPageContent() {
       const message = err instanceof Error ? err.message : "An unexpected error occurred.";
       toast({ title: "Error", description: message, variant: "destructive" });
     } finally {
-      setActionLoading(prev => ({ ...prev, [`delete-${proxyToDelete!.id}`]: false }));
+      setActionLoading(prev => ({ ...prev, [`delete-${proxyToDelete.id}`]: false }));
       setIsConfirmDeleteOpen(false);
       setProxyToDelete(null);
     }
   };
 
-  const handleTestProxy = async (proxyId: string) => {
+  const handleTestProxy = async (proxyId: string): Promise<void> => {
     setActionLoading(prev => ({ ...prev, [`test-${proxyId}`]: true }));
     try {
       const response: ProxyActionResponse = await testProxy(proxyId);
-      if (response.status === 'success' && response.data) {
-        toast({ title: "Proxy Test Completed", description: `Status: ${response.data.lastStatus || 'Unknown'}` });
-        setProxies(prev => prev.map(p => p.id === proxyId ? response.data! : p));
+      if (response.status === 'success' && response.data !== null && response.data !== undefined) {
+        toast({ title: "Proxy Test Completed", description: `Status: ${response.data.lastStatus !== null && response.data.lastStatus !== undefined && response.data.lastStatus !== '' ? response.data.lastStatus : 'Unknown'}` });
+        setProxies(prev => prev.map(p => p.id === proxyId ? (response.data ?? p) : p));
       } else {
         toast({ title: "Proxy Test Failed", description: response.message, variant: "destructive" });
       }
@@ -137,14 +137,14 @@ function ProxiesPageContent() {
     }
   };
   
-  const handleToggleProxyStatus = async (proxy: Proxy, newStatus: 'Active' | 'Disabled') => {
+  const handleToggleProxyStatus = async (proxy: Proxy, newStatus: 'Active' | 'Disabled'): Promise<void> => {
     setActionLoading(prev => ({ ...prev, [`toggle-${proxy.id}`]: true }));
     const payload: UpdateProxyPayload = { isEnabled: newStatus === 'Active' };
     try {
       const response = await updateProxy(proxy.id, payload);
-      if (response.status === 'success' && response.data) {
+      if (response.status === 'success' && response.data !== null && response.data !== undefined) {
         toast({ title: `Proxy ${newStatus === 'Active' ? 'Enabled' : 'Disabled'}`, description: `Proxy ${proxy.address} is now ${newStatus.toLowerCase()}.`});
-        setProxies(prev => prev.map(p => p.id === proxy.id ? response.data! : p));
+        setProxies(prev => prev.map(p => p.id === proxy.id ? (response.data ?? p) : p));
       } else {
         toast({ title: "Error Updating Proxy Status", description: response.message, variant: "destructive" });
       }
@@ -157,12 +157,12 @@ function ProxiesPageContent() {
   };
 
 
-  const handleTestAllProxies = async () => {
+  const handleTestAllProxies = async (): Promise<void> => {
     setPageActionLoading("testAll");
     try {
       const response: ProxyActionResponse = await testAllProxies();
-      toast({ title: "Test All Proxies", description: response.message || "Testing process initiated/completed." });
-      fetchProxiesData(false); // Refresh list to show updated statuses
+      toast({ title: "Test All Proxies", description: response.message !== null && response.message !== undefined && response.message !== '' ? response.message : "Testing process initiated/completed." });
+      void fetchProxiesData(false); // Refresh list to show updated statuses
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "An unexpected error occurred.";
       toast({ title: "Error Testing All Proxies", description: message, variant: "destructive" });
@@ -171,12 +171,12 @@ function ProxiesPageContent() {
     }
   };
 
-  const handleCleanProxies = async () => {
+  const handleCleanProxies = async (): Promise<void> => {
     setPageActionLoading("clean");
     try {
       const response: ProxyActionResponse = await cleanProxies();
-      toast({ title: "Clean Proxies", description: response.message || "Cleaning process completed." });
-      fetchProxiesData(false); // Refresh list
+      toast({ title: "Clean Proxies", description: response.message !== null && response.message !== undefined && response.message !== '' ? response.message : "Cleaning process completed." });
+      void fetchProxiesData(false); // Refresh list
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "An unexpected error occurred.";
       toast({ title: "Error Cleaning Proxies", description: message, variant: "destructive" });
@@ -195,13 +195,13 @@ function ProxiesPageContent() {
         icon={ShieldCheck}
         actionButtons={
           <div className="flex gap-2">
-            <Button onClick={handleAddProxy} disabled={!!pageActionLoading}>
+            <Button onClick={handleAddProxy} disabled={pageActionLoading !== null}>
               <PlusCircle className="mr-2" /> Add New Proxy
             </Button>
-            <Button onClick={handleTestAllProxies} variant="outline" disabled={!!pageActionLoading || proxies.length === 0} isLoading={pageActionLoading === 'testAll'}>
+            <Button onClick={() => void handleTestAllProxies()} variant="outline" disabled={pageActionLoading !== null || proxies.length === 0} isLoading={pageActionLoading === 'testAll'}>
               <TestTubeDiagonal className={cn("mr-2", pageActionLoading === 'testAll' && "animate-ping")}/> Test All
             </Button>
-            <Button onClick={handleCleanProxies} variant="outline" disabled={!!pageActionLoading || proxies.length === 0} isLoading={pageActionLoading === 'clean'}>
+            <Button onClick={() => void handleCleanProxies()} variant="outline" disabled={pageActionLoading !== null || proxies.length === 0} isLoading={pageActionLoading === 'clean'}>
               <Sparkles className={cn("mr-2", pageActionLoading === 'clean' && "animate-pulse")} /> Clean Failed
             </Button>
           </div>
@@ -224,7 +224,7 @@ function ProxiesPageContent() {
 
       {loading ? (
         <div className="space-y-4">
-          {[...Array(3)].map((_, i) => (
+          {Array.from({length: 3}).map((_, i) => (
             <Card key={i}><CardContent className="p-4"><Skeleton className="h-12 w-full" /></CardContent></Card>
           ))}
         </div>
@@ -274,9 +274,9 @@ function ProxiesPageContent() {
                             proxy={proxy}
                             onEdit={handleEditProxy}
                             onDelete={openDeleteConfirmation}
-                            onTest={handleTestProxy}
-                            onToggleStatus={handleToggleProxyStatus}
-                            isLoading={actionLoading[`test-${proxy.id}`] || actionLoading[`toggle-${proxy.id}`] || actionLoading[`delete-${proxy.id}`]}
+                            onTest={(id) => void handleTestProxy(id)}
+                            onToggleStatus={(proxy, status) => void handleToggleProxyStatus(proxy, status)}
+                            isLoading={(actionLoading[`test-${proxy.id}`] ?? false) || (actionLoading[`toggle-${proxy.id}`] ?? false) || (actionLoading[`delete-${proxy.id}`] ?? false)}
                           />
                         ))}
                       </TableBody>
@@ -285,14 +285,14 @@ function ProxiesPageContent() {
                   <TabsContent value="bulkOperations">
                     <BulkOperations 
                       proxies={proxies}
-                      onProxiesUpdate={() => fetchProxiesData(false)}
+                      onProxiesUpdate={() => void fetchProxiesData(false)}
                       disabled={pageActionLoading !== null}
                     />
                   </TabsContent>
                   <TabsContent value="proxyTesting">
                     <ProxyTesting 
                       proxies={proxies} 
-                      onProxiesUpdate={() => fetchProxiesData(false)}
+                      onProxiesUpdate={() => void fetchProxiesData(false)}
                       disabled={pageActionLoading !== null}
                     />
                   </TabsContent>
@@ -304,9 +304,9 @@ function ProxiesPageContent() {
       <Dialog open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setEditingProxy(null); }}>
         <DialogContent className="sm:max-w-[525px]">
           <DialogHeader>
-            <DialogTitle>{editingProxy ? 'Edit Proxy' : 'Add New Proxy'}</DialogTitle>
+            <DialogTitle>{editingProxy !== null ? 'Edit Proxy' : 'Add New Proxy'}</DialogTitle>
             <DialogDescription>
-              {editingProxy ? `Update details for ${editingProxy.address}.` : 'Configure a new proxy server.'}
+              {editingProxy !== null ? `Update details for ${editingProxy.address}.` : 'Configure a new proxy server.'}
             </DialogDescription>
           </DialogHeader>
           <ProxyForm
@@ -327,7 +327,7 @@ function ProxiesPageContent() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setProxyToDelete(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteProxy} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction onClick={() => void handleDeleteProxy()} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -337,7 +337,7 @@ function ProxiesPageContent() {
   );
 }
 
-export default function ProxiesPage() {
+export default function ProxiesPage(): React.ReactElement {
   return (
     <StrictProtectedRoute
       requiredPermissions={['proxies:read']}

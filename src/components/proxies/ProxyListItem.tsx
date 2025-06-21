@@ -1,6 +1,7 @@
 
 "use client";
 
+import React from 'react';
 import type { Proxy, ProxyStatus } from '@/lib/types';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +21,7 @@ interface ProxyListItemProps {
   isLoading?: boolean;
 }
 
-const getStatusBadgeInfo = (status: ProxyStatus): { variant: "default" | "secondary" | "destructive" | "outline", icon: JSX.Element, text: string } => {
+const getStatusBadgeInfo = (status: ProxyStatus): { variant: "default" | "secondary" | "destructive" | "outline", icon: React.ReactElement, text: string } => {
   switch (status) {
     case 'Active':
       return { variant: 'default', icon: <CheckCircle className="h-3.5 w-3.5 text-green-500" />, text: 'Active' };
@@ -35,10 +36,10 @@ const getStatusBadgeInfo = (status: ProxyStatus): { variant: "default" | "second
   }
 };
 
-export default function ProxyListItem({ proxy, onEdit, onDelete, onTest, onToggleStatus, isLoading }: ProxyListItemProps) {
+export default function ProxyListItem({ proxy, onEdit, onDelete, onTest, onToggleStatus, isLoading }: ProxyListItemProps): React.ReactElement {
   const statusInfo = getStatusBadgeInfo(proxy.status as ProxyStatus);
 
-  const handleToggle = (checked: boolean) => {
+  const handleToggle = (checked: boolean): void => {
     onToggleStatus(proxy, checked ? 'Active' : 'Disabled');
   };
   
@@ -47,10 +48,10 @@ export default function ProxyListItem({ proxy, onEdit, onDelete, onTest, onToggl
 
 
   return (
-    <TableRow className={cn(isLoading && "opacity-50 pointer-events-none")}>
+    <TableRow className={cn(isLoading !== false && "opacity-50 pointer-events-none")}>
       <TableCell>
         <div className="font-medium truncate max-w-xs" title={proxy.address}>{proxy.address}</div>
-        {proxy.notes && <div className="text-xs text-muted-foreground truncate max-w-xs" title={proxy.notes}>{proxy.notes}</div>}
+        {proxy.notes !== undefined && proxy.notes !== null && <div className="text-xs text-muted-foreground truncate max-w-xs" title={proxy.notes}>{proxy.notes}</div>}
       </TableCell>
       <TableCell><Badge variant="outline">{proxy.protocol}</Badge></TableCell>
       <TableCell>
@@ -60,20 +61,20 @@ export default function ProxyListItem({ proxy, onEdit, onDelete, onTest, onToggl
         </Badge>
       </TableCell>
       <TableCell className="text-xs text-muted-foreground">
-        {proxy.lastTested ? format(new Date(proxy.lastTested), 'PPp') : 'Never'}
+        {proxy.lastTested !== undefined && proxy.lastTested !== null ? format(new Date(proxy.lastTested), 'PPp') : 'Never'}
       </TableCell>
       <TableCell className="text-xs">
         <span className="text-green-600">{proxy.successCount}</span> / <span className="text-red-600">{proxy.failureCount}</span>
       </TableCell>
       <TableCell className="text-xs text-destructive truncate max-w-[150px]" title={proxy.lastError}>
-        {proxy.lastError || 'None'}
+        {proxy.lastError !== undefined && proxy.lastError !== null && proxy.lastError !== '' ? proxy.lastError : 'None'}
       </TableCell>
       <TableCell className="text-right">
         <div className="flex items-center justify-end gap-1">
            <Switch
             checked={proxy.status === 'Active' || proxy.status === 'Testing'}
             onCheckedChange={handleToggle}
-            disabled={isLoading || !(canBeEnabled || canBeDisabled) || proxy.status === 'Testing'}
+            disabled={isLoading !== false || !(canBeEnabled !== false || canBeDisabled !== false) || proxy.status === 'Testing'}
             aria-label={`Toggle proxy ${proxy.address} status`}
             className={cn(
                (proxy.status === 'Active' || proxy.status === 'Testing') ? "data-[state=checked]:bg-green-500" : "data-[state=unchecked]:bg-muted-foreground/50",

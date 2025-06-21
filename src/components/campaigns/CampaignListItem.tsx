@@ -40,7 +40,7 @@ interface CampaignListItemProps {
 
 // Memoized utility functions for better performance
 const formatDate = (dateString: string): string => {
-  if (!dateString) return 'N/A';
+  if (dateString === '') return 'N/A';
   try {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -54,27 +54,27 @@ const formatDate = (dateString: string): string => {
 
 // Memoized progress calculation function
 const getOverallCampaignProgress = (campaign: CampaignViewModel): number => {
-  const selectedType = campaign.selectedType || campaign.campaignType;
+  const selectedType = campaign.selectedType ?? campaign.campaignType;
   const phasesForType = CAMPAIGN_PHASES_ORDERED[selectedType];
-  if (!phasesForType || phasesForType.length === 0) return 0;
+  if (phasesForType === undefined || phasesForType.length === 0) return 0;
 
   if (campaign.currentPhase === "Completed") return 100;
   
   if (campaign.phaseStatus === "Paused" || campaign.phaseStatus === "Failed" || campaign.currentPhase === "Idle") {
     // For paused or failed, progress reflects where it stopped. For Idle, it's 0.
-    const currentPhaseIndexInType = campaign.currentPhase ? phasesForType.indexOf(campaign.currentPhase) : -1;
+    const currentPhaseIndexInType = campaign.currentPhase !== undefined ? phasesForType.indexOf(campaign.currentPhase) : -1;
      if(campaign.currentPhase === "Idle" || currentPhaseIndexInType === -1) return 0;
 
     const completedPhasesProgress = (currentPhaseIndexInType / phasesForType.length) * 100;
-    const currentPhaseProgressContribution = ((campaign.progress || 0) / phasesForType.length);
+    const currentPhaseProgressContribution = ((campaign.progress ?? 0) / phasesForType.length);
     return Math.min(100, Math.floor(completedPhasesProgress + currentPhaseProgressContribution));
   }
 
-  const currentPhaseIndexInType = campaign.currentPhase ? phasesForType.indexOf(campaign.currentPhase) : -1;
+  const currentPhaseIndexInType = campaign.currentPhase !== undefined ? phasesForType.indexOf(campaign.currentPhase) : -1;
   if (currentPhaseIndexInType === -1) return 0; // Should not happen if not Idle/Failed/Paused
 
   const completedPhasesProgress = (currentPhaseIndexInType / phasesForType.length) * 100;
-  const currentPhaseProgressContribution = ((campaign.progress || 0) / phasesForType.length);
+  const currentPhaseProgressContribution = ((campaign.progress ?? 0) / phasesForType.length);
 
   return Math.min(100, Math.floor(completedPhasesProgress + currentPhaseProgressContribution));
 };
@@ -82,16 +82,16 @@ const getOverallCampaignProgress = (campaign: CampaignViewModel): number => {
 // Memoized status badge info generation
 const getStatusBadgeInfo = (campaign: CampaignViewModel): { text: string, variant: "default" | "secondary" | "destructive" | "outline", icon: JSX.Element } => {
   if (campaign.currentPhase === "Completed") return { text: "Completed", variant: "default", icon: <CheckCircle className="h-4 w-4 text-green-500" /> };
-  if (campaign.phaseStatus === "Failed") return { text: `Failed: ${campaign.currentPhase || 'Unknown'}`, variant: "destructive", icon: <AlertTriangle className="h-4 w-4 text-destructive" /> };
-  if (campaign.phaseStatus === "Paused") return { text: `Paused: ${campaign.currentPhase || 'Unknown'}`, variant: "outline", icon: <PauseCircle className="h-4 w-4 text-muted-foreground" /> };
-  if (campaign.phaseStatus === "InProgress") return { text: `Active: ${campaign.currentPhase || 'Unknown'}`, variant: "secondary", icon: <Loader2 className="h-4 w-4 text-blue-500 animate-spin" /> };
+  if (campaign.phaseStatus === "Failed") return { text: `Failed: ${campaign.currentPhase ?? 'Unknown'}`, variant: "destructive", icon: <AlertTriangle className="h-4 w-4 text-destructive" /> };
+  if (campaign.phaseStatus === "Paused") return { text: `Paused: ${campaign.currentPhase ?? 'Unknown'}`, variant: "outline", icon: <PauseCircle className="h-4 w-4 text-muted-foreground" /> };
+  if (campaign.phaseStatus === "InProgress") return { text: `Active: ${campaign.currentPhase ?? 'Unknown'}`, variant: "secondary", icon: <Loader2 className="h-4 w-4 text-blue-500 animate-spin" /> };
   if (campaign.currentPhase === "Idle" || campaign.phaseStatus === "Pending") return { text: "Pending Start", variant: "outline", icon: <Play className="h-4 w-4 text-muted-foreground" /> };
   if (campaign.phaseStatus === "Succeeded") {
-     const selectedType = campaign.selectedType || campaign.campaignType;
-     const nextPhase = selectedType && campaign.currentPhase ? getNextPhase(selectedType, campaign.currentPhase) : null;
-     return { text: `Next: ${nextPhase || 'Finalizing'}`, variant: "secondary", icon: <WorkflowIcon className="h-4 w-4 text-muted-foreground" /> };
+     const selectedType = campaign.selectedType ?? campaign.campaignType;
+     const nextPhase = selectedType !== undefined && campaign.currentPhase !== undefined ? getNextPhase(selectedType, campaign.currentPhase) : null;
+     return { text: `Next: ${nextPhase ?? 'Finalizing'}`, variant: "secondary", icon: <WorkflowIcon className="h-4 w-4 text-muted-foreground" /> };
   }
-  return { text: campaign.currentPhase || 'Unknown', variant: "outline", icon: <WorkflowIcon className="h-4 w-4 text-muted-foreground" /> };
+  return { text: campaign.currentPhase ?? 'Unknown', variant: "outline", icon: <WorkflowIcon className="h-4 w-4 text-muted-foreground" /> };
 };
 
 
@@ -104,10 +104,10 @@ const CampaignListItem = memo(({ campaign, onDeleteCampaign, onPauseCampaign, on
 
   // Memoize loading states to prevent object recreation
   const loadingStates = useMemo(() => ({
-    isDeleting: !!isActionLoading[`delete-${campaign.id}`],
-    isPausing: !!isActionLoading[`pause-${campaign.id}`],
-    isResuming: !!isActionLoading[`resume-${campaign.id}`],
-    isStopping: !!isActionLoading[`stop-${campaign.id}`]
+    isDeleting: isActionLoading[`delete-${campaign.id}`] === true,
+    isPausing: isActionLoading[`pause-${campaign.id}`] === true,
+    isResuming: isActionLoading[`resume-${campaign.id}`] === true,
+    isStopping: isActionLoading[`stop-${campaign.id}`] === true
   }), [isActionLoading, campaign.id]);
 
   // Memoize combined loading state
@@ -134,9 +134,9 @@ const CampaignListItem = memo(({ campaign, onDeleteCampaign, onPauseCampaign, on
 
   // Memoize conditional rendering flags
   const showActions = useMemo(() => ({
-    showPause: campaign.phaseStatus === 'InProgress' && onPauseCampaign,
-    showResume: campaign.phaseStatus === 'Paused' && onResumeCampaign,
-    showStop: (campaign.phaseStatus === 'InProgress' || campaign.phaseStatus === 'Paused') && onStopCampaign
+    showPause: campaign.phaseStatus === 'InProgress' && onPauseCampaign !== undefined,
+    showResume: campaign.phaseStatus === 'Paused' && onResumeCampaign !== undefined,
+    showStop: (campaign.phaseStatus === 'InProgress' || campaign.phaseStatus === 'Paused') && onStopCampaign !== undefined
   }), [campaign.phaseStatus, onPauseCampaign, onResumeCampaign, onStopCampaign]);
 
   return (
@@ -203,7 +203,7 @@ const CampaignListItem = memo(({ campaign, onDeleteCampaign, onPauseCampaign, on
               </DropdownMenu>
             </div>
           </div>
-          <CardDescription className="line-clamp-2">{campaign.description || "No description."}</CardDescription>
+          <CardDescription className="line-clamp-2">{campaign.description ?? "No description."}</CardDescription>
         </CardHeader>
         <CardContent className="flex-grow space-y-3">
           <div>

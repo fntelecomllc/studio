@@ -41,11 +41,11 @@ const checkAPIHealth = async (): Promise<{ status: string; version?: string; mes
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
   
-  return response.json();
+  return response.json() as Promise<{ status: string; version?: string; message?: string }>;
 };
 
 // Centralized logging utility with timestamps
-const logWithTimestamp = (level: 'log' | 'warn' | 'error', message: string, ...args: unknown[]) => {
+const logWithTimestamp = (level: 'log' | 'warn' | 'error', message: string, ...args: unknown[]): void => {
   const timestamp = new Date().toISOString();
   const logMessage = `[${timestamp}] [ProductionReadinessCheck] ${message}`;
   console[level](logMessage, ...args);
@@ -68,7 +68,7 @@ interface WebSocketTestResult {
   testDuration?: number;
 }
 
-export default function ProductionReadinessCheck() {
+export default function ProductionReadinessCheck(): React.ReactElement {
   const { isAuthenticated, user } = useAuth();
   const [checks, setChecks] = useState<SystemCheck[]>([]);
   const [isChecking, setIsChecking] = useState(false);
@@ -76,13 +76,13 @@ export default function ProductionReadinessCheck() {
 
   const runChecks = useCallback(async () => {
     // Prevent concurrent checks
-    if (isChecking) {
+    if (isChecking === true) {
       logWithTimestamp('warn', '⚠️ Check already in progress, skipping duplicate request');
       return;
     }
     
     // Only run if properly authenticated
-    if (!isAuthenticated || !user) {
+    if (isAuthenticated !== true || user === null || user === undefined) {
       logWithTimestamp('warn', '⚠️ Authentication not ready, skipping production readiness check');
       return;
     }
@@ -92,7 +92,7 @@ export default function ProductionReadinessCheck() {
 
     // 1. Authentication Check
     try {
-      if (isAuthenticated && user) {
+      if (isAuthenticated === true && user !== null && user !== undefined) {
         results.push({
           name: 'Authentication System',
           status: 'passed',
@@ -127,7 +127,7 @@ export default function ProductionReadinessCheck() {
           name: 'API Backend',
           status: 'passed',
           message: 'Backend API is responsive',
-          details: `Version: ${data.version || 'Unknown'}`,
+          details: `Version: ${data.version ?? 'Unknown'}`,
           icon: <Database className="h-4 w-4" />
         });
       } else {
@@ -135,7 +135,7 @@ export default function ProductionReadinessCheck() {
           name: 'API Backend',
           status: 'warning',
           message: 'Backend API returned non-healthy status',
-          details: data.message || 'Check backend logs',
+          details: data.message ?? 'Check backend logs',
           icon: <Database className="h-4 w-4" />
         });
       }
@@ -165,7 +165,7 @@ export default function ProductionReadinessCheck() {
           (message: WebSocketMessage) => {
             const testDuration = Date.now() - testStartTime;
             logWithTimestamp('log', '✅ WebSocket test SUCCESS: Received message in', testDuration + 'ms', message);
-            if (!connected) {
+            if (connected === false) {
               connected = true;
               cleanup();
               resolve({
@@ -191,13 +191,13 @@ export default function ProductionReadinessCheck() {
         // Shorter timeout since optimized service handles auth coordination
         const testTimeout = 8000; // 8 seconds - optimized service should connect faster
         setTimeout(() => {
-          if (!connected) {
+          if (connected === false) {
             const testDuration = Date.now() - testStartTime;
             logWithTimestamp('warn', `⏰ WebSocket test TIMEOUT after ${testTimeout/1000} seconds (${testDuration}ms total)`);
             cleanup();
             resolve({
               connected: false,
-              error: connectionError || `Connection timeout (${testTimeout/1000}s)`,
+              error: connectionError !== '' ? connectionError : `Connection timeout (${testTimeout/1000}s)`,
               testDuration
             });
           }
@@ -217,19 +217,19 @@ export default function ProductionReadinessCheck() {
           isTestConnection: true
         });
       } else {
-        const testDuration = wsResult.testDuration || totalTestDuration;
+        const testDuration = (wsResult.testDuration !== undefined && wsResult.testDuration !== null) ? wsResult.testDuration : totalTestDuration;
         logWithTimestamp('error', '❌ WebSocket connectivity test FAILED after', testDuration + 'ms:', wsResult);
         
         // Simplified error handling - optimized service provides better error context
         let status: 'warning' | 'failed' = 'warning';
         let message = 'WebSocket test connection failed';
-        let details = `Test failed after ${Math.round(testDuration/1000)}s: ${wsResult.error || 'Unknown error'}`;
+        let details = `Test failed after ${Math.round(testDuration/1000)}s: ${wsResult.error ?? 'Unknown error'}`;
         
         // Check for authentication-related errors
-        if (wsResult.error?.includes('authentication') || wsResult.error?.includes('401') || wsResult.error?.includes('403')) {
+        if ((wsResult.error?.includes('authentication') === true) || (wsResult.error?.includes('401') === true) || (wsResult.error?.includes('403') === true)) {
           message = 'WebSocket authentication issue';
           status = 'failed'; // Authentication issues are more serious
-        } else if (wsResult.error?.includes('timeout') || wsResult.error?.includes('Connection timeout')) {
+        } else if ((wsResult.error?.includes('timeout') === true) || (wsResult.error?.includes('Connection timeout') === true)) {
           message = 'WebSocket connection timeout';
           details = `Connection timed out after ${Math.round(testDuration/1000)}s. This may be temporary - operational connections may still work.`;
           status = 'warning'; // Timeouts are warnings
@@ -260,7 +260,7 @@ export default function ProductionReadinessCheck() {
     try {
       // For session-based auth, authentication state indicates session is active
       // Note: HttpOnly cookies are not accessible via document.cookie (this is correct for security)
-      if (isAuthenticated && user) {
+      if (isAuthenticated === true && user !== null && user !== undefined) {
         results.push({
           name: 'Session Security',
           status: 'passed',
@@ -305,12 +305,12 @@ export default function ProductionReadinessCheck() {
 
   useEffect(() => {
     // Only run checks when authentication is stable and ready
-    if (isAuthenticated && user && !isChecking) {
-      runChecks();
+    if (isAuthenticated === true && user !== null && user !== undefined && isChecking === false) {
+      void runChecks();
     }
   }, [isAuthenticated, user, isChecking, runChecks]); // Added missing dependencies
 
-  const getStatusIcon = (status: SystemCheck['status']) => {
+  const getStatusIcon = (status: SystemCheck['status']): React.ReactElement => {
     switch (status) {
       case 'passed':
         return <CheckCircle className="h-5 w-5 text-green-500" />;
@@ -323,7 +323,7 @@ export default function ProductionReadinessCheck() {
     }
   };
 
-  const getOverallStatusBadge = () => {
+  const getOverallStatusBadge = (): React.ReactElement => {
     switch (overallStatus) {
       case 'ready':
         return <Badge className="bg-green-500">Production Ready</Badge>;
@@ -349,7 +349,7 @@ export default function ProductionReadinessCheck() {
             <Button
               size="sm"
               variant="outline"
-              onClick={runChecks}
+              onClick={() => void runChecks()}
               disabled={isChecking}
             >
               {isChecking ? (
@@ -389,7 +389,7 @@ export default function ProductionReadinessCheck() {
                   <p className="font-medium text-sm">{check.name}</p>
                 </div>
                 <p className="text-sm text-muted-foreground">{check.message}</p>
-                {check.details && (
+                {(check.details !== undefined && check.details !== null && check.details !== '') && (
                   <p className="text-xs text-muted-foreground">{check.details}</p>
                 )}
               </div>

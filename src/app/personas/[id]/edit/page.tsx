@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { getPersonaById } from '@/lib/services/personaService'; // Updated import
 import { useToast } from '@/hooks/use-toast';
 
-function EditPersonaPageContent() {
+function EditPersonaPageContent(): React.ReactElement {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -25,7 +25,7 @@ function EditPersonaPageContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!personaId) {
+    if (personaId === '') {
       setError("Persona ID is missing from URL.");
       setLoading(false);
       return;
@@ -38,12 +38,12 @@ function EditPersonaPageContent() {
     
     const type = personaTypeParam; 
 
-    async function fetchPersona() {
+    async function fetchPersona(): Promise<void> {
       setLoading(true);
       setError(null); 
       try {
         const response: PersonaDetailResponse = await getPersonaById(personaId, type);
-        if (response.status === 'success' && response.data) {
+        if (response.status === 'success' && response.data !== null && response.data !== undefined) {
           if (response.data.personaType !== type) {
             setError(`Mismatch: Persona ID '${personaId}' found, but it is a '${response.data.personaType}' persona, not '${type}'.`);
             setPersona(null);
@@ -52,9 +52,10 @@ function EditPersonaPageContent() {
             setPersona(response.data);
           }
         } else {
-          setError(response.message || "Persona not found.");
+          const errorMessage = response.message !== null && response.message !== undefined && response.message !== '' ? response.message : "Persona not found.";
+          setError(errorMessage);
           setPersona(null);
-          toast({ title: "Error Loading Persona", description: response.message || "Persona not found.", variant: "destructive" });
+          toast({ title: "Error Loading Persona", description: errorMessage, variant: "destructive" });
         }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Failed to load persona data.";
@@ -65,7 +66,7 @@ function EditPersonaPageContent() {
         setLoading(false);
       }
     }
-    fetchPersona();
+    void fetchPersona();
   }, [personaId, personaTypeParam, toast]); // Removed router from deps as it was not used
 
   if (loading) {
@@ -83,11 +84,11 @@ function EditPersonaPageContent() {
     );
   }
 
-  if (error || !persona) {
+  if (error !== null || persona === null) {
     return (
        <div className="text-center py-10">
         <AlertCircle className="mx-auto h-12 w-12 text-destructive" />
-        <PageHeader title="Error Loading Persona" description={error || "Persona data could not be loaded or found."} icon={UserCog} />
+        <PageHeader title="Error Loading Persona" description={error !== null && error !== '' ? error : "Persona data could not be loaded or found."} icon={UserCog} />
         <Button onClick={() => router.push('/personas')} className="mt-6">Back to Personas</Button>
       </div>
     );
@@ -108,7 +109,7 @@ function EditPersonaPageContent() {
   );
 }
 
-export default function EditPersonaPage() {
+export default function EditPersonaPage(): React.ReactElement {
   return (
     <Suspense fallback={<div className="p-6 text-center">Loading persona editor...<Skeleton className="h-60 w-full mt-4" /></div>}>
       <EditPersonaPageContent />

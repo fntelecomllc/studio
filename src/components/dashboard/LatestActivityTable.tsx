@@ -1,4 +1,5 @@
 
+/* eslint-disable react/prop-types */
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -22,7 +23,7 @@ const GLOBAL_PAGE_SIZES = [25, 50, 100, 200];
 
 
 const formatDate = (dateString: string): string => {
-  if (!dateString) return 'N/A';
+  if (dateString === '') return 'N/A';
   try {
     const date = new Date(dateString);
     // Using a common, unambiguous format. Adjust locale string as needed.
@@ -39,17 +40,17 @@ const getGlobalDomainStatusForPhase = (
   phase: CampaignPhase,
   campaign: CampaignViewModel
 ): DomainActivityStatus => {
-  const selectedType = campaign.selectedType || campaign.campaignType;
+  const selectedType = campaign.selectedType ?? campaign.campaignType;
   const phasesForType = CAMPAIGN_PHASES_ORDERED[selectedType];
-  if (!phasesForType || !phasesForType.includes(phase)) return 'n_a'; // Phase not applicable to this campaign type
+  if (phasesForType === undefined || !phasesForType.includes(phase)) return 'n_a'; // Phase not applicable to this campaign type
 
   const phaseIndexInType = phasesForType.indexOf(phase);
-  const currentCampaignPhaseIndexInType = campaign.currentPhase ? phasesForType.indexOf(campaign.currentPhase) : -1;
+  const currentCampaignPhaseIndexInType = campaign.currentPhase !== undefined ? phasesForType.indexOf(campaign.currentPhase) : -1;
 
   // Determine if the domain was successfully processed in this phase
   let validatedInThisPhase = false;
-  if (phase === 'DNSValidation') validatedInThisPhase = !!campaign.dnsValidatedDomains?.includes(domainName);
-  else if (phase === 'HTTPValidation') validatedInThisPhase = !!campaign.httpValidatedDomains?.includes(domainName);
+  if (phase === 'DNSValidation') validatedInThisPhase = campaign.dnsValidatedDomains?.includes(domainName) === true;
+  else if (phase === 'HTTPValidation') validatedInThisPhase = campaign.httpValidatedDomains?.includes(domainName) === true;
   // LeadGeneration status is handled separately by getGlobalLeadStatus
 
   if (validatedInThisPhase) return 'validated';
@@ -64,8 +65,8 @@ const getGlobalDomainStatusForPhase = (
   // and it wasn't validated, then it's 'Not Validated' for that phase.
   if (currentCampaignPhaseIndexInType > phaseIndexInType || (campaign.currentPhase === phase && campaign.phaseStatus === 'Failed')) {
     // Check if this domain *should* have been processed by this phase
-    if (phase === 'DNSValidation' && (campaign.domains || []).includes(domainName)) return 'not_validated';
-    if (phase === 'HTTPValidation' && (campaign.dnsValidatedDomains || []).includes(domainName)) return 'not_validated';
+    if (phase === 'DNSValidation' && (campaign.domains ?? []).includes(domainName)) return 'not_validated';
+    if (phase === 'HTTPValidation' && (campaign.dnsValidatedDomains ?? []).includes(domainName)) return 'not_validated';
     return 'n_a'; // Not applicable or filtered out before even reaching this phase's potential input
   }
   
@@ -77,9 +78,9 @@ const getGlobalDomainStatusForPhase = (
   // If current campaign phase is before the phase we're checking, or campaign is Idle
   if (currentCampaignPhaseIndexInType < phaseIndexInType || campaign.currentPhase === 'Idle') {
     // If the domain was generated (in `campaign.domains`) but not yet DNS validated, it's pending for DNS
-    if (phase === 'DNSValidation' && (campaign.domains || []).includes(domainName)) return 'pending';
+    if (phase === 'DNSValidation' && (campaign.domains ?? []).includes(domainName)) return 'pending';
      // If DNS validated but not yet HTTP validated, it's pending for HTTP
-    if (phase === 'HTTPValidation' && (campaign.dnsValidatedDomains || []).includes(domainName)) return 'pending';
+    if (phase === 'HTTPValidation' && (campaign.dnsValidatedDomains ?? []).includes(domainName)) return 'pending';
 
     return 'pending'; // General pending for phases not yet reached
   }
@@ -92,14 +93,14 @@ const getGlobalLeadStatusAndScore = (
   domainName: string,
   campaign: CampaignViewModel
 ): { status: DomainActivityStatus; score?: number } => {
-    const selectedType = campaign.selectedType || campaign.campaignType;
+    const selectedType = campaign.selectedType ?? campaign.campaignType;
     const phasesForType = CAMPAIGN_PHASES_ORDERED[selectedType];
-    if (!phasesForType || !phasesForType.includes('LeadGeneration')) return { status: 'n_a' };
+    if (phasesForType === undefined || !phasesForType.includes('LeadGeneration')) return { status: 'n_a' };
 
     const leadGenPhaseIndex = phasesForType.indexOf('LeadGeneration');
-    const currentPhaseOrderInType = campaign.currentPhase ? phasesForType.indexOf(campaign.currentPhase) : -1;
+    const currentPhaseOrderInType = campaign.currentPhase !== undefined ? phasesForType.indexOf(campaign.currentPhase) : -1;
 
-    const relevantLeads = (campaign.leads || []).filter(lead => lead.sourceUrl?.includes(domainName) || lead.name?.includes(domainName));
+    const relevantLeads = (campaign.leads ?? []).filter(lead => lead.sourceUrl?.includes(domainName) === true || lead.name?.includes(domainName) === true);
     const hasLeads = relevantLeads.length > 0;
     const score = hasLeads ? relevantLeads[0]?.similarityScore : undefined;
 
@@ -108,7 +109,7 @@ const getGlobalLeadStatusAndScore = (
         return { status: hasLeads ? 'scanned' : 'no_leads', score };
     }
     // If campaign is fully completed, and lead generation was part of its flow
-    if (campaign.currentPhase === 'Completed' && phasesForType && phasesForType.includes('LeadGeneration')) {
+    if (campaign.currentPhase === 'Completed' && phasesForType !== undefined && phasesForType.includes('LeadGeneration')) {
         // Check if leads exist for this domain from when the LeadGen phase was active
         return { status: hasLeads ? 'scanned' : 'no_leads', score };
     }
@@ -123,7 +124,7 @@ const getGlobalLeadStatusAndScore = (
         return { status: 'pending', score };
     }
     // If current phase is HTTPValidation Succeeded, and LeadGen is next applicable phase
-    if (phasesForType && phasesForType[currentPhaseOrderInType] === 'HTTPValidation' && campaign.phaseStatus === 'Succeeded' && phasesForType[leadGenPhaseIndex] === 'LeadGeneration' && leadGenPhaseIndex > currentPhaseOrderInType) {
+    if (phasesForType !== undefined && phasesForType[currentPhaseOrderInType] === 'HTTPValidation' && campaign.phaseStatus === 'Succeeded' && phasesForType[leadGenPhaseIndex] === 'LeadGeneration' && leadGenPhaseIndex > currentPhaseOrderInType) {
         return { status: 'pending', score };
     }
 
@@ -131,7 +132,7 @@ const getGlobalLeadStatusAndScore = (
     return { status: 'pending', score }; // Default if phase not yet active for this domain
 };
 
-const getSimilarityBadgeVariant = (score: number | undefined) => {
+const getSimilarityBadgeVariant = (score: number | undefined): "default" | "secondary" | "outline" | "destructive" => {
   if (score === undefined) return "outline"; // For 'N/A' or '-' when score isn't applicable
   if (score > 75) return "default"; // Using ShadCN 'default' which is primary color
   if (score > 50) return "secondary";
@@ -169,7 +170,7 @@ const StatusBadge: React.FC<{ status: DomainActivityStatus; score?: number }> = 
 };
 
 
-export default function LatestActivityTable() {
+export default function LatestActivityTable(): React.ReactElement {
   const [allActivityData, setAllActivityData] = useState<LatestDomainActivity[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE_GLOBAL);
@@ -188,7 +189,7 @@ export default function LatestActivityTable() {
       if (response.status === 'success' && Array.isArray(response.data)) {
         const campaignsArray = transformCampaignsToViewModels(response.data);
         campaignsArray.forEach(campaign => {
-          (campaign.domains || []).forEach(domainName => {
+          (campaign.domains ?? []).forEach(domainName => {
             const leadInfo = getGlobalLeadStatusAndScore(domainName, campaign);
             processedActivities.push({
               id: `${campaign.id}-${domainName}`, // Unique ID for the activity row
@@ -196,7 +197,7 @@ export default function LatestActivityTable() {
               domainName,
               campaignId: campaign.id,
               campaignName: campaign.name,
-              phase: campaign.currentPhase || 'Idle',
+              phase: campaign.currentPhase ?? 'Idle',
               status: getGlobalDomainStatusForPhase(domainName, 'DNSValidation', campaign),
               timestamp: campaign.createdAt,
               activity: 'Domain processing',
@@ -229,9 +230,9 @@ export default function LatestActivityTable() {
   }, [startLoading, stopLoading]);
 
   useEffect(() => {
-    fetchAndProcessData(); // Initial fetch
+    void fetchAndProcessData(); // Initial fetch
     // Polling interval
-    const intervalId = setInterval(() => fetchAndProcessData(false), 10000); // Poll every 10 seconds without full loading spinner
+    const intervalId = setInterval(() => { void fetchAndProcessData(false); }, 10000); // Poll every 10 seconds without full loading spinner
     return () => clearInterval(intervalId); // Cleanup on unmount
   }, [fetchAndProcessData]);
 
@@ -243,13 +244,13 @@ export default function LatestActivityTable() {
     return allActivityData.slice(startIndex, startIndex + pageSize);
   }, [allActivityData, currentPage, pageSize]);
 
-  const handlePageSizeChange = (value: string) => {
+  const handlePageSizeChange = (value: string): void => {
     setPageSize(Number(value));
     setCurrentPage(1); // Reset to first page when page size changes
   };
 
-  const goToNextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
-  const goToPreviousPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
+  const goToNextPage = (): void => setCurrentPage(prev => Math.min(prev + 1, totalPages));
+  const goToPreviousPage = (): void => setCurrentPage(prev => Math.max(prev - 1, 1));
 
   if (loading) {
     return (
@@ -399,9 +400,9 @@ export default function LatestActivityTable() {
 // Helper function to determine campaign type from activity, might need refinement based on how you store full campaign objects
 // For now, it assumes the activity's campaignName or other properties can help infer it,
 // or you might need to cross-reference with a list of all campaigns if available.
-function getCampaignTypeFromActivity(activity: LatestDomainActivity, allCampaigns: CampaignViewModel[]): CampaignSelectedType | string {
+function getCampaignTypeFromActivity(activity: LatestDomainActivity, allCampaigns: CampaignViewModel[]): CampaignSelectedType {
     // A more robust way would be to have allCampaigns passed in or fetched and then look up by activity.campaignId
     // For simplicity, this is a placeholder. You'd look up campaign.selectedType.
     const campaign = allCampaigns.find(c => c.id === activity.campaignId);
-    return campaign?.selectedType || "Unknown";
+    return campaign?.selectedType ?? "domain_generation";
 }

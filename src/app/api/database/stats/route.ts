@@ -11,7 +11,7 @@ interface DatabaseStats {
   schemaVersion: string;
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     // Verify this is a legitimate request
     const xRequestedWith = request.headers.get('X-Requested-With');
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Forward the request to the backend API
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
     
     // Get session cookies to forward authentication
     const cookies = request.headers.get('cookie');
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       method: 'GET',
       headers: {
         'X-Requested-With': 'XMLHttpRequest',
-        ...(cookies && { 'Cookie': cookies })
+        ...(cookies !== null ? { 'Cookie': cookies } : {})
       }
     });
 
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(mockStats);
     }
 
-    const stats = await response.json();
+    const stats = await response.json() as DatabaseStats;
     return NextResponse.json(stats);
 
   } catch (error) {

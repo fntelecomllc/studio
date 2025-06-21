@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import type { User, UserListResponse } from '@/lib/types';
+import type { User } from '@/lib/types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +35,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-export default function UserManagementPage() {
+export default function UserManagementPage(): React.ReactElement {
   const { 
     user: currentUser, 
     hasPermission, 
@@ -67,13 +67,13 @@ export default function UserManagementPage() {
     
     try {
       const result = await getUsers(page, limit);
-      if (result.success && result.data) {
-        const userData = result.data as UserListResponse;
-        setUsers(userData.data || []);
-        setTotalUsers(userData.metadata?.page?.total || 0);
-        setCurrentPage(userData.metadata?.page?.current || page);
+      if (result.success && result.data !== undefined) {
+        const userData = result.data;
+        setUsers(userData.data ?? []);
+        setTotalUsers(userData.metadata?.page?.total ?? 0);
+        setCurrentPage(userData.metadata?.page?.current ?? page);
       } else {
-        setErrorMessage(result.error?.message || 'Failed to load users');
+        setErrorMessage(result.error?.message ?? 'Failed to load users');
       }
     } catch (error) {
       console.error('Load users error:', error);
@@ -85,7 +85,7 @@ export default function UserManagementPage() {
 
   // Load users on component mount
   useEffect(() => {
-    loadUsers();
+    void loadUsers();
   }, [loadUsers]);
 
   // Handle user status toggle
@@ -102,7 +102,7 @@ export default function UserManagementPage() {
         setSuccessMessage(`User ${user.isActive ? 'deactivated' : 'activated'} successfully`);
         await loadUsers(currentPage);
       } else {
-        setErrorMessage(result.error?.message || 'Failed to update user status');
+        setErrorMessage(result.error?.message ?? 'Failed to update user status');
       }
     } catch (error) {
       console.error('Toggle user status error:', error);
@@ -132,7 +132,7 @@ export default function UserManagementPage() {
         setSuccessMessage('User deleted successfully');
         await loadUsers(currentPage);
       } else {
-        setErrorMessage(result.error?.message || 'Failed to delete user');
+        setErrorMessage(result.error?.message ?? 'Failed to delete user');
       }
     } catch (error) {
       console.error('Delete user error:', error);
@@ -151,7 +151,7 @@ export default function UserManagementPage() {
 
   // Clear messages after timeout
   useEffect(() => {
-    if (successMessage || errorMessage) {
+    if (successMessage !== null || errorMessage !== null) {
       const timer = setTimeout(() => {
         setSuccessMessage(null);
         setErrorMessage(null);
@@ -200,14 +200,14 @@ export default function UserManagementPage() {
       </div>
 
       {/* Messages */}
-      {successMessage && (
+      {successMessage !== null && (
         <Alert>
           <CheckCircle className="h-4 w-4" />
           <AlertDescription>{successMessage}</AlertDescription>
         </Alert>
       )}
       
-      {errorMessage && (
+      {errorMessage !== null && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{errorMessage}</AlertDescription>
@@ -254,7 +254,7 @@ export default function UserManagementPage() {
               <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold">No users found</h3>
               <p className="text-muted-foreground">
-                {searchTerm ? 'Try adjusting your search criteria.' : 'No users have been created yet.'}
+                {searchTerm !== '' ? 'Try adjusting your search criteria.' : 'No users have been created yet.'}
               </p>
             </div>
           ) : (
@@ -299,11 +299,15 @@ export default function UserManagementPage() {
                       
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {user.roles?.map((role) => (
-                            <Badge key={role.id} variant="outline" className="text-xs">
-                              {role.name}
-                            </Badge>
-                          )) || <span className="text-muted-foreground">No roles</span>}
+                          {user.roles !== undefined && user.roles.length > 0 ? (
+                            user.roles.map((role) => (
+                              <Badge key={role.id} variant="outline" className="text-xs">
+                                {role.name}
+                              </Badge>
+                            ))
+                          ) : (
+                            <span className="text-muted-foreground">No roles</span>
+                          )}
                         </div>
                       </TableCell>
                       
@@ -320,16 +324,16 @@ export default function UserManagementPage() {
                               Inactive
                             </Badge>
                           )}
-                          {user.isLocked && (
+                          {user.isLocked ? (
                             <Badge variant="outline" className="border-red-500 text-red-500">
                               Locked
                             </Badge>
-                          )}
+                          ) : null}
                         </div>
                       </TableCell>
                       
                       <TableCell>
-                        {user.lastLoginAt ? (
+                        {user.lastLoginAt !== null && user.lastLoginAt !== undefined ? (
                           <span className="text-sm text-muted-foreground">
                             {new Date(user.lastLoginAt).toLocaleDateString()}
                           </span>
@@ -339,7 +343,7 @@ export default function UserManagementPage() {
                       </TableCell>
                       
                       <TableCell className="text-right">
-                        {canManageUsers && (
+                        {canManageUsers ? (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" className="h-8 w-8 p-0">
@@ -358,7 +362,7 @@ export default function UserManagementPage() {
                               <DropdownMenuSeparator />
                               
                               <DropdownMenuItem
-                                onClick={() => handleToggleUserStatus(user)}
+                                onClick={() => void handleToggleUserStatus(user)}
                                 disabled={user.id === currentUser?.id}
                               >
                                 {user.isActive ? (
@@ -377,7 +381,7 @@ export default function UserManagementPage() {
                               <DropdownMenuSeparator />
                               
                               <DropdownMenuItem
-                                onClick={() => handleDeleteUser(user)}
+                                onClick={() => void handleDeleteUser(user)}
                                 disabled={user.id === currentUser?.id}
                                 className="text-red-600"
                               >
@@ -386,7 +390,7 @@ export default function UserManagementPage() {
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
-                        )}
+                        ) : null}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -398,7 +402,7 @@ export default function UserManagementPage() {
       </Card>
 
       {/* Pagination */}
-      {filteredUsers.length > 0 && (
+      {filteredUsers.length > 0 ? (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
             Showing {filteredUsers.length} of {totalUsers} users
@@ -407,7 +411,7 @@ export default function UserManagementPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => loadUsers(currentPage - 1)}
+              onClick={() => void loadUsers(currentPage - 1)}
               disabled={currentPage <= 1 || isLoading}
             >
               Previous
@@ -418,14 +422,14 @@ export default function UserManagementPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => loadUsers(currentPage + 1)}
+              onClick={() => void loadUsers(currentPage + 1)}
               disabled={filteredUsers.length < 20 || isLoading}
             >
               Next
             </Button>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

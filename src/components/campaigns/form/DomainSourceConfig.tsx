@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React, { memo } from 'react';
 import { Control, UseFormWatch } from 'react-hook-form';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -22,7 +23,7 @@ const DomainSourceConfig = memo<DomainSourceConfigProps>(({
   watch,
   sourceCampaigns,
   isLoading
-}) => {
+}): React.ReactElement => {
   const domainSourceMode = watch("domainSourceSelectionMode");
 
   return (
@@ -64,7 +65,7 @@ const DomainSourceConfig = memo<DomainSourceConfigProps>(({
                   <SelectItem value={CampaignFormConstants.NONE_VALUE_PLACEHOLDER}>Select a campaign...</SelectItem>
                   {sourceCampaigns.map(campaign => (
                     <SelectItem key={campaign.id} value={campaign.id}>
-                      {campaign.name} ({campaign.selectedType || campaign.campaignType})
+                      {campaign.name} ({campaign.selectedType ?? campaign.campaignType})
                     </SelectItem>
                   ))}
                   {sourceCampaigns.length === 0 && !isLoading && (

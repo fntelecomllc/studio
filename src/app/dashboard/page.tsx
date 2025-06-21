@@ -12,7 +12,7 @@ import { Briefcase, Users, PlayCircle, ArrowRight } from 'lucide-react';
 import LatestActivityTable from '@/components/dashboard/LatestActivityTable';
 import ProductionReadinessCheck from '@/components/system/ProductionReadinessCheck';
 
-export default function DashboardPage() {
+export default function DashboardPage(): React.ReactElement {
   const { isAuthenticated, isLoading, isInitialized, user } = useAuth();
   const router = useRouter();
 
@@ -48,7 +48,7 @@ export default function DashboardPage() {
   }
 
   // If no user data, show loading
-  if (!user) {
+  if (user === null || user === undefined) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center space-y-4">
@@ -63,7 +63,7 @@ export default function DashboardPage() {
   return (
     <div className="container mx-auto">
       <PageHeader
-        title={`Welcome back, ${user?.name || user?.email}`}
+        title={`Welcome back, ${user?.name ?? user?.email ?? 'User'}`}
         description="Orchestrate your domain intelligence and lead generation campaigns."
         icon={PlayCircle}
       />
