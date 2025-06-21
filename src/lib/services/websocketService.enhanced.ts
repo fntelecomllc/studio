@@ -8,6 +8,9 @@ import { transformInt64Fields } from '@/lib/types/branded';
 
 export type ConnectionState = 'connecting' | 'connected' | 'disconnected' | 'error';
 
+// Union type for messages that can be sent
+export type SendableMessage = WebSocketMessage | Record<string, unknown>;
+
 export interface EnhancedWebSocketServiceOptions {
   onMessage?: (message: WebSocketMessage) => void;
   onConnectionChange?: (state: ConnectionState) => void;
@@ -24,7 +27,7 @@ class EnhancedWebSocketService {
   private options: EnhancedWebSocketServiceOptions;
   private connectionState: ConnectionState = 'disconnected';
   private pingInterval: NodeJS.Timeout | null = null;
-  private messageQueue: WebSocketMessage[] = [];
+  private messageQueue: SendableMessage[] = [];
   private isReconnecting = false;
 
   constructor(options: EnhancedWebSocketServiceOptions = {}) {
@@ -56,7 +59,7 @@ class EnhancedWebSocketService {
       this.ws.onmessage = this.handleMessage.bind(this);
       this.ws.onerror = this.handleError.bind(this);
       this.ws.onclose = this.handleClose.bind(this);
-    } catch {
+    } catch (error) {
       console.error('Failed to create WebSocket connection:', error);
       this.handleError(new Event('error'));
     }
@@ -96,7 +99,7 @@ class EnhancedWebSocketService {
       }
       
       this.options.onMessage?.(transformedMessage);
-    } catch {
+    } catch (error) {
       console.error('Failed to parse WebSocket message:', error);
       this.options.onError?.(new Error('Failed to parse WebSocket message'));
     }
@@ -168,7 +171,7 @@ class EnhancedWebSocketService {
     }
   }
 
-  send(message: WebSocketMessage | any): void {
+  send(message: SendableMessage): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       console.warn('WebSocket not connected, queueing message');
       this.messageQueue.push(message);
@@ -182,7 +185,7 @@ class EnhancedWebSocketService {
         : transformApiRequest(message);
       
       this.ws.send(JSON.stringify(transformedMessage));
-    } catch {
+    } catch (error) {
       console.error('Failed to send WebSocket message:', error);
       this.options.onError?.(new Error('Failed to send message'));
     }

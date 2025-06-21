@@ -132,7 +132,7 @@ export class WebSocketService {
           try {
             const message: WebSocketMessage = this.parseAndTransformMessage(event.data);
             this.handleMessage(message);
-          } catch {
+          } catch (error) {
             console.error('[WebSocket] Failed to parse message:', error);
             this.errorHandlers.forEach(handler => {
               try {
@@ -167,7 +167,7 @@ export class WebSocketService {
           reject(error);
         };
 
-      } catch {
+      } catch (error) {
         reject(error);
       }
     });
@@ -229,7 +229,7 @@ export class WebSocketService {
     this.messageHandlers.forEach(handler => {
       try {
         handler(message);
-      } catch {
+      } catch (error) {
         console.error('[WebSocket] Error in message handler:', error);
       }
     });
@@ -367,19 +367,19 @@ export class WebSocketService {
    * CRITICAL FIX CV-009: Serialize SafeBigInt fields before sending
    */
   private serializeMessage(message: WebSocketMessage): string {
-    const serializable = { ...message };
+    const serializable = { ...message } as Record<string, unknown>;
     
     // Convert SafeBigInt fields to strings for transmission
     if (serializable.validationsProcessed !== undefined && isSafeBigInt(serializable.validationsProcessed)) {
-      (serializable as any).validationsProcessed = serializable.validationsProcessed.toString();
+      serializable.validationsProcessed = serializable.validationsProcessed.toString();
     }
     if (serializable.domainsGenerated !== undefined && isSafeBigInt(serializable.domainsGenerated)) {
-      (serializable as any).domainsGenerated = serializable.domainsGenerated.toString();
+      serializable.domainsGenerated = serializable.domainsGenerated.toString();
     }
     
     // Handle data object
     if (serializable.data && typeof serializable.data === 'object') {
-      const data = { ...serializable.data };
+      const data = { ...serializable.data } as Record<string, unknown>;
       
       Object.keys(data).forEach(key => {
         if (data[key] !== undefined && isSafeBigInt(data[key])) {
@@ -399,7 +399,7 @@ export class WebSocketService {
         const serialized = this.serializeMessage(message);
         this.ws.send(serialized);
         console.log('[WebSocket] Sent message:', message);
-      } catch {
+      } catch (error) {
         console.error('[WebSocket] Failed to send message:', error);
       }
     } else {
@@ -418,7 +418,7 @@ export class WebSocketService {
         const serialized = this.serializeMessage(messageWithCampaign);
         this.ws.send(serialized);
         console.log(`[WebSocket] Sent message to campaign ${campaignId}:`, messageWithCampaign);
-      } catch {
+      } catch (error) {
         console.error('[WebSocket] Failed to send message to campaign:', error);
       }
     } else {
@@ -446,7 +446,7 @@ export class WebSocketService {
     this.messageHandlers.forEach(handler => {
       try {
         handler(message);
-      } catch {
+      } catch (error) {
         console.error('Error in message handler:', error);
       }
     });

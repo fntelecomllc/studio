@@ -51,6 +51,72 @@ import {
 } from './aligned-enums';
 
 // ============================================
+// HELPER TYPES FOR TRANSFORMATIONS
+// ============================================
+
+/**
+ * Raw role data from API
+ */
+interface RawRole {
+  id: string;
+  name: string;
+  description?: string;
+  permissions?: RawPermission[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Raw permission data from API
+ */
+interface RawPermission {
+  id: string;
+  resource: string;
+  action: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Transformed role interface
+ */
+interface TransformedRole {
+  id: _UUID;
+  name: string;
+  description?: string;
+  permissions?: TransformedPermission[];
+  createdAt: _ISODateString;
+  updatedAt: _ISODateString;
+}
+
+/**
+ * Transformed permission interface
+ */
+interface TransformedPermission {
+  id: _UUID;
+  resource: string;
+  action: string;
+  description?: string;
+  createdAt: _ISODateString;
+  updatedAt: _ISODateString;
+}
+
+/**
+ * Campaign progress message from WebSocket
+ */
+interface CampaignProgressMessage {
+  campaignId: _UUID;
+  totalItems: SafeBigInt;
+  processedItems: SafeBigInt;
+  successfulItems: SafeBigInt;
+  failedItems: SafeBigInt;
+  progressPercentage: number;
+  estimatedTimeRemaining?: number;
+  currentRate?: number;
+}
+
+// ============================================
 // INT64 FIELD MAPPINGS
 // ============================================
 
@@ -272,8 +338,8 @@ export function transformUser(raw: Record<string, unknown>): User {
     name: `${raw.firstName} ${raw.lastName}`,
     
     // Relations (if included)
-    roles: raw.roles ? (raw.roles as any[]).map(transformRole) : undefined,
-    permissions: raw.permissions ? (raw.permissions as any[]).map(transformPermission) : undefined
+    roles: raw.roles ? (raw.roles as RawRole[]).map(transformRole) : undefined,
+    permissions: raw.permissions ? (raw.permissions as RawPermission[]).map(transformPermission) : undefined
   };
 }
 
@@ -289,12 +355,12 @@ export function transformPublicUser(raw: Record<string, unknown>): PublicUser {
     name: raw.name as string || `${raw.firstName} ${raw.lastName}`,
     avatarUrl: raw.avatarUrl as string | undefined,
     isActive: raw.isActive as boolean,
-    roles: raw.roles ? (raw.roles as any[]).map(transformRole) : undefined,
-    permissions: raw.permissions ? (raw.permissions as any[]).map(transformPermission) : undefined
+    roles: raw.roles ? (raw.roles as RawRole[]).map(transformRole) : undefined,
+    permissions: raw.permissions ? (raw.permissions as RawPermission[]).map(transformPermission) : undefined
   };
 }
 
-function transformRole(raw: any): any {
+function transformRole(raw: RawRole): TransformedRole {
   return {
     id: createUUID(raw.id),
     name: raw.name,
@@ -305,7 +371,7 @@ function transformRole(raw: any): any {
   };
 }
 
-function transformPermission(raw: any): any {
+function transformPermission(raw: RawPermission): TransformedPermission {
   return {
     id: createUUID(raw.id),
     resource: raw.resource,
@@ -404,7 +470,7 @@ export function transformGeneratedDomain(raw: Record<string, unknown>): Generate
 /**
  * Transform WebSocket campaign progress message
  */
-export function transformCampaignProgress(raw: Record<string, unknown>): any {
+export function transformCampaignProgress(raw: Record<string, unknown>): CampaignProgressMessage {
   const int64Fields = [
     'totalItems',
     'processedItems',
@@ -532,8 +598,8 @@ export function safeTransform<T>(
       return fallback;
     }
     return transformer(raw as Record<string, unknown>);
-  } catch {
-    console.error('Transformation error:', `error`);
+  } catch (error) {
+    console.error('Transformation error:', error);
     return fallback;
   }
 }

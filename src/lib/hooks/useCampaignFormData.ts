@@ -84,7 +84,7 @@ export function useCampaignFormData(_isEditing?: boolean): CampaignFormData {
         // Don't set error for partial failures - let the form work with what we have
       }
 
-    } catch {
+    } catch (error) {
       console.error('[useCampaignFormData] Unexpected error loading form data:', error);
       setError(error instanceof Error ? error.message : 'Failed to load form data');
     } finally {

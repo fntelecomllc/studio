@@ -20,23 +20,28 @@ export function camelToSnake(str: string): string {
 }
 
 /**
+ * Type for objects that can be transformed
+ */
+type TransformableObject = Record<string, unknown>;
+
+/**
  * Transform object keys from snake_case to camelCase
  */
-export function snakeToCamelKeys<T = any>(obj: any): T {
+export function snakeToCamelKeys<T = TransformableObject>(obj: unknown): T {
   if (obj === null || obj === undefined) {
-    return obj;
+    return obj as T;
   }
 
   // Handle arrays
   if (Array.isArray(obj)) {
-    return obj.map(item => snakeToCamelKeys(item)) as any;
+    return obj.map(item => snakeToCamelKeys(item)) as T;
   }
 
   // Handle objects
-  if (typeof obj === 'object' && obj.constructor === Object) {
-    const transformed: any = {};
+  if (typeof obj === 'object' && obj !== null && obj.constructor === Object) {
+    const transformed: Record<string, unknown> = {};
     
-    for (const [key, value] of Object.entries(obj)) {
+    for (const [key, value] of Object.entries(obj as TransformableObject)) {
       const camelKey = snakeToCamel(key);
       
       // Recursively transform nested objects
@@ -47,31 +52,31 @@ export function snakeToCamelKeys<T = any>(obj: any): T {
       }
     }
     
-    return transformed;
+    return transformed as T;
   }
 
   // Return primitive values as-is
-  return obj;
+  return obj as T;
 }
 
 /**
  * Transform object keys from camelCase to snake_case
  */
-export function camelToSnakeKeys<T = any>(obj: any): T {
+export function camelToSnakeKeys<T = TransformableObject>(obj: unknown): T {
   if (obj === null || obj === undefined) {
-    return obj;
+    return obj as T;
   }
 
   // Handle arrays
   if (Array.isArray(obj)) {
-    return obj.map(item => camelToSnakeKeys(item)) as any;
+    return obj.map(item => camelToSnakeKeys(item)) as T;
   }
 
   // Handle objects
-  if (typeof obj === 'object' && obj.constructor === Object) {
-    const transformed: any = {};
+  if (typeof obj === 'object' && obj !== null && obj.constructor === Object) {
+    const transformed: Record<string, unknown> = {};
     
-    for (const [key, value] of Object.entries(obj)) {
+    for (const [key, value] of Object.entries(obj as TransformableObject)) {
       const snakeKey = camelToSnake(key);
       
       // Recursively transform nested objects
@@ -82,11 +87,11 @@ export function camelToSnakeKeys<T = any>(obj: any): T {
       }
     }
     
-    return transformed;
+    return transformed as T;
   }
 
   // Return primitive values as-is
-  return obj;
+  return obj as T;
 }
 
 /**
@@ -183,25 +188,25 @@ export const REVERSE_FIELD_MAPPING_OVERRIDES: Record<string, string> = Object.en
 /**
  * Transform object keys with special field mapping overrides
  */
-export function transformKeysWithOverrides<T = any>(
-  obj: any,
+export function transformKeysWithOverrides<T = TransformableObject>(
+  obj: unknown,
   overrides: Record<string, string>,
   defaultTransform: (key: string) => string
 ): T {
   if (obj === null || obj === undefined) {
-    return obj;
+    return obj as T;
   }
 
   // Handle arrays
   if (Array.isArray(obj)) {
-    return obj.map(item => transformKeysWithOverrides(item, overrides, defaultTransform)) as any;
+    return obj.map(item => transformKeysWithOverrides(item, overrides, defaultTransform)) as T;
   }
 
   // Handle objects
-  if (typeof obj === 'object' && obj.constructor === Object) {
-    const transformed: any = {};
+  if (typeof obj === 'object' && obj !== null && obj.constructor === Object) {
+    const transformed: Record<string, unknown> = {};
     
-    for (const [key, value] of Object.entries(obj)) {
+    for (const [key, value] of Object.entries(obj as TransformableObject)) {
       // Use override if available, otherwise use default transform
       const transformedKey = overrides[key] || defaultTransform(key);
       
@@ -213,18 +218,18 @@ export function transformKeysWithOverrides<T = any>(
       }
     }
     
-    return transformed;
+    return transformed as T;
   }
 
   // Return primitive values as-is
-  return obj;
+  return obj as T;
 }
 
 /**
  * Transform API response from snake_case to camelCase
  * Uses field mapping overrides for special cases
  */
-export function transformApiResponse<T = any>(response: any): T {
+export function transformApiResponse<T = TransformableObject>(response: unknown): T {
   return transformKeysWithOverrides(response, FIELD_MAPPING_OVERRIDES, snakeToCamel);
 }
 
@@ -232,7 +237,7 @@ export function transformApiResponse<T = any>(response: any): T {
  * Transform API request from camelCase to snake_case
  * Uses reverse field mapping overrides for special cases
  */
-export function transformApiRequest<T = any>(request: any): T {
+export function transformApiRequest<T = TransformableObject>(request: unknown): T {
   return transformKeysWithOverrides(request, REVERSE_FIELD_MAPPING_OVERRIDES, camelToSnake);
 }
 
@@ -240,12 +245,12 @@ export function transformApiRequest<T = any>(request: any): T {
  * Transform specific fields in an object
  * Useful for partial transformations or when only certain fields need conversion
  */
-export function transformSpecificFields<T extends Record<string, any>>(
+export function transformSpecificFields<T extends TransformableObject>(
   obj: T,
   fields: string[],
-  transform: (value: any) => any
+  transform: (value: unknown) => unknown
 ): T {
-  const result: any = { ...obj };
+  const result: TransformableObject = { ...obj };
   
   for (const field of fields) {
     if (field in result && result[field] !== undefined) {

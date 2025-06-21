@@ -6,18 +6,31 @@ import type { ApiResponse } from '@/lib/types';
 import { getApiConfig } from '@/lib/config/environment';
 import { transformApiResponse, transformApiRequest } from '@/lib/utils/case-transformations';
 
+// Error detail type for API responses
+interface ErrorDetail {
+  field?: string;
+  message: string;
+  code?: string;
+  context?: unknown;
+}
+
+// Enhanced API response with optional errors array
+interface ApiResponseWithErrors<T> extends ApiResponse<T> {
+  errors?: Array<{ field?: string; message: string }>;
+}
+
+// Enhanced API response with optional metadata
+interface ApiResponseWithMetadata<T> extends ApiResponse<T> {
+  metadata?: Record<string, unknown>;
+}
+
 // Unified error response types matching backend
 interface UnifiedErrorResponse {
   success: false;
   error: {
     code: string;
     message: string;
-    details?: Array<{
-      field?: string;
-      code: string;
-      message: string;
-      context?: unknown;
-    }>;
+    details?: ErrorDetail[];
     timestamp: string;
     path?: string;
   };
@@ -186,10 +199,11 @@ class EnhancedApiClient {
                 errorMessage = errorData.message;
               } else if (errorData.errors && Array.isArray(errorData.errors)) {
                 // Legacy array format
-                errorMessage = errorData.errors[0]?.message || errorData.errors[0]?.error || errorMessage;
-                errorDetails = errorData.errors.map((e: any) => ({
+                const errors = errorData.errors as Array<{ field?: string; message?: string; error?: string }>;
+                errorMessage = errors[0]?.message || errors[0]?.error || errorMessage;
+                errorDetails = errors.map((e) => ({
                   field: e.field,
-                  message: e.message || e.error
+                  message: e.message || e.error || 'Unknown error'
                 }));
               }
             }
@@ -197,14 +211,14 @@ class EnhancedApiClient {
             // Ignore parsing errors, use default message
           }
 
-          const apiResponse: ApiResponse<T> = {
+          const apiResponse: ApiResponseWithErrors<T> = {
             status: 'error',
             message: errorMessage,
           };
           
           // Add error details if available
           if (errorDetails.length > 0) {
-            (apiResponse as any).errors = errorDetails;
+            apiResponse.errors = errorDetails;
           }
           
           return apiResponse;
@@ -230,7 +244,7 @@ class EnhancedApiClient {
               ? transformApiResponse(unifiedResponse.metadata)
               : unifiedResponse.metadata;
             
-            const apiResponse: ApiResponse<T> = {
+            const apiResponse: ApiResponseWithMetadata<T> = {
               status: 'success',
               data: transformedData,
               message: 'Request successful',
@@ -238,7 +252,7 @@ class EnhancedApiClient {
             
             // Add transformed metadata if present
             if (transformedMetadata) {
-              (apiResponse as any).metadata = transformedMetadata;
+              apiResponse.metadata = transformedMetadata;
             }
             
             return apiResponse;
@@ -262,7 +276,7 @@ class EnhancedApiClient {
             message: 'Request successful',
           };
         }
-      } catch {
+      } catch (error) {
         lastError = error as Error;
         
         // Don't retry on abort or certain errors
