@@ -98,7 +98,7 @@ func (m *mockDomainGenerationService) ProcessGenerationCampaignBatch(ctx context
 }
 
 type CampaignWorkerServiceTestSuite struct {
-	ServiceTestSuite // This line was already correct, CampaignServiceTestSuite is in the services package.
+	services.CampaignServiceTestSuite
 	dgService           services.DomainGenerationService
 	dnsService          services.DNSCampaignService
 	httpService         services.HTTPKeywordCampaignService

@@ -24,7 +24,7 @@ import (
 )
 
 type HTTPKeywordCampaignServiceTestSuite struct {
-	ServiceTestSuite
+	services.CampaignServiceTestSuite
 	httpService services.HTTPKeywordCampaignService
 	dgService   services.DomainGenerationService
 	dnsService  services.DNSCampaignService

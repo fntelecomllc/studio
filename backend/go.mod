@@ -2,7 +2,7 @@ module github.com/fntelecomllc/studio/backend
 
 go 1.23.0
 
-toolchain go1.24.3
+toolchain go1.23.4
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
@@ -26,6 +26,7 @@ require (
 )
 
 require (
+	github.com/BurntSushi/toml v1.4.1-0.20240526193622-a339e1f7089c // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
@@ -36,7 +37,10 @@ require (
 	github.com/go-openapi/swag v0.19.15 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.7.6 // indirect
+	golang.org/x/exp/typeparams v0.0.0-20231108232855-2478ac86f678 // indirect
+	golang.org/x/lint v0.0.0-20241112194109-818c5a804067 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	honnef.co/go/tools v0.6.1 // indirect
 )
 
 require (

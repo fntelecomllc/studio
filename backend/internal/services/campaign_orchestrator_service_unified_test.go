@@ -14,7 +14,7 @@ import (
 )
 
 type CampaignOrchestratorUnifiedTestSuite struct {
-	ServiceTestSuite
+	services.CampaignServiceTestSuite
 	orchestrator services.CampaignOrchestratorService
 }
 

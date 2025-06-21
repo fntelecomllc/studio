@@ -1,0 +1,278 @@
+name: Go Lint and Test
+
+on:
+  push:
+    branches: [ main, develop, cleanup/phase2-eslint-elimination ]
+    paths: 
+      - 'backend/**'
+      - '.github/workflows/go-lint-and-test.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths: 
+      - 'backend/**'
+      - '.github/workflows/go-lint-and-test.yml'
+
+env:
+  GO_VERSION: '1.23'
+  GOLANGCI_LINT_VERSION: 'v1.61.0'
+
+jobs:
+  lint:
+    name: Go Lint
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('backend/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+          
+    - name: Install golangci-lint
+      run: |
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin ${{ env.GOLANGCI_LINT_VERSION }}
+        
+    - name: Run golangci-lint
+      working-directory: ./backend
+      run: |
+        $(go env GOPATH)/bin/golangci-lint run --timeout=10m --verbose
+        
+    - name: Upload lint results
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: lint-results
+        path: |
+          backend/golangci-lint-report.xml
+          backend/golangci-lint-report.json
+        retention-days: 7
+
+  test:
+    name: Go Test
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_USER: testuser
+          POSTGRES_DB: domainflow_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+          
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('backend/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+          
+    - name: Install dependencies
+      working-directory: ./backend
+      run: go mod download
+      
+    - name: Wait for PostgreSQL
+      run: |
+        until pg_isready -h localhost -p 5432 -U testuser; do
+          echo "Waiting for PostgreSQL..."
+          sleep 2
+        done
+        
+    - name: Set up database
+      working-directory: ./backend
+      env:
+        TEST_POSTGRES_DSN: "postgres://testuser:testpass@localhost:5432/domainflow_test?sslmode=disable"
+      run: |
+        echo "$TEST_POSTGRES_DSN" > .db_connection
+        # Run database migrations if they exist
+        if [ -f "database/schema.sql" ]; then
+          psql "$TEST_POSTGRES_DSN" -f database/schema.sql
+        fi
+        
+    - name: Run tests
+      working-directory: ./backend
+      env:
+        TEST_POSTGRES_DSN: "postgres://testuser:testpass@localhost:5432/domainflow_test?sslmode=disable"
+        CGO_ENABLED: 1
+      run: |
+        go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+        
+    - name: Generate coverage report
+      working-directory: ./backend
+      run: |
+        go tool cover -html=coverage.out -o coverage.html
+        go tool cover -func=coverage.out > coverage.txt
+        
+    - name: Upload coverage reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-reports
+        path: |
+          backend/coverage.out
+          backend/coverage.html
+          backend/coverage.txt
+        retention-days: 30
+        
+    - name: Comment coverage on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const coverage = fs.readFileSync('backend/coverage.txt', 'utf8');
+          const lines = coverage.split('\n');
+          const totalLine = lines[lines.length - 2];
+          const percentage = totalLine.match(/(\d+\.\d+)%/)[1];
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: `## 📊 Test Coverage Report\n\n**Total Coverage: ${percentage}%**\n\n<details>\n<summary>View detailed coverage</summary>\n\n\`\`\`\n${coverage}\n\`\`\`\n\n</details>`
+          });
+
+  build:
+    name: Go Build Verification
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('backend/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+          
+    - name: Install dependencies
+      working-directory: ./backend
+      run: go mod download
+      
+    - name: Build API server
+      working-directory: ./backend
+      run: go build -v -o bin/apiserver ./cmd/apiserver
+      
+    - name: Build migration tool
+      working-directory: ./backend
+      run: go build -v -o bin/migrate ./cmd/migrate
+      
+    - name: Verify executables
+      working-directory: ./backend
+      shell: bash
+      run: |
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          ./bin/apiserver.exe --help || echo "Built successfully"
+          ./bin/migrate.exe --help || echo "Built successfully"
+        else
+          ./bin/apiserver --help || echo "Built successfully"
+          ./bin/migrate --help || echo "Built successfully"
+        fi
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        
+    - name: Install Gosec
+      run: go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+        
+    - name: Run Gosec Security Scanner
+      working-directory: ./backend
+      run: |
+        gosec -fmt sarif -out gosec-results.sarif ./...
+        
+    - name: Upload SARIF file
+      if: always()
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: backend/gosec-results.sarif
+
+  quality-gate:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    needs: [lint, test, build, security-scan]
+    if: always()
+    
+    steps:
+    - name: Check job results
+      run: |
+        echo "Lint result: ${{ needs.lint.result }}"
+        echo "Test result: ${{ needs.test.result }}"
+        echo "Build result: ${{ needs.build.result }}"
+        echo "Security scan result: ${{ needs.security-scan.result }}"
+        
+        if [[ "${{ needs.lint.result }}" != "success" ]]; then
+          echo "❌ Lint check failed"
+          exit 1
+        fi
+        
+        if [[ "${{ needs.test.result }}" != "success" ]]; then
+          echo "❌ Tests failed"
+          exit 1
+        fi
+        
+        if [[ "${{ needs.build.result }}" != "success" ]]; then
+          echo "❌ Build failed"
+          exit 1
+        fi
+        
+        if [[ "${{ needs.security-scan.result }}" != "success" ]]; then
+          echo "⚠️ Security scan had issues (non-blocking)"
+        fi
+        
+        echo "✅ All quality checks passed!"

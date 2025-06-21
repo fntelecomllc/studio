@@ -18,7 +18,7 @@ import (
 )
 
 type DNSCampaignServiceTestSuite struct {
-	ServiceTestSuite
+	services.CampaignServiceTestSuite
 	dnsService services.DNSCampaignService
 }
 

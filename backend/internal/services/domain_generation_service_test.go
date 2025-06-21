@@ -17,7 +17,7 @@ import (
 )
 
 type DomainGenerationServiceTestSuite struct {
-	ServiceTestSuite
+	services.CampaignServiceTestSuite
 	dgService services.DomainGenerationService
 }
 
