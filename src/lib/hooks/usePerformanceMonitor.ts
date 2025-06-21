@@ -1,11 +1,12 @@
 /**
  * Performance monitoring hooks
- * 
+ *
  * React hooks for monitoring component performance and identifying optimization opportunities
  */
 
 import { useRef, useEffect, useCallback, DependencyList } from 'react';
 import { monitoringService } from '@/lib/monitoring/monitoring-service';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * Hook to monitor component render performance
@@ -137,7 +138,7 @@ export function useCallbackMonitor<T extends (...args: unknown[]) => unknown>(
         );
         
         return result;
-      } catch {
+      } catch (error: unknown) {
         monitoringService.recordError(
           error as Error,
           `callback_error_${callbackName}`
@@ -312,7 +313,7 @@ export function useApiCallMonitor<T extends (...args: unknown[]) => Promise<unkn
         );
         
         return result;
-      } catch {
+      } catch (error: unknown) {
         errorCount.current += 1;
         monitoringService.recordApiError(
           apiName,
@@ -425,9 +426,12 @@ export function useLongTaskMonitor(threshold = 50) {
     
     try {
       observer.observe({ entryTypes: ['longtask'] });
-    } catch (_e) {
+    } catch (error: unknown) {
       // Long task monitoring not supported
-      console.debug('Long task monitoring not supported');
+      logger.debug('Long task monitoring not supported in this browser', {
+        component: 'useLongTaskMonitor',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
     
     return () => observer.disconnect();

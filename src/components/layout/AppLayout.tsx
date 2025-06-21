@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, memo, useMemo, useCallback } from 'react';
+import { logger } from '@/lib/utils/logger';
 import { usePathname } from 'next/navigation';
 import { WebSocketStatusProvider } from '@/contexts/WebSocketStatusContext';
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from '@/components/ui/sidebar';
@@ -154,7 +155,10 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
   useEffect(() => {
     let isActive = true; // Flag to prevent state updates if component unmounts
     
-    console.log('[AppLayout] 🚀 Initializing auth service...');
+    logger.info('Initializing auth service', {
+      component: 'AppLayout',
+      operation: 'initializeAuthService'
+    });
     
     const initializeAuthService = async () => {
       try {
@@ -163,11 +167,19 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
         // Only proceed if component is still mounted
         if (isActive) {
           await authService.initialize();
-          console.log('[AppLayout] ✅ Auth service initialization complete');
+          logger.info('Auth service initialization complete', {
+            component: 'AppLayout',
+            operation: 'initializeAuthService',
+            status: 'success'
+          });
         }
-      } catch {
+      } catch (error: unknown) {
         if (isActive) {
-          console.error('[AppLayout] ❌ Auth service initialization failed:', error);
+          logger.error('Auth service initialization failed', {
+            component: 'AppLayout',
+            operation: 'initializeAuthService',
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
         }
       }
     };
@@ -192,11 +204,18 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
 
     // Cleanup function for WebSocket services
     return () => {
-      console.log('[AppLayout] Cleaning up global WebSocket services');
+      logger.info('Cleaning up global WebSocket services', {
+        component: 'AppLayout',
+        operation: 'websocketCleanup'
+      });
       try {
         websocketService.disconnectAll();
-      } catch {
-        console.error('[AppLayout] Error during WebSocket cleanup:', error);
+      } catch (error: unknown) {
+        logger.error('Error during WebSocket cleanup', {
+          component: 'AppLayout',
+          operation: 'websocketCleanup',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
       }
     };
   }, []); // Empty dependency array - cleanup only on unmount
@@ -207,7 +226,12 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
 
   // If this is an isolated route (like dbgui), render children directly without any app layout
   if (isIsolatedRoute) {
-    console.log('[AppLayout] 🔒 SECURITY: Isolated route detected, bypassing main app layout:', pathname);
+    logger.info('SECURITY: Isolated route detected, bypassing main app layout', {
+      component: 'AppLayout',
+      operation: 'routeCheck',
+      pathname,
+      security: 'isolated_route_bypass'
+    });
     return <>{children}</>;
   }
 

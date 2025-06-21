@@ -4,6 +4,7 @@
 import apiClient from './apiClient.production';
 import type { ModelsUserAPI } from '@/lib/api-client/models/models-user-api';
 import type { ApiResponse } from '@/lib/types';
+import { logger } from '@/lib/utils/logger';
 
 // Type aliases for better API clarity
 export type User = ModelsUserAPI;
@@ -62,60 +63,78 @@ class AdminService {
     offset?: number;
   }): Promise<UserListResponse> {
     try {
-      console.log('[AdminService] Getting users with filters:', filters);
+      logger.api('Fetching users list', { filters, endpoint: '/api/v2/admin/users' });
       const response = await apiClient.get<User[]>('/api/v2/admin/users', { params: filters });
-      console.log('[AdminService] Get users response:', response);
+      logger.api('Users list retrieved successfully', {
+        userCount: response.data?.length || 0,
+        status: response.status
+      });
       return response;
-    } catch {
-      console.error('[AdminService] Failed to get users:', error);
+    } catch (error) {
+      logger.error('Failed to retrieve users list', error, { component: 'AdminService', operation: 'getUsers' });
       throw error;
     }
   }
 
   async getUserById(userId: string): Promise<UserDetailResponse> {
     try {
-      console.log('[AdminService] Getting user by ID:', userId);
+      logger.api('Fetching user by ID', { userId, endpoint: `/api/v2/admin/users/${userId}` });
       const response = await apiClient.get<User>(`/api/v2/admin/users/${userId}`);
-      console.log('[AdminService] Get user response:', response);
+      logger.api('User details retrieved successfully', {
+        userId,
+        status: response.status,
+        userEmail: response.data?.email || 'unknown'
+      });
       return response;
-    } catch {
-      console.error('[AdminService] Failed to get user:', error);
+    } catch (error) {
+      logger.error('Failed to retrieve user details', error, { component: 'AdminService', operation: 'getUserById', userId });
       throw error;
     }
   }
 
   async createUser(userData: CreateUserRequest): Promise<UserCreateResponse> {
     try {
-      console.log('[AdminService] Creating user:', userData);
+      logger.api('Creating new user', { userEmail: userData.email, endpoint: '/api/v2/admin/users' });
       const response = await apiClient.post<User>('/api/v2/admin/users', userData);
-      console.log('[AdminService] Create user response:', response);
+      logger.api('User created successfully', {
+        userId: response.data?.id,
+        userEmail: response.data?.email,
+        status: response.status
+      });
       return response;
-    } catch {
-      console.error('[AdminService] Failed to create user:', error);
+    } catch (error) {
+      logger.error('Failed to create user', error, { component: 'AdminService', operation: 'createUser', userEmail: userData.email });
       throw error;
     }
   }
 
   async updateUser(userId: string, userData: UpdateUserRequest): Promise<UserUpdateResponse> {
     try {
-      console.log('[AdminService] Updating user:', userId, userData);
+      logger.api('Updating user', { userId, endpoint: `/api/v2/admin/users/${userId}` });
       const response = await apiClient.put<User>(`/api/v2/admin/users/${userId}`, userData);
-      console.log('[AdminService] Update user response:', response);
+      logger.api('User updated successfully', {
+        userId,
+        status: response.status,
+        userEmail: response.data?.email || 'unknown'
+      });
       return response;
-    } catch {
-      console.error('[AdminService] Failed to update user:', error);
+    } catch (error) {
+      logger.error('Failed to update user', error, { component: 'AdminService', operation: 'updateUser', userId });
       throw error;
     }
   }
 
   async deleteUser(userId: string): Promise<UserDeleteResponse> {
     try {
-      console.log('[AdminService] Deleting user:', userId);
+      logger.api('Deleting user', { userId, endpoint: `/api/v2/admin/users/${userId}` });
       const response = await apiClient.delete<null>(`/api/v2/admin/users/${userId}`);
-      console.log('[AdminService] Delete user response:', response);
+      logger.api('User deleted successfully', {
+        userId,
+        status: response.status
+      });
       return response;
-    } catch {
-      console.error('[AdminService] Failed to delete user:', error);
+    } catch (error) {
+      logger.error('Failed to delete user', error, { component: 'AdminService', operation: 'deleteUser', userId });
       throw error;
     }
   }
@@ -124,60 +143,60 @@ class AdminService {
 
   async activateUser(userId: string): Promise<UserUpdateResponse> {
     try {
-      console.log('[AdminService] Activating user:', userId);
+      logger.api('Activating user', { userId, operation: 'activate' });
       return await this.updateUser(userId, { isActive: true });
-    } catch {
-      console.error('[AdminService] Failed to activate user:', error);
+    } catch (error) {
+      logger.error('Failed to activate user', error, { component: 'AdminService', operation: 'activateUser', userId });
       throw error;
     }
   }
 
   async deactivateUser(userId: string): Promise<UserUpdateResponse> {
     try {
-      console.log('[AdminService] Deactivating user:', userId);
+      logger.api('Deactivating user', { userId, operation: 'deactivate' });
       return await this.updateUser(userId, { isActive: false });
-    } catch {
-      console.error('[AdminService] Failed to deactivate user:', error);
+    } catch (error) {
+      logger.error('Failed to deactivate user', error, { component: 'AdminService', operation: 'deactivateUser', userId });
       throw error;
     }
   }
 
   async lockUser(userId: string): Promise<UserUpdateResponse> {
     try {
-      console.log('[AdminService] Locking user:', userId);
+      logger.api('Locking user', { userId, operation: 'lock' });
       return await this.updateUser(userId, { isLocked: true });
-    } catch {
-      console.error('[AdminService] Failed to lock user:', error);
+    } catch (error) {
+      logger.error('Failed to lock user', error, { component: 'AdminService', operation: 'lockUser', userId });
       throw error;
     }
   }
 
   async unlockUser(userId: string): Promise<UserUpdateResponse> {
     try {
-      console.log('[AdminService] Unlocking user:', userId);
+      logger.api('Unlocking user', { userId, operation: 'unlock' });
       return await this.updateUser(userId, { isLocked: false });
-    } catch {
-      console.error('[AdminService] Failed to unlock user:', error);
+    } catch (error) {
+      logger.error('Failed to unlock user', error, { component: 'AdminService', operation: 'unlockUser', userId });
       throw error;
     }
   }
 
   async updateUserRoles(userId: string, roles: string[]): Promise<UserUpdateResponse> {
     try {
-      console.log('[AdminService] Updating user roles:', userId, roles);
+      logger.api('Updating user roles', { userId, rolesCount: roles.length });
       return await this.updateUser(userId, { roles });
-    } catch {
-      console.error('[AdminService] Failed to update user roles:', error);
+    } catch (error) {
+      logger.error('Failed to update user roles', error, { component: 'AdminService', operation: 'updateUserRoles', userId });
       throw error;
     }
   }
 
   async updateUserPermissions(userId: string, permissions: string[]): Promise<UserUpdateResponse> {
     try {
-      console.log('[AdminService] Updating user permissions:', userId, permissions);
+      logger.api('Updating user permissions', { userId, permissionsCount: permissions.length });
       return await this.updateUser(userId, { permissions });
-    } catch {
-      console.error('[AdminService] Failed to update user permissions:', error);
+    } catch (error) {
+      logger.error('Failed to update user permissions', error, { component: 'AdminService', operation: 'updateUserPermissions', userId });
       throw error;
     }
   }

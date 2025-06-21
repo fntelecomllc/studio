@@ -4,6 +4,7 @@
  */
 
 import { getApiConfig, setApiBaseUrlOverride as setEnvApiOverride } from './config/environment';
+import { logger } from '@/lib/utils/logger';
 
 interface AppConfig {
   apiBaseUrl: string;
@@ -37,24 +38,30 @@ async function fetchAppConfig(): Promise<AppConfig> {
       // Fallback to legacy config.json approach
       const response = await fetch('/config.json');
       if (!response.ok) {
-        console.warn(
-          `Failed to load /config.json (status: ${response.status}). Using fallback API base URL: ${FALLBACK_API_BASE_URL}`
-        );
+        logger.warn('Failed to load configuration file', {
+          status: response.status,
+          fallbackUrl: FALLBACK_API_BASE_URL,
+          component: 'AppConfig'
+        });
         return { apiBaseUrl: FALLBACK_API_BASE_URL };
       }
       const config = await response.json();
       if (typeof config.apiBaseUrl !== 'string' || config.apiBaseUrl.trim() === '') {
-        console.warn(
-          `Invalid or empty apiBaseUrl in /config.json. Using fallback API base URL: ${FALLBACK_API_BASE_URL}`
-        );
+        logger.warn('Invalid API base URL in configuration', {
+          configApiUrl: config.apiBaseUrl,
+          fallbackUrl: FALLBACK_API_BASE_URL,
+          component: 'AppConfig'
+        });
         return { apiBaseUrl: FALLBACK_API_BASE_URL };
       }
       loadedConfig = config;
       return config;
-    } catch {
-      console.warn(
-        `Error fetching or parsing configuration: ${error}. Using fallback API base URL: ${FALLBACK_API_BASE_URL}`
-      );
+    } catch (error: unknown) {
+      logger.warn('Configuration fetch error', {
+        error: error instanceof Error ? error.message : String(error),
+        fallbackUrl: FALLBACK_API_BASE_URL,
+        component: 'AppConfig'
+      });
       return { apiBaseUrl: FALLBACK_API_BASE_URL };
     } finally {
       configPromise = null;
@@ -73,8 +80,11 @@ export async function getApiBaseUrl(): Promise<string> {
     // Use new environment configuration system
     const apiConfig = getApiConfig();
     return apiConfig.baseUrl;
-  } catch {
-    console.warn('Failed to get API URL from environment config, falling back to legacy method:', error);
+  } catch (error: unknown) {
+    logger.warn('Environment config fallback to legacy method', {
+      error: error instanceof Error ? error.message : String(error),
+      component: 'AppConfig'
+    });
     
     // Fallback to legacy method
     const config = await fetchAppConfig();

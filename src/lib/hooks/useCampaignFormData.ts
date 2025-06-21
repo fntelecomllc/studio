@@ -3,6 +3,7 @@ import type { CampaignViewModel, HttpPersona, DnsPersona } from '@/lib/types';
 import { getPersonas } from "@/lib/services/personaService";
 import { getCampaigns } from "@/lib/services/campaignService.production";
 import { transformCampaignsToViewModels } from '@/lib/utils/campaignTransforms';
+import { logger } from '@/lib/utils/logger';
 
 interface CampaignFormData {
   httpPersonas: HttpPersona[];
@@ -41,16 +42,22 @@ export function useCampaignFormData(_isEditing?: boolean): CampaignFormData {
       if (httpResult.status === 'fulfilled' && httpResult.value.status === 'success' && httpResult.value.data) {
         setHttpPersonas(httpResult.value.data as HttpPersona[]);
       } else {
-        console.warn('[useCampaignFormData] Failed to load HTTP personas:', 
-          httpResult.status === 'rejected' ? httpResult.reason : httpResult.value);
+        logger.warn('Failed to load HTTP personas for campaign form', {
+          component: 'useCampaignFormData',
+          reason: httpResult.status === 'rejected' ? httpResult.reason : httpResult.value,
+          action: 'fetchData'
+        });
       }
 
       // Process DNS personas result
       if (dnsResult.status === 'fulfilled' && dnsResult.value.status === 'success' && dnsResult.value.data) {
         setDnsPersonas(dnsResult.value.data as DnsPersona[]);
       } else {
-        console.warn('[useCampaignFormData] Failed to load DNS personas:', 
-          dnsResult.status === 'rejected' ? dnsResult.reason : dnsResult.value);
+        logger.warn('Failed to load DNS personas for campaign form', {
+          component: 'useCampaignFormData',
+          reason: dnsResult.status === 'rejected' ? dnsResult.reason : dnsResult.value,
+          action: 'fetchData'
+        });
       }
 
       // Process campaigns result
@@ -63,8 +70,11 @@ export function useCampaignFormData(_isEditing?: boolean): CampaignFormData {
         );
         setSourceCampaigns(validSourceCampaigns);
       } else {
-        console.warn('[useCampaignFormData] Failed to load campaigns:', 
-          campaignsResult.status === 'rejected' ? campaignsResult.reason : campaignsResult.value);
+        logger.warn('Failed to load campaigns for campaign form', {
+          component: 'useCampaignFormData',
+          reason: campaignsResult.status === 'rejected' ? campaignsResult.reason : campaignsResult.value,
+          action: 'fetchData'
+        });
       }
 
       // Check if any critical failures occurred
@@ -80,12 +90,20 @@ export function useCampaignFormData(_isEditing?: boolean): CampaignFormData {
         const failureMessages = failures.map(f => 
           f.status === 'rejected' ? f.reason?.message || 'Unknown error' : ''
         ).filter(Boolean);
-        console.warn('[useCampaignFormData] Partial failures:', failureMessages);
+        logger.warn('Partial failures encountered while loading campaign form data', {
+          component: 'useCampaignFormData',
+          failureMessages,
+          action: 'fetchData'
+        });
         // Don't set error for partial failures - let the form work with what we have
       }
 
     } catch (error) {
-      console.error('[useCampaignFormData] Unexpected error loading form data:', error);
+      logger.error('Unexpected error loading campaign form data', {
+        component: 'useCampaignFormData',
+        error,
+        action: 'fetchData'
+      });
       setError(error instanceof Error ? error.message : 'Failed to load form data');
     } finally {
       setIsLoading(false);

@@ -10,6 +10,7 @@ import { transformUserResponse, type ModelsUserAPI } from '@/lib/types/models-al
 import { transformErrorResponse, ApiError } from '@/lib/api/transformers/error-transformers';
 import { validateUserResponse, validateOrThrow } from '@/lib/validation/runtime-validators';
 import type { UUID, SafeBigInt } from '@/lib/types/branded';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * User list response with pagination
@@ -107,7 +108,7 @@ class AdminService {
         const transformed = transformUserResponse(user);
         const validation = validateUserResponse(transformed);
         if (!validation.isValid) {
-          console.error('Invalid user data:', validation.errors);
+          logger.error('Invalid user data in admin service', null, { component: 'AdminService', operation: 'listUsers', validationErrors: validation.errors });
         }
         return transformed;
       }) || [];
@@ -122,7 +123,7 @@ class AdminService {
         }
       };
     } catch (error) {
-      console.error('[AdminService] Failed to list users:', error);
+      logger.error('Admin service failed to list users', error, { component: 'AdminService', operation: 'listUsers' });
       throw transformErrorResponse(error, 500, `${this.basePath}/users`);
     }
   }
@@ -141,7 +142,7 @@ class AdminService {
       
       return transformed;
     } catch (error) {
-      console.error('[AdminService] Failed to get user:', error);
+      logger.error('Admin service failed to get user', error, { component: 'AdminService', operation: 'getUserById', userId });
       throw transformErrorResponse(error, 500, `${this.basePath}/users/${userId}`);
     }
   }
@@ -161,7 +162,7 @@ class AdminService {
       
       return transformed;
     } catch (error) {
-      console.error('[AdminService] Failed to create user:', error);
+      logger.error('Admin service failed to create user', error, { component: 'AdminService', operation: 'createUser', email: request.email });
       if (error instanceof ApiError && error.statusCode === 409) {
         throw new ApiError({
           code: 'USER_EXISTS',
@@ -191,7 +192,7 @@ class AdminService {
       
       return transformed;
     } catch (error) {
-      console.error('[AdminService] Failed to update user:', error);
+      logger.error('Admin service failed to update user', error, { component: 'AdminService', operation: 'updateUser', userId });
       throw transformErrorResponse(error, 500, `${this.basePath}/users/${userId}`);
     }
   }
@@ -203,7 +204,7 @@ class AdminService {
     try {
       await apiClient.delete(`${this.basePath}/users/${userId}`);
     } catch (error) {
-      console.error('[AdminService] Failed to delete user:', error);
+      logger.error('Admin service failed to delete user', error, { component: 'AdminService', operation: 'deleteUser', userId });
       throw transformErrorResponse(error, 500, `${this.basePath}/users/${userId}`);
     }
   }
@@ -339,7 +340,7 @@ class AdminService {
         return transformed;
       }) || [];
     } catch (error) {
-      console.error('[AdminService] Failed to search users:', error);
+      logger.error('Admin service failed to search users', error, { component: 'AdminService', operation: 'searchUsers', query, filters });
       throw transformErrorResponse(error, 500, `${this.basePath}/users/search`);
     }
   }
@@ -360,7 +361,7 @@ class AdminService {
 
       return response.data || [];
     } catch (error) {
-      console.error('[AdminService] Failed to get user activity:', error);
+      logger.error('Admin service failed to get user activity', error, { component: 'AdminService', operation: 'getUserActivityLogs', userId, params });
       throw transformErrorResponse(error, 500, `${this.basePath}/users/${userId}/activity`);
     }
   }
@@ -375,7 +376,7 @@ class AdminService {
         { temporaryPassword }
       );
     } catch (error) {
-      console.error('[AdminService] Failed to reset user password:', error);
+      logger.error('Admin service failed to reset user password', error, { component: 'AdminService', operation: 'resetUserPassword', userId });
       throw transformErrorResponse(error, 500, `${this.basePath}/users/${userId}/reset-password`);
     }
   }
@@ -387,7 +388,7 @@ class AdminService {
     try {
       await apiClient.post(`${this.basePath}/users/${userId}/unlock`);
     } catch (error) {
-      console.error('[AdminService] Failed to unlock user account:', error);
+      logger.error('Admin service failed to unlock user account', error, { component: 'AdminService', operation: 'unlockUserAccount', userId });
       throw transformErrorResponse(error, 500, `${this.basePath}/users/${userId}/unlock`);
     }
   }
@@ -419,7 +420,7 @@ class AdminService {
 
       return await response.blob();
     } catch (error) {
-      console.error('[AdminService] Failed to export users:', error);
+      logger.error('Admin service failed to export users', error, { component: 'AdminService', operation: 'exportUsers', filters });
       throw transformErrorResponse(error, 500, `${this.basePath}/users/export`);
     }
   }

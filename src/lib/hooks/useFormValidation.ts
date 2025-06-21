@@ -4,11 +4,12 @@
 import { useState, useCallback } from 'react';
 import { z } from 'zod';
 import { UseFormSetError, FieldPath, FieldValues } from 'react-hook-form';
-import { 
+import {
   validateAndTransformFormData,
-  extractBrandedTypeErrors 
+  extractBrandedTypeErrors
 } from '@/lib/schemas/brandedValidationSchemas';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/lib/utils/logger';
 
 export interface ValidationResult<T> {
   success: boolean;
@@ -79,7 +80,7 @@ export function useFormValidation<TFormData extends FieldValues>(
         setIsValidating(false);
         return { success: false, errors };
       }
-    } catch {
+    } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Validation failed";
       setValidationErrors({ general: errorMessage });
       
@@ -189,8 +190,11 @@ export function useTypeSafeFormSubmit<TFormData extends FieldValues, TTransforme
       if (validation.success && validation.data) {
         await onSubmit(validation.data as TTransformed);
       }
-    } catch {
-      console.error('Form submission error:', error);
+    } catch (error: unknown) {
+      logger.error('Form submission error occurred', {
+        component: 'useTypeSafeFormSubmit',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     } finally {
       setIsSubmitting(false);
     }

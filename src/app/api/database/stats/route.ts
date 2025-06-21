@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
 
 // This is a hidden database API endpoint for the database GUI
 // Returns database statistics
@@ -51,8 +52,12 @@ export async function GET(request: NextRequest) {
     const stats = await response.json();
     return NextResponse.json(stats);
 
-  } catch {
-    console.error('Database stats error:', error);
+  } catch (error: unknown) {
+    logger.error("Database stats API error", {
+      route: "/api/database/stats",
+      error: error instanceof Error ? error.message : String(error),
+      component: 'DatabaseStatsAPI'
+    });
     
     // Return fallback stats if there's an error
     const fallbackStats: DatabaseStats = {

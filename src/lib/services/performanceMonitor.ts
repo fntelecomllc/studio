@@ -3,6 +3,8 @@
  * Provides real-time performance monitoring and Core Web Vitals tracking
  */
 
+import { logger } from '../utils/logger';
+
 export interface PerformanceMetrics {
   // Core Web Vitals
   fcp?: number; // First Contentful Paint
@@ -114,8 +116,8 @@ class PerformanceMonitor {
         resourceObserver.observe({ entryTypes: ['resource'] });
         this.observers.push(resourceObserver);
 
-      } catch {
-        console.warn('Performance Observer not fully supported:', error);
+      } catch (error) {
+        logger.warn('Performance Observer not fully supported', { error, component: 'PerformanceMonitor' });
       }
     }
   }
@@ -177,7 +179,8 @@ class PerformanceMonitor {
     this.metrics.componentLoadTime = loadTime;
     
     // Log for debugging
-    console.debug(`Component ${componentName} loaded in ${loadTime.toFixed(2)}ms`);
+    logger.debug(`Component ${componentName} loaded in ${loadTime.toFixed(2)}ms`,
+      { componentName, loadTime, component: 'PerformanceMonitor' });
     
     return loadTime;
   }
@@ -188,7 +191,12 @@ class PerformanceMonitor {
     
     // Log slow API calls
     if (responseTime > 1000) {
-      console.warn(`Slow API call to ${endpoint}: ${responseTime.toFixed(2)}ms`);
+      logger.warn(`Slow API call to ${endpoint}`, {
+        endpoint,
+        responseTime,
+        component: 'PerformanceMonitor',
+        operation: 'api_performance_warning'
+      });
     }
     
     return responseTime;
@@ -299,7 +307,7 @@ export const measureAsync = async <T>(
   const result = await asyncFn();
   const duration = performance.now() - startTime;
   
-  console.debug(`${label}: ${duration.toFixed(2)}ms`);
+  logger.debug(`${label} completed`, { duration, label, component: 'PerformanceMonitor' });
   return { result, duration };
 };
 
@@ -312,7 +320,7 @@ export const withPerformanceTracking = <T extends (...args: unknown[]) => unknow
     const result = fn(...args);
     const duration = performance.now() - startTime;
     
-    console.debug(`${label}: ${duration.toFixed(2)}ms`);
+    logger.debug(`${label} completed`, { duration, label, component: 'PerformanceMonitor' });
     return result;
   }) as T;
 };

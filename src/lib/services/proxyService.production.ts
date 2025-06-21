@@ -4,6 +4,7 @@
 
 import apiClient from './apiClient.production';
 import { TypeTransformer } from '@/lib/types/transform';
+import { logger } from '@/lib/utils/logger';
 import type {
   Proxy,
   CreateProxyPayload,
@@ -86,7 +87,7 @@ class ProxyService {
   // NOTE: Backend does not have enable/disable proxy endpoints
   // Proxy status should be managed through the update endpoint
   async enableProxy(_proxyId: string): Promise<ProxyActionResponse> {
-    console.warn('Proxy enable/disable not available - use updateProxy with isEnabled: true instead');
+    logger.warn('Proxy enable/disable not available - use updateProxy with isEnabled: true instead', { component: 'ProxyService', operation: 'enableProxy', proxyId: _proxyId });
     return {
       status: 'error',
       message: 'Proxy enable endpoint is not implemented in the backend. Use updateProxy instead.'
@@ -94,7 +95,7 @@ class ProxyService {
   }
 
   async disableProxy(_proxyId: string): Promise<ProxyActionResponse> {
-    console.warn('Proxy enable/disable not available - use updateProxy with isEnabled: false instead');
+    logger.warn('Proxy enable/disable not available - use updateProxy with isEnabled: false instead', { component: 'ProxyService', operation: 'disableProxy', proxyId: _proxyId });
     return {
       status: 'error',
       message: 'Proxy disable endpoint is not implemented in the backend. Use updateProxy instead.'
@@ -116,12 +117,12 @@ export const disableProxy = (proxyId: string) => proxyService.disableProxy(proxy
 
 // Bulk operations
 export const testAllProxies = async (): Promise<{ status: 'error'; message: string }> => {
-  console.warn('testAllProxies bulk operation not yet implemented in V2 API');
+  logger.warn('testAllProxies bulk operation not yet implemented in V2 API', { component: 'ProxyService', operation: 'testAllProxies' });
   return { status: 'error' as const, message: 'Bulk proxy testing not yet available' };
 };
 
 export const cleanProxies = async (): Promise<{ status: 'error'; message: string }> => {
-  console.warn('cleanProxies bulk operation not yet implemented in V2 API');
+  logger.warn('cleanProxies bulk operation not yet implemented in V2 API', { component: 'ProxyService', operation: 'cleanProxies' });
   return { status: 'error' as const, message: 'Bulk proxy cleanup not yet available' };
 };
 

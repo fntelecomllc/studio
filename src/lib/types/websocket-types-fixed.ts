@@ -11,6 +11,7 @@
  */
 
 import { SafeBigInt, createSafeBigInt } from './branded';
+import { logger } from '@/lib/utils/logger';
 
 // ============================================================================
 // WEBSOCKET MESSAGE FORMAT - Matches Go Backend Exactly
@@ -241,7 +242,11 @@ export function parseWebSocketMessage(raw: string): TypedWebSocketMessage | null
     const parsed = JSON.parse(raw);
     
     if (!isWebSocketMessage(parsed)) {
-      console.error('Invalid WebSocket message format:', parsed);
+      logger.error('Invalid WebSocket message format received', {
+        component: 'WebSocketTypes',
+        parsed,
+        action: 'parseWebSocketMessage'
+      });
       return null;
     }
     
@@ -323,8 +328,13 @@ export function parseWebSocketMessage(raw: string): TypedWebSocketMessage | null
         // For other message types, no transformation needed
         return parsed as TypedWebSocketMessage;
     }
-  } catch {
-    console.error('Failed to parse WebSocket message:', error);
+  } catch (error: unknown) {
+    logger.error('Failed to parse WebSocket message', {
+      component: 'WebSocketTypes',
+      error,
+      rawMessage: raw.substring(0, 200), // Truncate for logging
+      action: 'parseWebSocketMessage'
+    });
     return null;
   }
 }

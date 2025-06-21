@@ -5,6 +5,7 @@
 import type { ApiResponse } from '@/lib/types';
 import { getApiConfig } from '@/lib/config/environment';
 import { transformApiResponse, transformApiRequest } from '@/lib/utils/case-transformations';
+import { logger } from '@/lib/utils/logger';
 
 // Error detail type for API responses
 interface ErrorDetail {
@@ -190,7 +191,7 @@ class EnhancedApiClient {
                 }
                 
                 // Log error with request ID for debugging
-                console.error(`API Error [${unifiedError.request_id}]:`, unifiedError.error);
+                logger.error(`API Error [${unifiedError.request_id}]`, unifiedError.error, { component: 'EnhancedApiClient', operation: 'request', requestId: unifiedError.request_id, endpoint });
               }
               // Handle legacy error formats
               else if (errorData.error) {

@@ -4,6 +4,7 @@
  */
 
 import { useCallback, useMemo, useRef } from 'react';
+import { logger } from './logger';
 
 /**
  * Creates a stable object reference that only updates when specific properties change
@@ -107,9 +108,11 @@ export function useRenderTracking(componentName: string, props?: Record<string, 
     renderCountRef.current += 1;
     
     if (props && JSON.stringify(props) !== JSON.stringify(propsRef.current)) {
-      console.log(`[Performance] ${componentName} re-rendered (${renderCountRef.current}) due to prop changes:`, {
+      logger.debug(`${componentName} re-rendered due to prop changes`, {
+        renderCount: renderCountRef.current,
         previous: propsRef.current,
-        current: props
+        current: props,
+        component: 'PerformanceOptimization'
       });
       propsRef.current = props;
     }
@@ -203,7 +206,12 @@ export function usePerformanceMeasure(componentName: string) {
     const renderTime = endTime - (startTime.current || 0);
     
     if (renderTime > 16) { // Longer than one frame at 60fps
-      console.warn(`[Performance] ${componentName} took ${renderTime.toFixed(2)}ms to render`);
+      logger.warn(`${componentName} slow render detected`, {
+        renderTime,
+        threshold: 16,
+        component: 'PerformanceOptimization',
+        operation: 'render_performance_warning'
+      });
     }
     
     startTime.current = endTime;

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
 
 // This is a hidden database API endpoint for the database GUI
 // Only accessible to authenticated users with proper session
@@ -92,8 +93,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(queryResult);
 
-  } catch {
-    console.error('Database query error:', error);
+  } catch (error: unknown) {
+    logger.error("Database query API error", {
+      route: "/api/database/query",
+      error: error instanceof Error ? error.message : String(error),
+      component: 'DatabaseQueryAPI'
+    });
     return NextResponse.json(
       { error: 'Internal server error executing query' },
       { status: 500 }

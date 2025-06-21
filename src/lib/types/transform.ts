@@ -5,6 +5,7 @@
 
 import { UUID, SafeBigInt, ISODateString, isValidUUID, createSafeBigInt, createISODateString } from './branded';
 import type { Campaign, User } from '../types';
+import { logger } from '@/lib/utils/logger';
 
 // Raw API data types (before transformation)
 export interface RawAPIData {
@@ -21,7 +22,12 @@ export class TypeTransformer {
   static toUUID(value: string | undefined | null): UUID | undefined {
     if (!value) return undefined;
     if (!isValidUUID(value)) {
-      console.warn(`Invalid UUID format: ${value}`);
+      logger.warn('Invalid UUID format provided', {
+        component: 'TypeTransformer',
+        method: 'toUUID',
+        value,
+        expectedFormat: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
+      });
       return undefined;
     }
     return value as UUID;

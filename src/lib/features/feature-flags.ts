@@ -13,6 +13,7 @@
 
 import { z } from 'zod';
 import React from 'react';
+import { logger } from '@/lib/utils/logger';
 
 // Feature flag value types
 export type FeatureFlagValue = boolean | string | number | Record<string, unknown>;
@@ -284,10 +285,20 @@ class FeatureFlagsService {
       this.saveToLocalStorage();
 
       if (this.config.enableDebugMode) {
-        console.log('Feature flags updated:', flags);
+        logger.info('Feature flags updated successfully', {
+          component: 'FeatureFlagsService',
+          flagCount: flags.length,
+          updatedFlags: flags.map(f => f.key)
+        });
       }
-    } catch {
-      console.error('Error fetching feature flags:', error);
+    } catch (error: unknown) {
+      logger.error('Failed to fetch feature flags from API', {
+        component: 'FeatureFlagsService',
+        endpoint: this.config.apiEndpoint,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        userId: this.userContext.userId,
+        segment: this.userContext.segment
+      });
     }
   }
 
@@ -366,8 +377,13 @@ class FeatureFlagsService {
       };
       
       localStorage.setItem('domainflow_feature_flags', JSON.stringify(data));
-    } catch {
-      console.error('Error saving feature flags to localStorage:', error);
+    } catch (error: unknown) {
+      logger.error('Failed to save feature flags to localStorage', {
+        component: 'FeatureFlagsService',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        flagCount: this.flags.size,
+        assignmentCount: this.abTestAssignments.size
+      });
     }
   }
 
@@ -402,8 +418,12 @@ class FeatureFlagsService {
       }
 
       this.cacheTimestamp = data.timestamp;
-    } catch {
-      console.error('Error loading feature flags from localStorage:', error);
+    } catch (error: unknown) {
+      logger.error('Failed to load feature flags from localStorage', {
+        component: 'FeatureFlagsService',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        cacheAge: Date.now() - this.cacheTimestamp
+      });
     }
   }
 

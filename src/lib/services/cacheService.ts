@@ -1,5 +1,7 @@
 // Phase 5.2: Multi-Layer Caching Strategy Implementation
 
+import { logger } from '@/lib/utils/logger';
+
 interface CacheEntry<T> {
   value: T;
   timestamp: number;
@@ -48,7 +50,7 @@ export class MemoryCache {
       const value = await fetcher();
       this.set(key, value, ttl);
       return value;
-    } catch {
+    } catch (error) {
       // Remove stale entry if fetch fails
       this.delete(key);
       throw error;
@@ -152,8 +154,8 @@ export class StorageCache {
       }
 
       return entry.value;
-    } catch {
-      console.error('Storage cache get error:', error);
+    } catch (error) {
+      logger.error('Storage cache get error', error, { component: 'StorageCache', operation: 'get', key });
       return undefined;
     }
   }
@@ -167,8 +169,8 @@ export class StorageCache {
       };
       
       localStorage.setItem(`${this.storageKey}_${key}`, JSON.stringify(entry));
-    } catch {
-      console.error('Storage cache set error:', error);
+    } catch (error) {
+      logger.error('Storage cache set error', error, { component: 'StorageCache', operation: 'set', key });
       // Handle quota exceeded error
       if (error instanceof DOMException && error.code === 22) {
         this.cleanup();
@@ -180,7 +182,7 @@ export class StorageCache {
             ttl
           }));
         } catch (retryError) {
-          console.error('Storage cache retry failed:', retryError);
+          logger.error('Storage cache retry failed', retryError, { component: 'StorageCache', operation: 'setRetry', key });
         }
       }
     }
@@ -213,8 +215,9 @@ export class StorageCache {
               localStorage.removeItem(key);
             }
           }
-        } catch {
+        } catch (error) {
           // Remove corrupted entries
+          logger.error('Storage cache cleanup - removing corrupted entry', error, { component: 'StorageCache', operation: 'cleanup', key });
           localStorage.removeItem(key);
         }
       }

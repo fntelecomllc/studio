@@ -4,6 +4,7 @@
  */
 
 import { ComponentType, lazy, LazyExoticComponent } from 'react';
+import { logger } from './logger';
 
 // Generic dynamic import with error boundary
 export function createLazyComponent<T extends ComponentType<Record<string, unknown>>>(
@@ -13,8 +14,8 @@ export function createLazyComponent<T extends ComponentType<Record<string, unkno
     try {
       const importedModule = await importFn();
       return importedModule;
-    } catch {
-      console.error('Failed to load component:', error);
+    } catch (error) {
+      logger.error('Failed to load component', { error, component: 'DynamicImports' });
       // Return a simple error component
       const ErrorComponent = () => {
         return null; // Return null for failed components
@@ -28,7 +29,7 @@ export function createLazyComponent<T extends ComponentType<Record<string, unkno
 export const preloadComponent = (importFn: () => Promise<{ default: ComponentType<Record<string, unknown>> }>) => {
   // Start loading the component but don't wait for it
   importFn().catch(error => {
-    console.warn('Failed to preload component:', error);
+    logger.warn('Failed to preload component', { error, component: 'DynamicImports' });
   });
 };
 
@@ -109,7 +110,11 @@ export const trackDynamicImportPerformance = (componentName: string) => {
       const loadTime = endTime - startTime;
       
       // Log performance metrics (can be sent to analytics)
-      console.debug(`Dynamic import ${componentName}: ${loadTime.toFixed(2)}ms`);
+      logger.debug(`Dynamic import ${componentName} completed`, {
+        componentName,
+        loadTime,
+        component: 'DynamicImports'
+      });
       
       // Track in performance observer if available
       if ('PerformanceObserver' in window) {
@@ -169,8 +174,8 @@ export const analyzeBundleChunks = async () => {
           size: parseInt(response.headers.get('content-length') || '0'),
           type: getChunkType(src),
         });
-      } catch {
-        console.warn('Failed to analyze chunk:', src, error);
+      } catch (error) {
+        logger.warn('Failed to analyze chunk', { error, src, component: 'DynamicImports' });
       }
     }
   }

@@ -4,6 +4,7 @@
 
 import type { WebSocketMessage, CampaignProgressMessage } from '@/lib/services/websocketService.simple';
 import { createUUID, UUID } from '@/lib/types/branded';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * Converts WebSocket message to legacy format for backward compatibility
@@ -129,7 +130,10 @@ export function adaptWebSocketMessageToLegacy(message: WebSocketMessage): Campai
     }
 
     default:
-      console.warn('Unknown WebSocket message type:', message.type);
+      logger.warn('Unknown WebSocket message type', {
+        messageType: message.type,
+        component: 'WebSocketMessageAdapter'
+      });
       return {
         type: 'subscription_confirmed',
         campaignId: createUUID('00000000-0000-0000-0000-000000000000'),

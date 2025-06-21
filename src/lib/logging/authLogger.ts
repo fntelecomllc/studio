@@ -1,6 +1,8 @@
 // Frontend authentication logging utility
 // Provides structured logging for client-side authentication events
 
+import { logger } from '@/lib/utils/logger';
+
 // Specific detail interfaces for different logging contexts
 export interface AuthOperationDetails {
   authMethod?: string;
@@ -437,11 +439,23 @@ class AuthLogger {
 
     // Console log for development
     if (process.env.NODE_ENV === 'development') {
-      const logMethod = entry.level === 'ERROR' ? console.error :
-                       entry.level === 'WARN' ? console.warn :
-                       console.log;
+      const logMethod = entry.level === 'ERROR' ? logger.error :
+                       entry.level === 'WARN' ? logger.warn :
+                       logger.info;
       
-      logMethod(`[${entry.level}] ${entry.category}:${entry.operation}`, entry);
+      logMethod(`Authentication event: ${entry.category}:${entry.operation}`, {
+        component: 'AuthLogger',
+        level: entry.level,
+        operation: entry.operation,
+        category: entry.category,
+        userId: entry.userId,
+        sessionId: entry.sessionId,
+        success: entry.success,
+        duration: entry.duration,
+        url: entry.url,
+        userAgent: entry.userAgent,
+        details: entry.details
+      });
     }
 
     // Flush if buffer is full
@@ -458,7 +472,12 @@ class AuthLogger {
 
     // Send logs to server (fire and forget)
     this.sendLogsToServer(logsToSend).catch(error => {
-      console.warn('Failed to send logs to server:', error);
+      logger.warn('Failed to send authentication logs to server', {
+        component: 'AuthLogger',
+        method: 'flush',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        logCount: logsToSend.length
+      });
       // Could implement retry logic here
     });
   }
@@ -484,7 +503,12 @@ class AuthLogger {
       }
     } catch (error) {
       // Silently fail - logging shouldn't break the app
-      console.warn('Log shipping failed:', error);
+      logger.warn('Authentication log shipping failed', {
+        component: 'AuthLogger',
+        method: 'sendLogsToServer',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        logCount: logs.length
+      });
     }
   }
 

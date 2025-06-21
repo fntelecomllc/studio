@@ -29,6 +29,7 @@ import {
   transformHTTPKeywordResultArrayResponse,
   transformToValidationItem
 } from '@/lib/api/transformers/domain-transformers';
+import { logger } from '@/lib/utils/logger';
 
 
 class CampaignService {
@@ -43,14 +44,18 @@ class CampaignService {
         failureThreshold: 5,
         resetTimeoutMs: 60000, // 1 minute
         onStateChange: (state) => {
-          console.log(`[CampaignService] Circuit breaker state changed to: ${state}`);
+          logger.warn('Campaign service circuit breaker state changed', { newState: state }, { component: 'CampaignService' });
         }
       },
       {
         maxRetries: 3,
         initialDelayMs: 1000,
         onRetry: (attempt, error) => {
-          console.warn(`[CampaignService] Retry attempt ${attempt}:`, error.message);
+          logger.warn('Campaign service retry attempt', {
+            attempt,
+            errorMessage: error.message,
+            operation: 'api_retry'
+          }, { component: 'CampaignService' });
         }
       }
     );
@@ -73,9 +78,12 @@ class CampaignService {
     sortOrder?: 'asc' | 'desc';
   }): Promise<CampaignsListResponse> {
     try {
-      console.log('[CampaignService] Getting campaigns with filters:', filters);
+      logger.api('Fetching campaigns list', { filters, endpoint: '/api/v2/campaigns' });
       const response = await apiClient.get<ModelsCampaignAPI[]>('/api/v2/campaigns', { params: filters });
-      console.log('[CampaignService] Get campaigns response:', response);
+      logger.api('Campaigns list retrieved successfully', {
+        campaignCount: response.data?.length || 0,
+        status: response.status
+      });
       
       // Transform raw campaign data to use branded types
       const transformedData = transformCampaignArrayResponse(response.data);
@@ -84,8 +92,8 @@ class CampaignService {
         ...response,
         data: transformedData as unknown as Campaign[]
       };
-    } catch {
-      console.error('[CampaignService] Failed to get campaigns:', error);
+    } catch (error) {
+      logger.error('Failed to retrieve campaigns list', error, { component: 'CampaignService', operation: 'getCampaigns' });
       const standardizedError = transformErrorResponse(error, 500, '/api/v2/campaigns');
       throw new ApiError(standardizedError);
     }
@@ -93,9 +101,13 @@ class CampaignService {
 
   async getCampaignById(campaignId: string): Promise<CampaignDetailResponse> {
     try {
-      console.log('[CampaignService] Getting campaign by ID:', campaignId);
+      logger.api('Fetching campaign details', { campaignId, endpoint: `/api/v2/campaigns/${campaignId}` });
       const response = await apiClient.get<ModelsCampaignAPI>(`/api/v2/campaigns/${campaignId}`);
-      console.log('[CampaignService] Get campaign response:', response);
+      logger.api('Campaign details retrieved successfully', {
+        campaignId,
+        status: response.status,
+        campaignName: response.data?.name || 'unknown'
+      });
       
       // Transform single campaign response
       const transformedData = transformCampaignResponse(response.data);
@@ -104,8 +116,8 @@ class CampaignService {
         ...response,
         data: transformedData as unknown as Campaign
       };
-    } catch {
-      console.error('[CampaignService] Failed to get campaign:', error);
+    } catch (error) {
+      logger.error('Failed to retrieve campaign details', error, { component: 'CampaignService', operation: 'getCampaignById', campaignId });
       const standardizedError = transformErrorResponse(error, 500, `/api/v2/campaigns/${campaignId}`);
       throw new ApiError(standardizedError);
     }
@@ -115,7 +127,11 @@ class CampaignService {
   async createCampaignUnified(payload: UnifiedCreateCampaignRequest): Promise<CampaignCreationResponse> {
     return this.resilientWrapper.execute(
       async () => {
-        console.log('[CampaignService] Creating campaign with unified payload:', payload);
+        logger.api('Creating campaign with unified endpoint', {
+          campaignName: payload.name,
+          campaignType: payload.campaignType,
+          endpoint: '/api/v2/campaigns'
+        });
         
         // Validate payload using Zod schema
         const validatedPayload = unifiedCreateCampaignRequestSchema.parse(payload);
@@ -125,7 +141,11 @@ class CampaignService {
         // Transform response
         const transformedData = transformCampaignResponse(response.data);
         
-        console.log('[CampaignService] Campaign created successfully via unified endpoint:', response);
+        logger.api('Campaign created successfully', {
+          campaignId: response.data?.id,
+          campaignName: response.data?.name,
+          status: response.status
+        });
         return {
           ...response,
           data: transformedData as unknown as Campaign
@@ -133,12 +153,12 @@ class CampaignService {
       },
       {
         fallbackFunction: async () => {
-          console.error('[CampaignService] Campaign creation failed, no fallback available');
+          logger.error('Campaign creation failed with no fallback available', {}, { component: 'CampaignService', operation: 'createCampaignUnified' });
           throw new Error('Campaign creation service is temporarily unavailable');
         }
       }
     ).catch((error: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any -- Error handling for diagnostic logging
-      console.error('[CampaignService] Unified campaign creation failed:', error);
+      logger.error('Unified campaign creation failed', error, { component: 'CampaignService', operation: 'createCampaignUnified' });
       
       // Enhanced error handling with standardized error transformation
       if (error.response) {
@@ -159,9 +179,9 @@ class CampaignService {
   // Campaign Control Operations
   async startCampaign(campaignId: string): Promise<CampaignOperationResponse> {
     try {
-      console.log('[CampaignService] Starting campaign:', campaignId);
+      logger.api('Starting campaign', { campaignId, operation: 'start' });
       const response = await apiClient.post<ModelsCampaignAPI>(`/api/v2/campaigns/${campaignId}/start`);
-      console.log('[CampaignService] Start campaign response:', response);
+      logger.api('Campaign started successfully', { campaignId, status: response.status });
       
       // Transform response
       const transformedData = transformCampaignResponse(response.data);
@@ -170,8 +190,8 @@ class CampaignService {
         ...response,
         data: transformedData as unknown as Campaign
       };
-    } catch {
-      console.error('[CampaignService] Start campaign error:', error);
+    } catch (error) {
+      logger.error('Failed to start campaign', error, { component: 'CampaignService', operation: 'startCampaign', campaignId });
       const standardizedError = transformErrorResponse(error, 500, `/api/v2/campaigns/${campaignId}/start`);
       throw new ApiError(standardizedError);
     }
@@ -179,9 +199,9 @@ class CampaignService {
 
   async pauseCampaign(campaignId: string): Promise<CampaignOperationResponse> {
     try {
-      console.log('[CampaignService] Pausing campaign:', campaignId);
+      logger.api('Pausing campaign', { campaignId, operation: 'pause' });
       const response = await apiClient.post<ModelsCampaignAPI>(`/api/v2/campaigns/${campaignId}/pause`);
-      console.log('[CampaignService] Pause campaign response:', response);
+      logger.api('Campaign paused successfully', { campaignId, status: response.status });
       
       // Transform response
       const transformedData = transformCampaignResponse(response.data);
@@ -190,8 +210,8 @@ class CampaignService {
         ...response,
         data: transformedData as unknown as Campaign
       };
-    } catch {
-      console.error('[CampaignService] Pause campaign error:', error);
+    } catch (error) {
+      logger.error('Failed to pause campaign', error, { component: 'CampaignService', operation: 'pauseCampaign', campaignId });
       const standardizedError = transformErrorResponse(error, 500, `/api/v2/campaigns/${campaignId}/pause`);
       throw new ApiError(standardizedError);
     }
@@ -199,9 +219,9 @@ class CampaignService {
 
   async resumeCampaign(campaignId: string): Promise<CampaignOperationResponse> {
     try {
-      console.log('[CampaignService] Resuming campaign:', campaignId);
+      logger.api('Resuming campaign', { campaignId, operation: 'resume' });
       const response = await apiClient.post<ModelsCampaignAPI>(`/api/v2/campaigns/${campaignId}/resume`);
-      console.log('[CampaignService] Resume campaign response:', response);
+      logger.api('Campaign resumed successfully', { campaignId, status: response.status });
       
       // Transform response
       const transformedData = transformCampaignResponse(response.data);
@@ -210,8 +230,8 @@ class CampaignService {
         ...response,
         data: transformedData as unknown as Campaign
       };
-    } catch {
-      console.error('[CampaignService] Resume campaign error:', error);
+    } catch (error) {
+      logger.error('Failed to resume campaign', error, { component: 'CampaignService', operation: 'resumeCampaign', campaignId });
       const standardizedError = transformErrorResponse(error, 500, `/api/v2/campaigns/${campaignId}/resume`);
       throw new ApiError(standardizedError);
     }
@@ -219,9 +239,9 @@ class CampaignService {
 
   async cancelCampaign(campaignId: string): Promise<CampaignOperationResponse> {
     try {
-      console.log('[CampaignService] Cancelling campaign:', campaignId);
+      logger.api('Cancelling campaign', { campaignId, operation: 'cancel' });
       const response = await apiClient.post<ModelsCampaignAPI>(`/api/v2/campaigns/${campaignId}/cancel`);
-      console.log('[CampaignService] Cancel campaign response:', response);
+      logger.api('Campaign cancelled successfully', { campaignId, status: response.status });
       
       // Transform response
       const transformedData = transformCampaignResponse(response.data);
@@ -230,8 +250,8 @@ class CampaignService {
         ...response,
         data: transformedData as unknown as Campaign
       };
-    } catch {
-      console.error('[CampaignService] Cancel campaign error:', error);
+    } catch (error) {
+      logger.error('Failed to cancel campaign', error, { component: 'CampaignService', operation: 'cancelCampaign', campaignId });
       const standardizedError = transformErrorResponse(error, 500, `/api/v2/campaigns/${campaignId}/cancel`);
       throw new ApiError(standardizedError);
     }
@@ -251,9 +271,12 @@ class CampaignService {
         try {
           const result = await this.cancelCampaign(campaignId);
           return result.data || null;
-        } catch {
+        } catch (error) {
           // If already cancelled, continue
-          console.warn('[CampaignService] Campaign may already be cancelled:', error);
+          logger.warn('Campaign may already be cancelled during deletion', {
+            campaignId,
+            error: error instanceof Error ? error.message : 'unknown'
+          }, { component: 'CampaignService' });
           return null;
         }
       },
@@ -265,11 +288,11 @@ class CampaignService {
       name: 'cleanupResources',
       execute: async () => {
         // In a real implementation, this would clean up associated resources
-        console.log('[CampaignService] Cleaning up campaign resources...');
+        logger.info('Cleaning up campaign resources', { campaignId }, { component: 'CampaignService' });
         return true;
       },
       rollback: async () => {
-        console.warn('[CampaignService] Resource cleanup rollback - manual intervention may be required');
+        logger.warn('Resource cleanup rollback - manual intervention may be required', { campaignId }, { component: 'CampaignService' });
       }
     });
     
@@ -293,12 +316,20 @@ class CampaignService {
     options: { limit?: number; cursor?: number } = {}
   ): Promise<ApiResponse<GeneratedDomain[]>> {
     try {
-      console.log('[CampaignService] Getting generated domains for campaign:', campaignId, options);
+      logger.api('Fetching generated domains for campaign', {
+        campaignId,
+        options,
+        endpoint: `/api/v2/campaigns/${campaignId}/results/generated-domains`
+      });
       const response = await apiClient.get<unknown[]>(
         `/api/v2/campaigns/${campaignId}/results/generated-domains`,
         { params: options }
       );
-      console.log('[CampaignService] Generated domains response:', response);
+      logger.api('Generated domains retrieved successfully', {
+        campaignId,
+        resultCount: response.data?.length || 0,
+        status: response.status
+      });
       
       // Transform with proper offsetIndex handling
       const transformedData = transformGeneratedDomainArrayResponse(response.data);
@@ -307,8 +338,8 @@ class CampaignService {
         ...response,
         data: transformedData as unknown as GeneratedDomain[]
       };
-    } catch {
-      console.error('[CampaignService] Failed to get generated domains:', error);
+    } catch (error) {
+      logger.error('Failed to retrieve generated domains', error, { component: 'CampaignService', operation: 'getGeneratedDomains', campaignId });
       const standardizedError = transformErrorResponse(error, 500, `/api/v2/campaigns/${campaignId}/results/generated-domains`);
       throw new ApiError(standardizedError);
     }
@@ -319,12 +350,20 @@ class CampaignService {
     options: { limit?: number; cursor?: string } = {}
   ): Promise<ApiResponse<CampaignValidationItem[]>> {
     try {
-      console.log('[CampaignService] Getting DNS validation results for campaign:', campaignId, options);
+      logger.api('Fetching DNS validation results for campaign', { 
+        campaignId, 
+        options, 
+        endpoint: `/api/v2/campaigns/${campaignId}/results/dns-validation` 
+      });
       const response = await apiClient.get<unknown[]>(
         `/api/v2/campaigns/${campaignId}/results/dns-validation`,
         { params: options }
       );
-      console.log('[CampaignService] DNS validation results response:', response);
+      logger.api('DNS validation results retrieved successfully', {
+        campaignId,
+        resultCount: response.data?.length || 0,
+        status: response.status
+      });
       
       // Transform DNS results to unified validation items
       const transformedResults = transformDNSValidationResultArrayResponse(response.data);
@@ -336,8 +375,8 @@ class CampaignService {
         ...response,
         data: validationItems as unknown as CampaignValidationItem[]
       };
-    } catch {
-      console.error('[CampaignService] Failed to get DNS validation results:', error);
+    } catch (error) {
+      logger.error('Failed to retrieve DNS validation results', error, { component: 'CampaignService', operation: 'getDNSValidationResults', campaignId });
       const standardizedError = transformErrorResponse(error, 500, `/api/v2/campaigns/${campaignId}/results/dns-validation`);
       throw new ApiError(standardizedError);
     }
@@ -348,12 +387,20 @@ class CampaignService {
     options: { limit?: number; cursor?: string } = {}
   ): Promise<ApiResponse<CampaignValidationItem[]>> {
     try {
-      console.log('[CampaignService] Getting HTTP keyword results for campaign:', campaignId, options);
+      logger.api('Fetching HTTP keyword results for campaign', { 
+        campaignId, 
+        options, 
+        endpoint: `/api/v2/campaigns/${campaignId}/results/http-keyword` 
+      });
       const response = await apiClient.get<unknown[]>(
         `/api/v2/campaigns/${campaignId}/results/http-keyword`,
         { params: options }
       );
-      console.log('[CampaignService] HTTP keyword results response:', response);
+      logger.api('HTTP keyword results retrieved successfully', {
+        campaignId,
+        resultCount: response.data?.length || 0,
+        status: response.status
+      });
       
       // Transform HTTP results to unified validation items
       const transformedResults = transformHTTPKeywordResultArrayResponse(response.data);
@@ -365,8 +412,8 @@ class CampaignService {
         ...response,
         data: validationItems as unknown as CampaignValidationItem[]
       };
-    } catch {
-      console.error('[CampaignService] Failed to get HTTP keyword results:', error);
+    } catch (error) {
+      logger.error('Failed to retrieve HTTP keyword results', error, { component: 'CampaignService', operation: 'getHTTPKeywordResults', campaignId });
       const standardizedError = transformErrorResponse(error, 500, `/api/v2/campaigns/${campaignId}/results/http-keyword`);
       throw new ApiError(standardizedError);
     }
@@ -431,7 +478,7 @@ export const analyzeContent = async (
   _campaignId?: string,
   _contentId?: string
 ): Promise<{ status: string; message: string }> => {
-  console.warn('AI Content Analysis is not yet implemented in V2 API');
+  logger.warn('AI Content Analysis is not yet implemented in V2 API', { feature: 'analyzeContent' }, { component: 'CampaignService' });
   return {
     status: 'error',
     message: 'AI Content Analysis feature is not yet available in the production API'

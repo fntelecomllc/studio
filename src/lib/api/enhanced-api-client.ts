@@ -7,6 +7,7 @@ import { apiClient, type RequestOptions } from './client';
 import type { ApiResponse } from '@/lib/types';
 import { monitoringService } from '@/lib/monitoring/monitoring-service';
 import { createSafeBigInt } from '@/lib/types/branded';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * Request deduplication cache
@@ -49,7 +50,8 @@ class EnhancedApiClient {
   private setupDefaultInterceptors(): void {
     // Request logging interceptor
     this.addRequestInterceptor((config) => {
-      console.debug('[API Request]', {
+      logger.debug('API request initiated', {
+        component: 'EnhancedApiClient',
         method: config.method,
         params: config.params,
         timestamp: new Date().toISOString()
@@ -59,7 +61,8 @@ class EnhancedApiClient {
 
     // Response logging interceptor
     this.addResponseInterceptor((response) => {
-      console.debug('[API Response]', {
+      logger.debug('API response received', {
+        component: 'EnhancedApiClient',
         status: response.status,
         timestamp: new Date().toISOString()
       });

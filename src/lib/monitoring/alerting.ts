@@ -5,6 +5,7 @@
 
 import { performanceMonitor, PerformanceMetric } from './performance-monitor';
 import { errorTracker } from './error-tracker';
+import { logger } from '@/lib/utils/logger';
 
 export type AlertSeverity = 'info' | 'warning' | 'critical';
 export type AlertStatus = 'active' | 'resolved' | 'acknowledged';
@@ -376,8 +377,12 @@ class AlertingService {
     const promises = Array.from(this.handlers).map(handler => {
       try {
         return Promise.resolve(handler(alert));
-      } catch {
-        console.error('Error in alert handler:', error);
+      } catch (error: unknown) {
+        logger.error('Alert handler error', {
+          error: error instanceof Error ? error.message : String(error),
+          alertId: alert.id,
+          component: 'AlertingService'
+        });
         return Promise.resolve();
       }
     });
@@ -449,8 +454,18 @@ alertingService.onAlert((alert) => {
                 alert.severity === 'warning' ? '⚠️' : 'ℹ️';
   
   if (alert.status === 'active') {
-    console.warn(`${emoji} ALERT: ${alert.name} - ${alert.description}. Current value: ${alert.value}, Threshold: ${alert.threshold}`);
+    logger.warn('Alert triggered', {
+      alertName: alert.name,
+      description: alert.description,
+      currentValue: alert.value,
+      threshold: alert.threshold,
+      severity: alert.severity,
+      component: 'AlertingService'
+    });
   } else if (alert.status === 'resolved') {
-    console.info(`✅ RESOLVED: ${alert.name} - Alert has been resolved.`);
+    logger.info('Alert resolved', {
+      alertName: alert.name,
+      component: 'AlertingService'
+    });
   }
 });

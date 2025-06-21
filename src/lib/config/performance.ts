@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import React, { ComponentType, lazy, ReactNode } from 'react';
+import { logger } from '@/lib/utils/logger';
 
 // Extend Window interface for gtag
 declare global {
@@ -246,9 +247,12 @@ export const performanceHooks = {
       });
     }
     
-    // Log to console in development
+    // Log to structured logger in development
     if (process.env.NODE_ENV === 'development') {
-      console.log(metric);
+      logger.debug('Web Vitals metric reported', {
+        metric,
+        component: 'PerformanceHooks'
+      });
     }
   },
   

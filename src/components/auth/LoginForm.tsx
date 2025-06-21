@@ -17,6 +17,7 @@ import { z } from 'zod';
 import { FormFieldError, FormErrorSummary } from '@/components/ui/form-field-error';
 import { FormErrorManager, type FormErrorState } from '@/lib/utils/errorHandling';
 import { useAuthLoading } from '@/lib/stores/loadingStore';
+import { logger } from '@/lib/utils/logger';
 
 // Enhanced validation schema with security considerations
 const loginSchema = z.object({
@@ -195,7 +196,7 @@ export function LoginForm({
       loginSchema.parse(formData);
       errorManager.clearErrors();
       return true;
-    } catch {
+    } catch (error: unknown) {
       if (error instanceof z.ZodError) {
         errorManager.handleValidationError(error);
       }
@@ -230,7 +231,11 @@ export function LoginForm({
       if (result.success) {
         resetSecurityState();
         // Redirect will happen via useEffect when isAuthenticated changes
-        console.log('Login successful, redirecting...');
+        logger.info('Login successful, redirecting', {
+          component: 'LoginForm',
+          operation: 'login_success',
+          email: formData.email
+        });
       } else {
         // Handle failed login with security measures
         handleSecurityLockout(securityState.failedAttempts);
@@ -258,8 +263,12 @@ export function LoginForm({
           }
         }
       }
-    } catch {
-      console.error('Login error:', error);
+    } catch (error: unknown) {
+      logger.error('Login error occurred', {
+        component: 'LoginForm',
+        operation: 'login_attempt',
+        error: error instanceof Error ? error.message : String(error)
+      });
       setLoginError('An unexpected error occurred. Please try again.');
       handleSecurityLockout(securityState.failedAttempts);
     } finally {

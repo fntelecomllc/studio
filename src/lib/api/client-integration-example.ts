@@ -3,14 +3,15 @@
  * This file demonstrates how to use the auto-generated TypeScript API client
  */
 
-import { 
-  AuthenticationApi, 
-  CampaignsApi, 
+import {
+  AuthenticationApi,
+  CampaignsApi,
   Configuration,
   type ModelsLoginRequest,
   type ModelsUserAPI,
   type ServicesCreateCampaignRequest,
 } from '@/lib/api-client';
+import { logger } from '@/lib/utils/logger';
 
 // Configure the API client
 const configuration = new Configuration({
@@ -38,8 +39,13 @@ export class AuthService {
     try {
       const response = await authApi.authLoginPost(loginRequest);
       return response.data;
-    } catch {
-      console.error('Login failed:', error);
+    } catch (error: unknown) {
+      logger.error('Login failed', {
+        component: 'AuthService',
+        method: 'login',
+        email,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
       throw error;
     }
   }
@@ -51,8 +57,12 @@ export class AuthService {
     try {
       const response = await authApi.authMeGet();
       return response.data;
-    } catch {
-      console.error('Failed to get current user:', error);
+    } catch (error: unknown) {
+      logger.error('Failed to get current user', {
+        component: 'AuthService',
+        method: 'getCurrentUser',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
       throw error;
     }
   }
@@ -79,8 +89,13 @@ export class CampaignService {
         params?.status
       );
       return response.data;
-    } catch {
-      console.error('Failed to get campaigns:', error);
+    } catch (error: unknown) {
+      logger.error('Failed to get campaigns', {
+        component: 'CampaignService',
+        method: 'getCampaigns',
+        params,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
       throw error;
     }
   }
@@ -93,8 +108,12 @@ export class CampaignService {
       // Type assertion for API compatibility - validation should be done before this call
       const response = await campaignsApi.campaignsPost(campaignData as ServicesCreateCampaignRequest);
       return response.data;
-    } catch {
-      console.error('Failed to create campaign:', error);
+    } catch (error: unknown) {
+      logger.error('Failed to create campaign', {
+        component: 'CampaignService',
+        method: 'createCampaign',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
       throw error;
     }
   }
@@ -128,7 +147,7 @@ export function useAuth() {
       await AuthService.login(email, password);
       const userData = await AuthService.getCurrentUser();
       setUser(userData);
-    } catch {
+    } catch (error: unknown) {
       if (isApiError(error)) {
         throw new Error(error.response.data.message);
       }
@@ -143,7 +162,7 @@ export function useAuth() {
     try {
       const userData = await AuthService.getCurrentUser();
       setUser(userData);
-    } catch {
+    } catch (error: unknown) {
       setUser(null);
     } finally {
       setIsLoading(false);

@@ -4,6 +4,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, ReactNode } from 'react';
 import { authService, type AuthState, type LoginCredentials } from '@/lib/services/authService';
+import { logger } from '@/lib/utils/logger';
 // HMR SAFE: Local feature flags implementation to avoid environment.ts import chain
 const getFeatureFlags = () => ({
   enableDebugMode: process.env.NODE_ENV === 'development',
@@ -69,7 +70,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const initializeAuth = async () => {
       // MEMORY LEAK FIX: Prevent multiple concurrent initializations
       if (initializationRef.current) {
-        console.log('[AuthContext] Auth service already initializing, waiting for completion');
+        logger.info('Auth service already initializing, waiting for completion', {
+          component: 'AuthContext',
+          operation: 'auth_service_initialization'
+        });
         await initializationRef.current;
         if (mountedRef.current) {
           setIsInitialized(true);
@@ -78,16 +82,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       try {
-        console.log('[AuthContext] Starting auth service initialization');
+        logger.info('Starting auth service initialization', {
+          component: 'AuthContext',
+          operation: 'auth_service_initialization'
+        });
         initializationRef.current = authService.initialize();
         await initializationRef.current;
         
         if (mountedRef.current) {
-          console.log('[AuthContext] Auth service initialized successfully');
+          logger.info('Auth service initialized successfully', {
+            component: 'AuthContext',
+            operation: 'auth_service_initialization'
+          });
           
           // Get current state after initialization
           const state = authService.getState();
-          console.log('[AuthContext] Post-initialization auth state:', {
+          logger.info('Post-initialization auth state', {
+            component: 'AuthContext',
+            operation: 'auth_service_initialization',
             isAuthenticated: state.isAuthenticated,
             hasUser: !!state.user,
             userPermissions: state.user?.permissions?.length || 0
@@ -98,8 +110,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
           
           setIsInitialized(true);
         }
-      } catch {
-        console.error('[AuthContext] Failed to initialize auth service:', error);
+      } catch (error: unknown) {
+        logger.error('Failed to initialize auth service', {
+          component: 'AuthContext',
+          operation: 'auth_service_initialization',
+          error: error instanceof Error ? error.message : String(error)
+        });
         if (mountedRef.current) {
           setIsInitialized(true);
         }
@@ -155,13 +171,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const features = getFeatureFlags();
     
     if (features.enableDebugMode) {
-      console.log('[Auth] Attempting login for:', credentials.email);
+      logger.info('Attempting login', {
+        component: 'AuthContext',
+        operation: 'user_login',
+        email: credentials.email
+      });
     }
     
     const result = await authService.login(credentials);
     
     if (features.enableDebugMode) {
-      console.log('[Auth] Login result:', result.success ? 'success' : 'failed');
+      logger.info('Login result', {
+        component: 'AuthContext',
+        operation: 'user_login',
+        success: result.success,
+        status: result.success ? 'success' : 'failed'
+      });
     }
     
     return result;
@@ -172,7 +197,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const features = getFeatureFlags();
     
     if (features.enableDebugMode) {
-      console.log('[Auth] Logging out user');
+      logger.info('Logging out user', {
+        component: 'AuthContext',
+        operation: 'user_logout'
+      });
     }
     
     await authService.logout();
@@ -184,7 +212,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const features = getFeatureFlags();
     
     if (features.enableDebugMode) {
-      console.log('[Auth] Session refresh not needed in cookie-based auth');
+      logger.info('Session refresh not needed in cookie-based auth', {
+        component: 'AuthContext',
+        operation: 'session_refresh'
+      });
     }
     
     return true; // Sessions are handled automatically
@@ -195,7 +226,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const features = getFeatureFlags();
     
     if (features.enableDebugMode) {
-      console.log('[Auth] Changing password');
+      logger.info('Changing password', {
+        component: 'AuthContext',
+        operation: 'password_change'
+      });
     }
     
     const result = await authService.updatePassword({
@@ -229,7 +263,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     
     // Minimal debug logging for enterprise use
     if (!result) {
-      console.log('[Auth] Permission denied:', {
+      logger.warn('Permission denied', {
+        component: 'AuthContext',
+        operation: 'permission_check',
         permission,
         userRoles: authState.user.roles.map(r => r.name),
         hasPermissions: authState.user.permissions.length > 0

@@ -1,9 +1,9 @@
 /**
  * Transformation Layer
- * 
+ *
  * Helper functions for safe conversions between API responses and aligned types
  * Handles int64 conversions, enum transformations, and field mappings
- * 
+ *
  * Generated: 2025-06-20
  * Purpose: Bridge between raw API responses and type-safe frontend code
  */
@@ -21,6 +21,8 @@ import {
   transformInt64Fields,
   prepareForSerialization as _prepareForSerialization
 } from '../branded';
+
+import { logger } from '@/lib/utils/logger';
 
 import {
   Campaign,
@@ -599,7 +601,11 @@ export function safeTransform<T>(
     }
     return transformer(raw as Record<string, unknown>);
   } catch (error) {
-    console.error('Transformation error:', error);
+    logger.error('Transformation error during safe transform', {
+      component: 'TransformationLayer',
+      error,
+      action: 'safeTransform'
+    });
     return fallback;
   }
 }

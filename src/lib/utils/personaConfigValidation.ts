@@ -3,6 +3,7 @@
 
 import { z } from 'zod';
 import type { DnsPersonaConfig, HttpPersonaConfig } from '@/lib/types';
+import { logger } from '@/lib/utils/logger';
 
 // Validation schemas that match backend DNSConfigDetails and HTTPConfigDetails
 export const dnsPersonaConfigSchema = z.object({
@@ -55,8 +56,13 @@ export const httpPersonaConfigSchema = z.object({
 export function validateDnsPersonaConfig(rawConfig: unknown): DnsPersonaConfig {
   try {
     return dnsPersonaConfigSchema.parse(rawConfig);
-  } catch {
-    console.error('DNS persona config validation failed:', error);
+  } catch (error: unknown) {
+    logger.error('DNS persona config validation failed', {
+      component: 'PersonaConfigValidation',
+      function: 'validateDnsPersonaConfig',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      configType: 'dns'
+    });
     throw new Error(`Invalid DNS persona configuration: ${error instanceof z.ZodError ? error.message : 'Unknown validation error'}`);
   }
 }
@@ -67,8 +73,13 @@ export function validateDnsPersonaConfig(rawConfig: unknown): DnsPersonaConfig {
 export function validateHttpPersonaConfig(rawConfig: unknown): HttpPersonaConfig {
   try {
     return httpPersonaConfigSchema.parse(rawConfig);
-  } catch {
-    console.error('HTTP persona config validation failed:', error);
+  } catch (error: unknown) {
+    logger.error('HTTP persona config validation failed', {
+      component: 'PersonaConfigValidation',
+      function: 'validateHttpPersonaConfig',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      configType: 'http'
+    });
     throw new Error(`Invalid HTTP persona configuration: ${error instanceof z.ZodError ? error.message : 'Unknown validation error'}`);
   }
 }
@@ -79,8 +90,12 @@ export function validateHttpPersonaConfig(rawConfig: unknown): HttpPersonaConfig
 export function serializePersonaConfig(config: DnsPersonaConfig | HttpPersonaConfig): string {
   try {
     return JSON.stringify(config);
-  } catch {
-    console.error('Persona config serialization failed:', error);
+  } catch (error: unknown) {
+    logger.error('Persona config serialization failed', {
+      component: 'PersonaConfigValidation',
+      function: 'serializePersonaConfig',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
     throw new Error('Failed to serialize persona configuration');
   }
 }
@@ -97,8 +112,13 @@ export function deserializePersonaConfig(configJson: string | object, personaTyp
     } else {
       return validateHttpPersonaConfig(config);
     }
-  } catch {
-    console.error('Persona config deserialization failed:', error);
+  } catch (error: unknown) {
+    logger.error('Persona config deserialization failed', {
+      component: 'PersonaConfigValidation',
+      function: 'deserializePersonaConfig',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      personaType
+    });
     throw new Error(`Failed to deserialize ${personaType} persona configuration: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }

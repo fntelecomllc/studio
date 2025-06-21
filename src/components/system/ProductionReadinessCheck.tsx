@@ -9,6 +9,7 @@ import { CheckCircle, XCircle, AlertCircle, RefreshCw, Loader2, Shield, Wifi, Da
 import { useAuth } from '@/contexts/AuthContext';
 import { websocketService, type WebSocketMessage } from '@/lib/services/websocketService.simple';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/utils/logger';
 
 // HMR SAFE: Direct fetch implementation to avoid environment.ts import chain
 const checkAPIHealth = async (): Promise<{ status: string; version?: string; message?: string }> => {
@@ -48,7 +49,13 @@ const checkAPIHealth = async (): Promise<{ status: string; version?: string; mes
 const logWithTimestamp = (level: 'log' | 'warn' | 'error', message: string, ...args: unknown[]) => {
   const timestamp = new Date().toISOString();
   const logMessage = `[${timestamp}] [ProductionReadinessCheck] ${message}`;
-  console[level](logMessage, ...args);
+  logger[level === 'log' ? 'info' : level](logMessage, {
+    component: 'ProductionReadinessCheck',
+    operation: 'system_check_logging',
+    timestamp,
+    level,
+    args: args.length > 0 ? args : undefined
+  });
 };
 
 interface SystemCheck {
@@ -244,7 +251,7 @@ export default function ProductionReadinessCheck() {
           isTestConnection: true
         });
       }
-    } catch {
+    } catch (error: unknown) {
       logWithTimestamp('error', '🔥 WebSocket test EXCEPTION:', error);
       results.push({
         name: 'WebSocket Connection',

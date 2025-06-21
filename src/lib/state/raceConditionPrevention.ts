@@ -3,6 +3,7 @@
 'use client';
 
 import { getFeatureFlags } from '@/lib/config/environment';
+import { logger } from '../utils/logger';
 
 // Request tracking interface
 export interface RequestTracker {
@@ -59,7 +60,12 @@ class RaceConditionPrevention {
     );
     
     if (recentRequests.length > 10) {
-      console.warn(`[RaceCondition] INFINITE LOOP DETECTED: Too many rapid requests for ${entityKey}`, recentRequests);
+      logger.warn('INFINITE LOOP DETECTED: Too many rapid requests', {
+        entityKey,
+        recentRequestsCount: recentRequests.length,
+        recentRequests,
+        component: 'RaceConditionPrevention'
+      });
       return requestId; // Skip tracking to prevent loop
     }
     
@@ -73,7 +79,11 @@ class RaceConditionPrevention {
     // Check for potential conflicts
     const conflicts = this.detectConflicts(tracker);
     if (conflicts.length > 0) {
-      console.log(`[RaceCondition] Conflict detected for ${entityKey}:`, conflicts);
+      logger.info(`Conflict detected for ${entityKey}`, {
+        conflicts,
+        entityKey,
+        component: 'RaceConditionPrevention'
+      });
       this.handleConflict(tracker, conflicts);
     }
 
@@ -87,7 +97,11 @@ class RaceConditionPrevention {
 
     const features = getFeatureFlags();
     if (features.enableDebugMode) {
-      console.log(`[RaceCondition] Tracking request for ${entityKey}:`, tracker);
+      logger.debug(`Tracking request for ${entityKey}`, {
+        tracker,
+        entityKey,
+        component: 'RaceConditionPrevention'
+      });
     }
 
     return requestId;
@@ -110,7 +124,12 @@ class RaceConditionPrevention {
 
     const features = getFeatureFlags();
     if (features.enableDebugMode) {
-      console.log(`[RaceCondition] Completed request:`, requestId, success ? 'success' : 'failed');
+      logger.debug('Completed request', {
+        requestId,
+        success,
+        status: success ? 'success' : 'failed',
+        component: 'RaceConditionPrevention'
+      });
     }
   }
 
@@ -174,7 +193,10 @@ class RaceConditionPrevention {
 
     const features = getFeatureFlags();
     if (features.enableDebugMode) {
-      console.log(`[RaceCondition] Conflict detected and resolved:`, entityKey);
+      logger.debug('Conflict detected and resolved', {
+        entityKey,
+        component: 'RaceConditionPrevention'
+      });
     }
   }
 
@@ -313,12 +335,18 @@ class RaceConditionPrevention {
     if (existing && Date.now() - existing.timestamp < ttl) {
       const features = getFeatureFlags();
       if (features.enableDebugMode) {
-        console.log(`[RaceCondition] Deduplicating request:`, signature);
+        logger.debug('Deduplicating request', {
+          signature,
+          component: 'RaceConditionPrevention'
+        });
       }
       return existing.promise as T;
     }
 
-    console.log(`[RaceCondition] Executing new request:`, signature);
+    logger.debug('Executing new request', {
+      signature,
+      component: 'RaceConditionPrevention'
+    });
     const promise = requestFn();
     this.requestSignatures.set(signature, {
       timestamp: Date.now(),
@@ -328,7 +356,10 @@ class RaceConditionPrevention {
     // Clean up after completion
     promise.finally(() => {
       setTimeout(() => {
-        console.log(`[RaceCondition] Cleaning up request signature:`, signature);
+        logger.debug('Cleaning up request signature', {
+          signature,
+          component: 'RaceConditionPrevention'
+        });
         this.requestSignatures.delete(signature);
       }, ttl);
     });
@@ -415,7 +446,7 @@ export function withRaceConditionPrevention(
         const result = await originalMethod.apply(this, args);
         raceConditionPrevention.completeRequest(requestId, true);
         return result;
-      } catch {
+      } catch (error) {
         raceConditionPrevention.completeRequest(requestId, false);
         throw error;
       }

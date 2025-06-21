@@ -4,6 +4,7 @@
  */
 
 import { CampaignStatus } from '@/lib/types';
+import { logger } from '@/lib/utils/logger';
 
 // Define the actual status values used by the system
 export const CAMPAIGN_STATUSES = {
@@ -99,7 +100,11 @@ export function normalizeStatus(status: unknown): CampaignStatus {
       return 'cancelled';
     
     default:
-      console.warn(`Unknown status value: ${status}, defaulting to pending`);
+      logger.warn('Unknown status value encountered, defaulting to pending', {
+        component: 'StatusMapping',
+        status,
+        action: 'normalizeStatus'
+      });
       return 'pending';
   }
 }

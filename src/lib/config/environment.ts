@@ -1,10 +1,9 @@
 /**
  * @fileOverview Comprehensive environment configuration for DomainFlow
- * Handles API endpoints, security settings, and deplo    auth: {
-      sessionCheckIntervalMinutes: 5,
-      sessionTimeoutMinutes: 120, // 2 hours
-    },-specific configurations
+ * Handles API endpoints, security settings, and deployment-specific configurations
  */
+
+import { logger } from '@/lib/utils/logger';
 
 export interface EnvironmentConfig {
   // API Configuration
@@ -202,7 +201,10 @@ export function getEnvironmentConfig(): EnvironmentConfig {
   const config = environments[env];
   
   if (!config) {
-    console.warn(`Unknown environment: ${env}, falling back to development`);
+    logger.warn('Unknown environment falling back to development', {
+      environment: env,
+      component: 'EnvironmentConfig'
+    });
     return environments.development as EnvironmentConfig;
   }
   
@@ -226,31 +228,44 @@ function applyRuntimeOverrides(config: EnvironmentConfig): EnvironmentConfig {
     const apiOverride = urlParams.get('api');
     if (apiOverride) {
       overriddenConfig.api.baseUrl = apiOverride;
-      console.info(`API base URL overridden via URL param: ${apiOverride}`);
+      logger.info('API base URL overridden via URL parameter', {
+        apiOverride,
+        component: 'EnvironmentConfig'
+      });
     }
     
     // Debug mode override
     const debugOverride = urlParams.get('debug');
     if (debugOverride === 'true' || debugOverride === '1') {
       overriddenConfig.features.enableDebugMode = true;
-      console.info('Debug mode enabled via URL param');
+      logger.info('Debug mode enabled via URL parameter', {
+        component: 'EnvironmentConfig'
+      });
     }
     
     // localStorage overrides
     const storedApiUrl = localStorage.getItem('apiBaseUrlOverride');
     if (storedApiUrl && !apiOverride) {
       overriddenConfig.api.baseUrl = storedApiUrl;
-      console.info(`API base URL overridden via localStorage: ${storedApiUrl}`);
+      logger.info('API base URL overridden via localStorage', {
+        storedApiUrl,
+        component: 'EnvironmentConfig'
+      });
     }
     
     const storedDebugMode = localStorage.getItem('debugModeOverride');
     if (storedDebugMode === 'true' && !debugOverride) {
       overriddenConfig.features.enableDebugMode = true;
-      console.info('Debug mode enabled via localStorage');
+      logger.info('Debug mode enabled via localStorage', {
+        component: 'EnvironmentConfig'
+      });
     }
     
-  } catch {
-    console.warn('Failed to apply runtime overrides:', error);
+  } catch (error: unknown) {
+    logger.warn('Failed to apply runtime overrides', {
+      error: error instanceof Error ? error.message : String(error),
+      component: 'EnvironmentConfig'
+    });
   }
   
   return overriddenConfig;
@@ -287,13 +302,21 @@ export function setApiBaseUrlOverride(url: string | null): void {
     try {
       if (url) {
         localStorage.setItem('apiBaseUrlOverride', url);
-        console.info(`API base URL override set: ${url}`);
+        logger.info('API base URL override set', {
+          url,
+          component: 'EnvironmentConfig'
+        });
       } else {
         localStorage.removeItem('apiBaseUrlOverride');
-        console.info('API base URL override removed');
+        logger.info('API base URL override removed', {
+          component: 'EnvironmentConfig'
+        });
       }
-    } catch {
-      console.error('Failed to set API base URL override:', error);
+    } catch (error: unknown) {
+      logger.error('Failed to set API base URL override', {
+        error: error instanceof Error ? error.message : String(error),
+        component: 'EnvironmentConfig'
+      });
     }
   }
 }
@@ -303,13 +326,20 @@ export function setDebugModeOverride(enabled: boolean): void {
     try {
       if (enabled) {
         localStorage.setItem('debugModeOverride', 'true');
-        console.info('Debug mode override enabled');
+        logger.info('Debug mode override enabled', {
+          component: 'EnvironmentConfig'
+        });
       } else {
         localStorage.removeItem('debugModeOverride');
-        console.info('Debug mode override disabled');
+        logger.info('Debug mode override disabled', {
+          component: 'EnvironmentConfig'
+        });
       }
-    } catch {
-      console.error('Failed to set debug mode override:', error);
+    } catch (error: unknown) {
+      logger.error('Failed to set debug mode override', {
+        error: error instanceof Error ? error.message : String(error),
+        component: 'EnvironmentConfig'
+      });
     }
   }
 }
@@ -326,22 +356,33 @@ export function validateConfiguration(): boolean {
     
     // Validate required fields
     if (!config.api.baseUrl) {
-      console.error('Invalid configuration: API base URL is required');
+      logger.error('Invalid configuration: API base URL is required', {
+        component: 'EnvironmentConfig'
+      });
       return false;
     }
     
     if (config.auth.sessionTimeoutMinutes <= 0) {
-      console.error('Invalid configuration: Session timeout must be positive');
+      logger.error('Invalid configuration: Session timeout must be positive', {
+        sessionTimeout: config.auth.sessionTimeoutMinutes,
+        component: 'EnvironmentConfig'
+      });
       return false;
     }
     
     if (config.features.enableDebugMode) {
-      console.info('Configuration validation passed', config);
+      logger.info('Configuration validation passed', {
+        config,
+        component: 'EnvironmentConfig'
+      });
     }
     
     return true;
-  } catch {
-    console.error('Configuration validation failed:', error);
+  } catch (error: unknown) {
+    logger.error('Configuration validation failed', {
+      error: error instanceof Error ? error.message : String(error),
+      component: 'EnvironmentConfig'
+    });
     return false;
   }
 }

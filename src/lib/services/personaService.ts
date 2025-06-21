@@ -1,5 +1,6 @@
 // src/lib/services/personaService.ts
 import apiClient from './apiClient.production';
+import { logger } from '@/lib/utils/logger';
 import { TypeTransformer } from '@/lib/types/transform';
 import {
   validateDnsPersonaConfig as _validateDnsPersonaConfig,
@@ -308,7 +309,7 @@ export async function deletePersona(personaId: string, type: 'http' | 'dns'): Pr
 // Persona Testing and Actions
 // NOTE: Backend does not have persona test endpoints
 export async function testPersona(personaId: string, type: 'http' | 'dns'): Promise<PersonaActionResponse> {
-  console.warn(`Persona testing not available - backend does not have /api/v2/personas/${type}/${personaId}/test endpoint`);
+  logger.warn(`Persona testing not available - backend does not have /api/v2/personas/${type}/${personaId}/test endpoint`, { component: 'PersonaService', operation: 'testPersona', personaId, personaType: type });
   return {
     status: 'error',
     message: 'Persona testing is not implemented in the backend'

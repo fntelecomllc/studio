@@ -2,10 +2,22 @@ const js = require('@eslint/js');
 const tsParser = require('@typescript-eslint/parser');
 const tsPlugin = require('@typescript-eslint/eslint-plugin');
 const reactHooksPlugin = require('eslint-plugin-react-hooks');
+const { FlatCompat } = require('@eslint/eslintrc');
+
+const compat = new FlatCompat({
+  baseDirectory: __dirname,
+  recommendedConfig: js.configs.recommended,
+});
+
+// Import Next.js configuration using compat
+const nextConfig = compat.extends('next/core-web-vitals');
 
 module.exports = [
   // Base JavaScript recommended rules
   js.configs.recommended,
+  
+  // Next.js configuration
+  ...nextConfig,
   
   // JavaScript files configuration
   {

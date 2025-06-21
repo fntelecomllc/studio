@@ -3,6 +3,7 @@
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import PageHeader from '@/components/shared/PageHeader';
+import { logger } from '@/lib/utils/logger';
 import CampaignProgress from '@/components/campaigns/CampaignProgress';
 import ContentSimilarityView from '@/components/campaigns/ContentSimilarityView';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -172,7 +173,10 @@ export default function CampaignDashboardPage() {
     return () => {
       isMountedRef.current = false;
       if (streamCleanupRef.current) {
-        console.log(`[${campaignId}] Dashboard unmounting, cleaning up stream.`);
+        logger.debug('Dashboard unmounting, cleaning up WebSocket stream', {
+          component: 'CampaignDashboard',
+          campaignId
+        });
         streamCleanupRef.current();
       }
     };
@@ -210,7 +214,11 @@ export default function CampaignDashboardPage() {
             if(isMountedRef.current) setCampaign(null);
         }
     } catch (error: unknown) {
-        console.error("Failed to load campaign data:", error);
+        logger.error('Failed to load campaign data', {
+          component: 'CampaignDashboard',
+          campaignId,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
         const errorMessage = error instanceof Error ? error.message : "An unexpected network error occurred.";
         toast({ title: "Error", description: errorMessage, variant: "destructive"});
         if(isMountedRef.current) setCampaign(null);
@@ -300,7 +308,12 @@ export default function CampaignDashboardPage() {
   useEffect(() => {
     if (!campaign || campaign.campaignType !== 'domain_generation' || campaign.status !== 'running' || !isMountedRef.current) {
       if(streamCleanupRef.current) {
-        console.log(`[${campaignId}] Stopping stream because conditions not met (status: ${campaign?.status})`);
+        logger.debug('Stopping WebSocket stream - conditions not met', {
+          component: 'CampaignDashboard',
+          campaignId,
+          status: campaign?.status,
+          campaignType: campaign?.campaignType
+        });
         streamCleanupRef.current();
         streamCleanupRef.current = null;
       }
@@ -308,11 +321,18 @@ export default function CampaignDashboardPage() {
     }
     
     if (streamCleanupRef.current) {
-        console.log(`[${campaignId}] Stream already active or cleanup pending. Not starting new one.`);
+        logger.debug('WebSocket stream already active, skipping new connection', {
+          component: 'CampaignDashboard',
+          campaignId
+        });
         return;
     }
 
-    console.log(`[${campaignId}] Conditions met for Domain Generation stream. Initiating.`);
+    logger.info('Initiating domain generation WebSocket stream', {
+      component: 'CampaignDashboard',
+      campaignId,
+      campaignType: campaign.campaignType
+    });
     const handleDomainReceived = (domain: string) => {
         if (!isMountedRef.current) return;
          // Update the main 'generatedDomains' state used by the table directly
@@ -335,10 +355,19 @@ export default function CampaignDashboardPage() {
 
     const handleStreamComplete = (phaseCompleted: CampaignStatus, error?: Error) => {
         if (!isMountedRef.current) {
-          console.log(`[${campaignId}] Stream onComplete (WS) called but component unmounted.`);
+          logger.debug('Stream completion callback called but component unmounted', {
+            component: 'CampaignDashboard',
+            campaignId,
+            phase: phaseCompleted
+          });
           return;
         }
-        console.log(`[${campaignId}] Domain Generation stream (WS) for phase ${phaseCompleted} ended. Error: ${error ? error.message : 'none'}`);
+        logger.info('Domain generation WebSocket stream completed', {
+          component: 'CampaignDashboard',
+          campaignId,
+          phase: phaseCompleted,
+          error: error ? error.message : null
+        });
         
         setActionLoading(prev => {
             const newLoading = { ...prev };
@@ -363,7 +392,11 @@ export default function CampaignDashboardPage() {
         }
       },
       (error) => {
-        console.error(`[${campaignId}] Error setting up domain stream (WS):`, error);
+        logger.error('Failed to set up domain generation WebSocket stream', {
+          component: 'CampaignDashboard',
+          campaignId,
+          error: error instanceof Error ? error.message : String(error)
+        });
         if (isMountedRef.current) {
           handleStreamComplete('failed', error instanceof Error ? error : new Error(String(error)));
         }
@@ -378,7 +411,11 @@ export default function CampaignDashboardPage() {
 
     return () => {
       if (streamCleanupRef.current) {
-        console.log(`[${campaignId}] Cleaning up WebSocket stream from useEffect (status: ${campaign?.status}).`);
+        logger.debug('Cleaning up WebSocket stream from useEffect', {
+          component: 'CampaignDashboard',
+          campaignId,
+          status: campaign?.status
+        });
         streamCleanupRef.current();
         streamCleanupRef.current = null;
       }

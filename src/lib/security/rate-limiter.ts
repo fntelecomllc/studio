@@ -13,6 +13,7 @@
 
 import { errorTracker } from '../monitoring/error-tracker';
 import { featureFlags } from '../features/feature-flags';
+import { logger } from '../utils/logger';
 
 export interface RateLimitConfig {
   endpoint: string;
@@ -324,9 +325,9 @@ class RateLimiter {
     };
 
     if (allowed) {
-      console.log('Rate limit check:', logData);
+      logger.info('Rate limit check passed', logData);
     } else {
-      console.warn('Rate limit exceeded:', logData);
+      logger.warn('Rate limit exceeded', logData);
     }
 
     // Track metrics - use custom metric tracking
@@ -348,8 +349,8 @@ class RateLimiter {
       };
       
       localStorage.setItem(this.storageKey, JSON.stringify(data));
-    } catch {
-      console.error('Failed to save rate limit states:', error);
+    } catch (error) {
+      logger.error('Failed to save rate limit states', { error, component: 'RateLimiter' });
     }
   }
 
@@ -369,8 +370,8 @@ class RateLimiter {
       data.states.forEach(([key, state]: [string, RateLimitState]) => {
         this.states.set(key, state);
       });
-    } catch {
-      console.error('Failed to load rate limit states:', error);
+    } catch (error) {
+      logger.error('Failed to load rate limit states', { error, component: 'RateLimiter' });
     }
   }
 
@@ -427,7 +428,7 @@ export function withRateLimit<T extends (...args: any[]) => Promise<any>>(
     
     try {
       return await fetchFn(...args);
-    } catch {
+    } catch (error) {
       // If request fails, refund the token
       const state = rateLimiter.getState(endpoint);
       if (state) {

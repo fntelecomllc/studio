@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, RefreshCw, Bug, ExternalLink } from 'lucide-react';
+import { logger } from '@/lib/utils/logger';
 
 interface Props {
   children: ReactNode;
@@ -53,7 +54,13 @@ class ApiErrorBoundary extends Component<Props, State> {
   }
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ApiErrorBoundary caught an error:', error, errorInfo);
+    logger.error('ApiErrorBoundary caught an error', {
+      component: 'ApiErrorBoundary',
+      operation: 'component_error_catch',
+      error: error.message,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack
+    });
     
     // Call custom error handler if provided
     if (this.props.onError) {
@@ -66,11 +73,13 @@ class ApiErrorBoundary extends Component<Props, State> {
 
     // Log API errors with additional context
     if (this.state.isApiError) {
-      console.group('🚨 API Error Details');
-      console.error('Error:', error);
-      console.error('Error Info:', errorInfo);
-      console.error('Error Details:', this.state.errorDetails);
-      console.groupEnd();
+      logger.error('API Error Details', {
+        component: 'ApiErrorBoundary',
+        operation: 'api_error_logging',
+        error: error.message,
+        errorInfo: errorInfo.componentStack,
+        errorDetails: this.state.errorDetails
+      });
     }
   }
 
@@ -305,7 +314,11 @@ export default ApiErrorBoundary;
 // Hook for handling API errors in functional components
 export function useApiErrorHandler() {
   const handleApiError = (error: unknown) => {
-    console.error('API Error:', error);
+    logger.error('API Error in handler', {
+      component: 'ApiErrorBoundary',
+      operation: 'useApiErrorHandler',
+      error: error instanceof Error ? error.message : String(error)
+    });
     
     // You can add custom error handling logic here
     // such as showing toast notifications, logging to external services, etc.
@@ -325,8 +338,12 @@ export function withApiErrorHandling<T extends (...args: unknown[]) => Promise<u
   return (async (...args: Parameters<T>) => {
     try {
       return await apiFunction(...args);
-    } catch {
-      console.error('API call failed:', error);
+    } catch (error: unknown) {
+      logger.error('API call failed', {
+        component: 'ApiErrorBoundary',
+        operation: 'withApiErrorHandling',
+        error: error instanceof Error ? error.message : String(error)
+      });
       
       // Re-throw with additional context
       if (error instanceof Error) {

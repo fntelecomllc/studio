@@ -4,6 +4,7 @@
  */
 
 import { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { logger } from '@/lib/utils/logger';
 
 // Extend axios config to include metadata
 declare module 'axios' {
@@ -78,7 +79,7 @@ export function validateApiResponse<T>(
     );
     
     return result.data as T;
-  } catch {
+  } catch (error: unknown) {
     // Record validation failure
     performanceMonitor.recordCustomMetric(
       'api_validation_failure',
@@ -131,7 +132,7 @@ export async function validateApiCall<TRequest, TResponse>(
     
     // Validate response
     return validateApiResponse(response, responseValidator, context);
-  } catch {
+  } catch (error: unknown) {
     if (error instanceof ApiValidationError || error instanceof RuntimeValidationError) {
       throw error;
     }
@@ -214,7 +215,7 @@ export function transformAndValidate<TInput, TOutput>(
     }
     
     return result.data as TOutput;
-  } catch {
+  } catch (error: unknown) {
     if (error instanceof ApiValidationError || error instanceof RuntimeValidationError) {
       throw error;
     }
@@ -281,7 +282,7 @@ export function transformCampaignApiResponse(
     );
     
     return result;
-  } catch {
+  } catch (error: unknown) {
     // Record transformation failure
     performanceMonitor.recordCustomMetric(
       'campaign_transform_failure',
@@ -491,9 +492,14 @@ export function configureAxiosForSafeBigInt(axiosInstance: {
         }
         
         return response;
-      } catch {
+      } catch (error: unknown) {
         // Log validation errors but don't break the response
-        console.error('Response validation error:', error);
+        logger.error('Response validation error occurred', {
+          component: 'ApiClientWrapper',
+          method: 'configureAxiosForSafeBigInt',
+          error: error instanceof Error ? error.message : 'Unknown error',
+          url: response.config.url
+        });
         if (error instanceof ApiValidationError) {
           // Add validation errors to response for debugging
           response.data = {

@@ -2,6 +2,7 @@
 // Simplified Authentication State Management - Cookie-based session validation only
 import { authService, type AuthState, type LoginCredentials } from '@/lib/services/authService';
 import type { User } from '@/lib/types';
+import { logger } from '@/lib/utils/logger';
 
 class AuthStore {
   private static instance: AuthStore;
@@ -264,7 +265,10 @@ export function formatSessionTimeRemaining(): string {
 // Initialize auth store on module load
 if (typeof window !== 'undefined') {
   authStore.initialize().catch(error => {
-    console.error('Failed to initialize auth store:', error);
+    logger.error('Auth store initialization failed', {
+      error: error instanceof Error ? error.message : String(error),
+      component: 'AuthStore'
+    });
   });
 }
 

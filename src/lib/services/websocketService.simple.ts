@@ -2,6 +2,7 @@
 // Handles campaign progress, proxy status, and system notifications
 
 import { UUID, ISODateString, SafeBigInt, createSafeBigInt, isSafeBigInt } from '@/lib/types/branded';
+import { logger } from '@/lib/utils/logger';
 
 export interface WebSocketMessage {
   id?: UUID;
@@ -118,7 +119,7 @@ export class WebSocketService {
         this.ws = new WebSocket(this.url);
 
         this.ws.onopen = () => {
-          console.log('[WebSocket] Connected to server');
+          logger.info('WebSocket connection established', { url: this.url }, { component: 'WebSocketService' });
           this.connected = true;
           this.reconnectAttempts = 0;
           
@@ -133,19 +134,19 @@ export class WebSocketService {
             const message: WebSocketMessage = this.parseAndTransformMessage(event.data);
             this.handleMessage(message);
           } catch (error) {
-            console.error('[WebSocket] Failed to parse message:', error);
+            logger.error('Failed to parse WebSocket message', error, { component: 'WebSocketService', operation: 'parseMessage' });
             this.errorHandlers.forEach(handler => {
               try {
                 handler(error instanceof Error ? error : new Error('Failed to parse WebSocket message'));
               } catch (err) {
-                console.error('[WebSocket] Error in error handler:', err);
+                logger.error('Error in WebSocket error handler', err, { component: 'WebSocketService', operation: 'errorHandler' });
               }
             });
           }
         };
 
         this.ws.onclose = (event) => {
-          console.log('[WebSocket] Connection closed');
+          logger.info('WebSocket connection closed', { code: event.code, reason: event.reason }, { component: 'WebSocketService' });
           this.connected = false;
           
           // Only attempt reconnect on unexpected closure
@@ -155,13 +156,13 @@ export class WebSocketService {
         };
 
         this.ws.onerror = (error) => {
-          console.error('[WebSocket] Connection error:', error);
+          logger.error('WebSocket connection error', error, { component: 'WebSocketService', operation: 'connect', url: this.url });
           this.connected = false;
           this.errorHandlers.forEach(handler => {
             try {
               handler(error instanceof Error ? error : new Error('WebSocket connection error'));
             } catch (err) {
-              console.error('[WebSocket] Error in error handler:', err);
+              logger.error('Error in WebSocket error handler', err, { component: 'WebSocketService', operation: 'errorHandler' });
             }
           });
           reject(error);
@@ -223,30 +224,30 @@ export class WebSocketService {
   }
 
   private handleMessage(message: WebSocketMessage): void {
-    console.log('[WebSocket] Received message:', message);
+    logger.info('WebSocket message received', { messageType: message.type, campaignId: message.campaignId }, { component: 'WebSocketService' });
     
     // Call all registered message handlers
     this.messageHandlers.forEach(handler => {
       try {
         handler(message);
       } catch (error) {
-        console.error('[WebSocket] Error in message handler:', error);
+        logger.error('Error in WebSocket message handler', error, { component: 'WebSocketService', operation: 'messageHandler' });
       }
     });
   }
 
   private attemptReconnect(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('[WebSocket] Max reconnection attempts reached');
+      logger.error('WebSocket max reconnection attempts reached', null, { component: 'WebSocketService', operation: 'reconnect', attempts: this.maxReconnectAttempts });
       return;
     }
 
     this.reconnectAttempts++;
-    console.log(`[WebSocket] Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+    logger.info('WebSocket attempting reconnection', { attempts: this.reconnectAttempts, maxAttempts: this.maxReconnectAttempts }, { component: 'WebSocketService' });
 
     setTimeout(() => {
       this.connect().catch(error => {
-        console.error('[WebSocket] Reconnection failed:', error);
+        logger.error('WebSocket reconnection failed', error, { component: 'WebSocketService', operation: 'reconnect', attempts: this.reconnectAttempts });
       });
     }, this.reconnectInterval);
   }
@@ -290,10 +291,10 @@ export class WebSocketService {
         this.ws.send(JSON.stringify(subscribeMessage));
         
         this.campaignConnections.set(campaignId, true);
-        console.log(`[WebSocket] Subscribed to campaign: ${campaignId}`);
+        logger.info('WebSocket subscribed to campaign', { campaignId }, { component: 'WebSocketService' });
       }
     }).catch(error => {
-      console.error('[WebSocket] Failed to connect for campaign subscription:', error);
+      logger.error('Failed to connect for campaign subscription', error, { component: 'WebSocketService', operation: 'connectToCampaign', campaignId });
       if (onError) {
         onError(error);
       }
@@ -319,7 +320,7 @@ export class WebSocketService {
       }
       
       this.campaignConnections.delete(campaignId);
-      console.log(`[WebSocket] Unsubscribed from campaign: ${campaignId}`);
+      logger.info('WebSocket unsubscribed from campaign', { campaignId }, { component: 'WebSocketService' });
       
       // Clean disconnect if this was the last campaign
       if (this.campaignConnections.size === 0) {
@@ -398,12 +399,12 @@ export class WebSocketService {
       try {
         const serialized = this.serializeMessage(message);
         this.ws.send(serialized);
-        console.log('[WebSocket] Sent message:', message);
+        logger.info('WebSocket message sent', { messageType: message.type, campaignId: message.campaignId }, { component: 'WebSocketService' });
       } catch (error) {
-        console.error('[WebSocket] Failed to send message:', error);
+        logger.error('Failed to send WebSocket message', error, { component: 'WebSocketService', operation: 'send' });
       }
     } else {
-      console.warn('[WebSocket] Cannot send message - not connected');
+      logger.warn('Cannot send WebSocket message - not connected', null, { component: 'WebSocketService', operation: 'send' });
     }
   }
 
@@ -417,12 +418,12 @@ export class WebSocketService {
         };
         const serialized = this.serializeMessage(messageWithCampaign);
         this.ws.send(serialized);
-        console.log(`[WebSocket] Sent message to campaign ${campaignId}:`, messageWithCampaign);
+        logger.info('WebSocket message sent to campaign', { campaignId, messageType: messageWithCampaign.type }, { component: 'WebSocketService' });
       } catch (error) {
-        console.error('[WebSocket] Failed to send message to campaign:', error);
+        logger.error('Failed to send WebSocket message to campaign', error, { component: 'WebSocketService', operation: 'sendMessage', campaignId });
       }
     } else {
-      console.warn('[WebSocket] Cannot send message - not connected');
+      logger.warn('Cannot send WebSocket message - not connected', null, { component: 'WebSocketService', operation: 'send' });
     }
   }
 
@@ -447,7 +448,7 @@ export class WebSocketService {
       try {
         handler(message);
       } catch (error) {
-        console.error('Error in message handler:', error);
+        logger.error('Error in simulated message handler', error, { component: 'WebSocketService', operation: 'simulateMessage' });
       }
     });
   }

@@ -17,6 +17,7 @@ import {
 import { performanceMonitor } from '../monitoring/performance-monitor';
 import { errorTracker } from '../monitoring/error-tracker';
 import { UUID } from '../types/branded';
+import { logger } from '../utils/logger';
 
 /**
  * Message handler registry
@@ -231,34 +232,34 @@ export function createValidatedWebSocketHandlers(
   return {
     // Campaign handlers
     onCampaignProgress: customHandlers.onCampaignProgress || ((message) => {
-      console.log('[WebSocket] Campaign progress:', message.data);
+      logger.websocket('Campaign progress received', message.data);
     }),
     
     onCampaignStatus: customHandlers.onCampaignStatus || ((message) => {
-      console.log('[WebSocket] Campaign status:', message.data);
+      logger.websocket('Campaign status received', message.data);
     }),
     
     // Domain handlers
     onDomainGenerated: customHandlers.onDomainGenerated || ((message) => {
-      console.log('[WebSocket] Domain generated:', message.data);
+      logger.websocket('Domain generated', message.data);
     }),
     
     // Validation handlers
     onDNSValidationResult: customHandlers.onDNSValidationResult || ((message) => {
-      console.log('[WebSocket] DNS validation:', message.data);
+      logger.websocket('DNS validation result', message.data);
     }),
     
     onHTTPValidationResult: customHandlers.onHTTPValidationResult || ((message) => {
-      console.log('[WebSocket] HTTP validation:', message.data);
+      logger.websocket('HTTP validation result', message.data);
     }),
     
     // System handlers
     onSystemNotification: customHandlers.onSystemNotification || ((message) => {
-      console.log('[WebSocket] System notification:', message.data);
+      logger.websocket('System notification received', message.data);
     }),
     
     onProxyStatus: customHandlers.onProxyStatus || ((message) => {
-      console.log('[WebSocket] Proxy status:', message.data);
+      logger.websocket('Proxy status update', message.data);
     }),
     
     // Error handler with automatic tracking
@@ -266,7 +267,11 @@ export function createValidatedWebSocketHandlers(
     
     // Unknown message handler
     onUnknownMessage: customHandlers.onUnknownMessage || ((message) => {
-      console.warn('[WebSocket] Unknown message type:', message.type, message);
+      logger.warn('Unknown WebSocket message type received', {
+        messageType: message.type,
+        message,
+        component: 'WebSocketMessageHandler'
+      });
     })
   };
 }

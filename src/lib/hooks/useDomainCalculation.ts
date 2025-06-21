@@ -1,6 +1,7 @@
 import { useMemo, useCallback } from 'react';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import { CampaignSelectedType, DomainGenerationPattern } from '@/lib/types';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * Performance-optimized hook for domain calculation with safeguards
@@ -125,12 +126,22 @@ export function useDomainCalculation(
           combinations
         }
       };
-    } catch {
-      console.error('[useDomainCalculation] Calculation error:', error);
-      return { 
-        total: 0, 
-        isSafe: false, 
-        warning: 'Error calculating domain combinations. Please check your inputs.' 
+    } catch (error: unknown) {
+      logger.error('Domain calculation error occurred', {
+        component: 'useDomainCalculation',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        inputs: {
+          pattern,
+          charSetLength: charSet?.length,
+          prefixLength: prefixLen,
+          suffixLength: suffixLen,
+          tldCount: tlds?.split(',').length
+        }
+      });
+      return {
+        total: 0,
+        isSafe: false,
+        warning: 'Error calculating domain combinations. Please check your inputs.'
       };
     }
   }, []);

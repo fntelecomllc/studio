@@ -8,6 +8,7 @@ import {
   validateHttpPersonaConfig, 
   deserializePersonaConfig 
 } from '@/lib/utils/personaConfigValidation';
+import { logger } from '@/lib/utils/logger';
 import type {
   HttpPersona,
   DnsPersona,
@@ -81,8 +82,8 @@ function transformBackendPersona(backendPersona: BackendPersonaResponse): Person
         configDetails: config as HttpPersonaConfig,
       } as HttpPersona;
     }
-  } catch {
-    console.error('Failed to transform backend persona:', error);
+  } catch (error) {
+    logger.error('Failed to transform backend persona', error, { component: 'PersonaService', operation: 'transformBackendPersona' });
     throw new Error(`Invalid persona configuration: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
@@ -107,8 +108,8 @@ export async function createHttpPersona(payload: CreateHttpPersonaPayload): Prom
       throw new Error('No response data received');
     }
     return transformBackendPersona(response.data) as HttpPersona;
-  } catch {
-    console.error('Failed to create HTTP persona:', error);
+  } catch (error) {
+    logger.error('Failed to create HTTP persona', error, { component: 'PersonaService', operation: 'createHttpPersona', name: payload.name });
     throw error;
   }
 }
@@ -134,8 +135,8 @@ export async function updateHttpPersona(
       throw new Error('No response data received');
     }
     return transformBackendPersona(response.data) as HttpPersona;
-  } catch {
-    console.error('Failed to update HTTP persona:', error);
+  } catch (error) {
+    logger.error('Failed to update HTTP persona', error, { component: 'PersonaService', operation: 'updateHttpPersona', personaId });
     throw error;
   }
 }
@@ -160,8 +161,8 @@ export async function createDnsPersona(payload: CreateDnsPersonaPayload): Promis
       throw new Error('No response data received');
     }
     return transformBackendPersona(response.data) as DnsPersona;
-  } catch {
-    console.error('Failed to create DNS persona:', error);
+  } catch (error) {
+    logger.error('Failed to create DNS persona', error, { component: 'PersonaService', operation: 'createDnsPersona', name: payload.name });
     throw error;
   }
 }
@@ -187,8 +188,8 @@ export async function updateDnsPersona(
       throw new Error('No response data received');
     }
     return transformBackendPersona(response.data) as DnsPersona;
-  } catch {
-    console.error('Failed to update DNS persona:', error);
+  } catch (error) {
+    logger.error('Failed to update DNS persona', error, { component: 'PersonaService', operation: 'updateDnsPersona', personaId });
     throw error;
   }
 }
@@ -211,8 +212,8 @@ export async function getPersonas(filters?: {
     }
 
     return response.data.map(transformBackendPersona);
-  } catch {
-    console.error('Failed to get personas:', error);
+  } catch (error) {
+    logger.error('Failed to get personas', error, { component: 'PersonaService', operation: 'getPersonas', filters });
     throw error;
   }
 }
@@ -224,8 +225,8 @@ export async function getPersonaById(personaId: string): Promise<Persona> {
       throw new Error('No response data received');
     }
     return transformBackendPersona(response.data);
-  } catch {
-    console.error('Failed to get persona:', error);
+  } catch (error) {
+    logger.error('Failed to get persona', error, { component: 'PersonaService', operation: 'getPersonaById', personaId });
     throw error;
   }
 }
@@ -233,8 +234,8 @@ export async function getPersonaById(personaId: string): Promise<Persona> {
 export async function deletePersona(personaId: string): Promise<void> {
   try {
     await apiClient.delete(`/api/v2/personas/${personaId}`);
-  } catch {
-    console.error('Failed to delete persona:', error);
+  } catch (error) {
+    logger.error('Failed to delete persona', error, { component: 'PersonaService', operation: 'deletePersona', personaId });
     throw error;
   }
 }
@@ -246,8 +247,8 @@ export async function testPersona(personaId: string): Promise<PersonaActionRespo
       throw new Error('No response data received');
     }
     return response.data;
-  } catch {
-    console.error('Failed to test persona:', error);
+  } catch (error) {
+    logger.error('Failed to test persona', error, { component: 'PersonaService', operation: 'testPersona', personaId });
     throw error;
   }
 }

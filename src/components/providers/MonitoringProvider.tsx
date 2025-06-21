@@ -5,6 +5,7 @@
 
 import React, { useEffect, createContext, useContext, ReactNode } from 'react';
 import { performanceMonitor } from '@/lib/monitoring/performance-monitor';
+import { logger } from '@/lib/utils/logger';
 import { monitoringService, type MonitoringHooks } from '@/lib/monitoring/monitoring-service';
 import { getMonitoringConfig, MONITORING_FEATURES } from '@/lib/monitoring/monitoring-config';
 
@@ -42,32 +43,66 @@ export function MonitoringProvider({
     const hooks: MonitoringHooks = {
       onApiRequest: (url, method) => {
         if (enableConsoleLogging) {
-          console.log(`[Monitoring] API Request: ${method} ${url}`);
+          logger.info('Monitoring API request initiated', {
+            component: 'MonitoringProvider',
+            operation: 'api_request_tracking',
+            method,
+            url
+          });
         }
       },
       onApiResponse: (url, method, duration, status) => {
         if (enableConsoleLogging) {
-          console.log(`[Monitoring] API Response: ${method} ${url} - ${duration}ms (${status})`);
+          logger.info('Monitoring API response recorded', {
+            component: 'MonitoringProvider',
+            operation: 'api_response_tracking',
+            method,
+            url,
+            duration,
+            status
+          });
         }
       },
       onApiError: (url, method, duration, error) => {
         if (enableConsoleLogging) {
-          console.error(`[Monitoring] API Error: ${method} ${url} - ${duration}ms`, error);
+          logger.error('Monitoring API error recorded', {
+            component: 'MonitoringProvider',
+            operation: 'api_error_tracking',
+            method,
+            url,
+            duration,
+            error: error instanceof Error ? error.message : String(error)
+          });
         }
       },
       onPageLoad: (url, loadTime) => {
         if (enableConsoleLogging) {
-          console.log(`[Monitoring] Page Load: ${url} - ${loadTime}ms`);
+          logger.info('Monitoring page load recorded', {
+            component: 'MonitoringProvider',
+            operation: 'page_load_tracking',
+            url,
+            loadTime
+          });
         }
       },
       onUserInteraction: (type, element) => {
         if (enableConsoleLogging) {
-          console.log(`[Monitoring] User Interaction: ${type} on ${element}`);
+          logger.info('Monitoring user interaction recorded', {
+            component: 'MonitoringProvider',
+            operation: 'user_interaction_tracking',
+            type,
+            element
+          });
         }
       },
       onError: (error, context) => {
         if (enableConsoleLogging) {
-          console.error(`[Monitoring] Error in ${context}:`, error);
+          logger.error('Monitoring error recorded', {
+            component: 'MonitoringProvider',
+            operation: 'error_tracking',
+            context,
+            error: error instanceof Error ? error.message : String(error)
+          });
         }
       },
       ...customHooks,

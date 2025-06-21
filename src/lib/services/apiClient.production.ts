@@ -5,6 +5,7 @@
 
 import type { ApiResponse } from '@/lib/types';
 import { getApiConfig } from '@/lib/config/environment';
+import { logger } from '@/lib/utils/logger';
 
 // Unified error response types matching backend
 interface UnifiedErrorResponse {
@@ -178,7 +179,7 @@ class ProductionApiClient {
                 }
                 
                 // Log error with request ID for debugging
-                console.error(`API Error [${unifiedError.request_id}]:`, unifiedError.error);
+                logger.error(`API Error [${unifiedError.request_id}]`, unifiedError.error, { component: 'ProductionApiClient', operation: 'request', requestId: unifiedError.request_id, endpoint });
               }
               // Handle legacy error formats
               else if (errorData.error) {
@@ -253,7 +254,7 @@ class ProductionApiClient {
             message: 'Request successful',
           };
         }
-      } catch {
+      } catch (error) {
         lastError = error as Error;
         
         // Don't retry on abort or certain errors

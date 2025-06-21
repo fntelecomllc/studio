@@ -1,6 +1,8 @@
 // src/lib/monitoring/performance-monitor.ts
 // Performance Monitoring Framework for DomainFlow
 
+import { logger } from '@/lib/utils/logger';
+
 export interface PerformanceMetric {
   name: string;
   value: number;
@@ -118,8 +120,11 @@ export class PerformanceMonitor {
         });
         lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
         this.observers.push(lcpObserver);
-      } catch {
-        console.warn('[PerformanceMonitor] LCP observer not supported:', error);
+      } catch (error: unknown) {
+        logger.warn('LCP observer not supported', {
+          error: error instanceof Error ? error.message : String(error),
+          component: 'PerformanceMonitor'
+        });
       }
 
       // Observe First Input Delay (FID)
@@ -138,8 +143,11 @@ export class PerformanceMonitor {
         });
         fidObserver.observe({ entryTypes: ['first-input'] });
         this.observers.push(fidObserver);
-      } catch {
-        console.warn('[PerformanceMonitor] FID observer not supported:', error);
+      } catch (error: unknown) {
+        logger.warn('FID observer not supported', {
+          error: error instanceof Error ? error.message : String(error),
+          component: 'PerformanceMonitor'
+        });
       }
 
       // Observe Cumulative Layout Shift (CLS)
@@ -163,8 +171,11 @@ export class PerformanceMonitor {
         });
         clsObserver.observe({ entryTypes: ['layout-shift'] });
         this.observers.push(clsObserver);
-      } catch {
-        console.warn('[PerformanceMonitor] CLS observer not supported:', error);
+      } catch (error: unknown) {
+        logger.warn('CLS observer not supported', {
+          error: error instanceof Error ? error.message : String(error),
+          component: 'PerformanceMonitor'
+        });
       }
     }
 
@@ -245,8 +256,11 @@ export class PerformanceMonitor {
         });
         resourceObserver.observe({ entryTypes: ['resource'] });
         this.observers.push(resourceObserver);
-      } catch {
-        console.warn('[PerformanceMonitor] Resource observer not supported:', error);
+      } catch (error: unknown) {
+        logger.warn('Resource observer not supported', {
+          error: error instanceof Error ? error.message : String(error),
+          component: 'PerformanceMonitor'
+        });
       }
     }
   }
@@ -332,18 +346,22 @@ export class PerformanceMonitor {
             sessionId: this.sessionId,
           }),
         });
-      } catch {
-        console.warn('[PerformanceMonitor] Failed to send metrics:', error);
+      } catch (error: unknown) {
+        logger.warn('Failed to send performance metrics', {
+          error: error instanceof Error ? error.message : String(error),
+          reportCount: reports.length,
+          component: 'PerformanceMonitor'
+        });
         // Re-add reports to buffer on failure
         this.buffer.unshift(...reports);
       }
     } else {
-      // Log to console in development
-      console.group('[PerformanceMonitor] Metrics Flush');
-      reports.forEach(report => {
-        console.log('Report:', report);
+      // Log to structured logger in development
+      logger.debug('Performance metrics flushed', {
+        reportCount: reports.length,
+        reports,
+        component: 'PerformanceMonitor'
       });
-      console.groupEnd();
     }
   }
 

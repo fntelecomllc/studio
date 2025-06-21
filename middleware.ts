@@ -1,11 +1,12 @@
 // src/middleware.ts
 // Next.js middleware for session-based authentication - Cookie-only approach
 import { NextResponse, type NextRequest } from 'next/server';
+import { logger } from './src/lib/utils/logger';
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  console.log('[MIDDLEWARE] Session-based security check for:', pathname);
+  logger.auth('Session-based security check', { pathname, component: 'Middleware' });
   
   // Public routes that don't require authentication
   const publicRoutes = ['/login', '/signup'];
@@ -16,17 +17,18 @@ export function middleware(request: NextRequest) {
   
   // If accessing a public route or static asset, allow it
   if (publicRoutes.includes(pathname) || isStaticRoute) {
-    console.log('[MIDDLEWARE] Public/static route allowed:', pathname);
+    logger.auth('Public/static route allowed', { pathname, component: 'Middleware' });
     return NextResponse.next();
   }
   
   // SESSION-BASED AUTHENTICATION: Check only for session cookie
   const sessionCookie = request.cookies.get('domainflow_session');
   
-  console.log('[MIDDLEWARE] Session auth check:', {
+  logger.auth('Session authentication check', {
     pathname,
     hasSessionCookie: !!sessionCookie,
-    sessionCookieValue: sessionCookie?.value ? 'present' : 'missing'
+    sessionCookieValue: sessionCookie?.value ? 'present' : 'missing',
+    component: 'Middleware'
   });
   
   // CRITICAL: Default to DENY - redirect to login if no session cookie
@@ -37,12 +39,16 @@ export function middleware(request: NextRequest) {
     // Basic validation - session cookie exists and has value
     // Actual session validation is done by the backend
     hasValidSession = true;
-    console.log('[MIDDLEWARE] Valid session cookie found');
+    logger.auth('Valid session cookie found', { pathname, component: 'Middleware' });
   }
   
   // CRITICAL: If no valid session, ALWAYS redirect to login
   if (!hasValidSession) {
-    console.log('[MIDDLEWARE] SECURITY BLOCK: No valid session cookie, redirecting to login');
+    logger.warn('SECURITY BLOCK: No valid session cookie, redirecting to login', {
+      pathname,
+      component: 'Middleware',
+      operation: 'security_block'
+    });
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
     
@@ -56,7 +62,11 @@ export function middleware(request: NextRequest) {
     return response;
   }
   
-  console.log('[MIDDLEWARE] Session authentication verified, allowing access to:', pathname);
+  logger.auth('Session authentication verified, allowing access', {
+    pathname,
+    component: 'Middleware',
+    operation: 'access_granted'
+  });
   
   // Add security headers to the response
   const response = NextResponse.next();

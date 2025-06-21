@@ -5,6 +5,7 @@
 import type { WebSocketMessage } from '@/lib/types/websocket-types-fixed';
 import { transformApiResponse, transformApiRequest } from '@/lib/utils/case-transformations';
 import { transformInt64Fields } from '@/lib/types/branded';
+import { logger } from '@/lib/utils/logger';
 
 export type ConnectionState = 'connecting' | 'connected' | 'disconnected' | 'error';
 
@@ -41,7 +42,7 @@ class EnhancedWebSocketService {
 
   connect(): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
-      console.log('WebSocket already connected');
+      logger.info('WebSocket already connected', null, { component: 'EnhancedWebSocketService' });
       return;
     }
 
@@ -60,13 +61,13 @@ class EnhancedWebSocketService {
       this.ws.onerror = this.handleError.bind(this);
       this.ws.onclose = this.handleClose.bind(this);
     } catch (error) {
-      console.error('Failed to create WebSocket connection:', error);
+      logger.error('Failed to create WebSocket connection', error, { component: 'EnhancedWebSocketService', operation: 'connect' });
       this.handleError(new Event('error'));
     }
   }
 
   private handleOpen(): void {
-    console.log('WebSocket connected');
+    logger.info('Enhanced WebSocket connected', null, { component: 'EnhancedWebSocketService' });
     this.updateConnectionState('connected');
     this.reconnectAttempts = 0;
     this.isReconnecting = false;
@@ -100,19 +101,19 @@ class EnhancedWebSocketService {
       
       this.options.onMessage?.(transformedMessage);
     } catch (error) {
-      console.error('Failed to parse WebSocket message:', error);
+      logger.error('Failed to parse enhanced WebSocket message', error, { component: 'EnhancedWebSocketService', operation: 'handleMessage' });
       this.options.onError?.(new Error('Failed to parse WebSocket message'));
     }
   }
 
   private handleError(event: Event): void {
-    console.error('WebSocket error:', event);
+    logger.error('Enhanced WebSocket error', event, { component: 'EnhancedWebSocketService', operation: 'handleError' });
     this.updateConnectionState('error');
     this.options.onError?.(new Error('WebSocket connection error'));
   }
 
   private handleClose(event: CloseEvent): void {
-    console.log('WebSocket closed:', event.code, event.reason);
+    logger.info('Enhanced WebSocket closed', { code: event.code, reason: event.reason }, { component: 'EnhancedWebSocketService' });
     this.updateConnectionState('disconnected');
     this.stopPingInterval();
     
@@ -132,7 +133,7 @@ class EnhancedWebSocketService {
   private scheduleReconnect(): void {
     if (this.isReconnecting || 
         this.reconnectAttempts >= (this.options.maxReconnectAttempts || 10)) {
-      console.log('Max reconnection attempts reached');
+      logger.error('Enhanced WebSocket max reconnection attempts reached', null, { component: 'EnhancedWebSocketService', operation: 'scheduleReconnect', attempts: this.options.maxReconnectAttempts });
       return;
     }
 
@@ -144,7 +145,7 @@ class EnhancedWebSocketService {
       30000
     );
     
-    console.log(`Scheduling reconnect attempt ${this.reconnectAttempts} in ${delay}ms`);
+    logger.info('Enhanced WebSocket scheduling reconnect', { attempt: this.reconnectAttempts, delayMs: delay }, { component: 'EnhancedWebSocketService' });
     
     this.reconnectTimer = setTimeout(() => {
       this.connect();
@@ -173,7 +174,7 @@ class EnhancedWebSocketService {
 
   send(message: SendableMessage): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      console.warn('WebSocket not connected, queueing message');
+      logger.warn('Enhanced WebSocket not connected, queueing message', null, { component: 'EnhancedWebSocketService', operation: 'send', queueLength: this.messageQueue.length });
       this.messageQueue.push(message);
       return;
     }
@@ -186,7 +187,7 @@ class EnhancedWebSocketService {
       
       this.ws.send(JSON.stringify(transformedMessage));
     } catch (error) {
-      console.error('Failed to send WebSocket message:', error);
+      logger.error('Failed to send enhanced WebSocket message', error, { component: 'EnhancedWebSocketService', operation: 'send' });
       this.options.onError?.(new Error('Failed to send message'));
     }
   }
@@ -223,7 +224,7 @@ class EnhancedWebSocketService {
   }
 
   disconnect(): void {
-    console.log('Disconnecting WebSocket');
+    logger.info('Disconnecting enhanced WebSocket', null, { component: 'EnhancedWebSocketService' });
     
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);

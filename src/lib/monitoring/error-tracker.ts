@@ -319,9 +319,16 @@ class ErrorTracker {
     // Example: Sentry, Rollbar, Bugsnag, etc.
     try {
       // Placeholder for actual implementation
-      console.log(`Sending ${errors.length} errors to tracking service`);
-    } catch {
-      console.error('Failed to send errors to tracking service:', error);
+      logger.info('Sending errors to tracking service', {
+        errorCount: errors.length,
+        component: 'ErrorTracker'
+      });
+    } catch (error: unknown) {
+      logger.error('Failed to send errors to tracking service', {
+        error: error instanceof Error ? error.message : String(error),
+        errorCount: errors.length,
+        component: 'ErrorTracker'
+      });
     }
   }
 

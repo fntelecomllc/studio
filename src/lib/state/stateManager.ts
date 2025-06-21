@@ -3,6 +3,7 @@
 'use client';
 
 import { getFeatureFlags } from '@/lib/config/environment';
+import { logger } from '../utils/logger';
 
 // State change types
 export type StateChangeType = 'CREATE' | 'UPDATE' | 'DELETE' | 'BATCH';
@@ -91,7 +92,12 @@ class StateManager {
     );
     
     if (recentUpdates.length > 5) {
-      console.warn(`[StateManager] INFINITE LOOP DETECTED: Too many rapid updates for ${entityKey}`, recentUpdates);
+      logger.warn('INFINITE LOOP DETECTED: Too many rapid updates', {
+        entityKey,
+        recentUpdatesCount: recentUpdates.length,
+        recentUpdates,
+        component: 'StateManager'
+      });
       return updateId; // Skip this update to prevent loop
     }
     
@@ -105,7 +111,10 @@ class StateManager {
     this.optimisticUpdates.set(updateId, optimisticUpdate);
 
     if (features.enableDebugMode) {
-      console.log(`[StateManager] Applied optimistic update for ${entityKey}:`, optimisticUpdate);
+      logger.debug(`Applied optimistic update for ${entityKey}`, {
+        optimisticUpdate,
+        component: 'StateManager'
+      });
     }
 
     // Notify subscribers
@@ -132,7 +141,10 @@ class StateManager {
     const features = getFeatureFlags();
     
     if (features.enableDebugMode) {
-      console.log(`[StateManager] Confirmed optimistic update:`, updateId);
+      logger.debug('Confirmed optimistic update', {
+        updateId,
+        component: 'StateManager'
+      });
     }
 
     // Update cache with confirmed data
@@ -163,7 +175,11 @@ class StateManager {
     const features = getFeatureFlags();
     
     if (features.enableDebugMode) {
-      console.log(`[StateManager] Rolling back optimistic update:`, updateId, reason);
+      logger.debug('Rolling back optimistic update', {
+        updateId,
+        reason,
+        component: 'StateManager'
+      });
     }
 
     // Execute rollback function if provided
@@ -213,8 +229,12 @@ class StateManager {
       // Remove from rollback queue on success
       this.rollbackQueue = this.rollbackQueue.filter(u => u.id !== updateId);
       return true;
-    } catch {
-      console.error(`[StateManager] Retry failed for update ${updateId}:`, error);
+    } catch (error) {
+      logger.error(`Retry failed for update ${updateId}`, {
+        error,
+        updateId,
+        component: 'StateManager'
+      });
       return false;
     }
   }
@@ -322,7 +342,10 @@ class StateManager {
     const features = getFeatureFlags();
     
     if (features.enableDebugMode) {
-      console.log(`[StateManager] Received broadcast message:`, message);
+      logger.debug('Received broadcast message', {
+        message,
+        component: 'StateManager'
+      });
     }
 
     switch (message.action) {
@@ -373,12 +396,20 @@ class StateManager {
   private notifySubscribers(entityType: string, data: unknown): void {
     const subscribers = this.subscribers.get(entityType);
     if (subscribers) {
-      console.log(`[StateManager] Notifying ${subscribers.size} subscribers for ${entityType}`);
+      logger.debug(`Notifying subscribers for ${entityType}`, {
+        subscribersCount: subscribers.size,
+        entityType,
+        component: 'StateManager'
+      });
       subscribers.forEach(callback => {
         try {
           callback(data);
-        } catch {
-          console.error(`[StateManager] Error in subscriber callback for ${entityType}:`, error);
+        } catch (error) {
+          logger.error(`Error in subscriber callback for ${entityType}`, {
+            error,
+            entityType,
+            component: 'StateManager'
+          });
         }
       });
     }

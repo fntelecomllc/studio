@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { logger } from '@/lib/utils/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -41,7 +42,12 @@ class GlobalErrorBoundary extends Component<Props, State> {
   }
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('GlobalErrorBoundary caught an error:', error, errorInfo);
+    logger.error('GlobalErrorBoundary caught an error', {
+      component: 'GlobalErrorBoundary',
+      error: error.message,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack
+    });
     
     this.setState({
       error,
@@ -75,7 +81,11 @@ class GlobalErrorBoundary extends Component<Props, State> {
       // Don't include any user data or sensitive information
     };
 
-    console.log('Error logged:', sanitizedError);
+    logger.info('Error logged to service', {
+      component: 'GlobalErrorBoundary',
+      operation: 'logErrorToService',
+      sanitizedError
+    });
     
     // Example: Send to error tracking service
     // errorTrackingService.captureException(sanitizedError);

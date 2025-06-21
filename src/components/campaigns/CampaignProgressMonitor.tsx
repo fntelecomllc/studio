@@ -11,6 +11,7 @@ import { websocketService, type WebSocketMessage } from '@/lib/services/websocke
 import type { CampaignViewModel, CampaignPhase, CampaignStatus } from '@/lib/types';
 import { normalizeStatus, getStatusColor } from '@/lib/utils/statusMapping';
 import { adaptWebSocketMessage } from '@/lib/utils/websocketMessageAdapter';
+import { logger } from '@/lib/utils/logger';
 
 interface CampaignProgressMonitorProps {
   campaign: CampaignViewModel;
@@ -99,11 +100,20 @@ const CampaignProgressMonitor = memo(({
   const handleWebSocketMessage = useCallback((message: import('@/lib/services/websocketService.simple').CampaignProgressMessage) => {
     setConnectionHealth(prev => ({ ...prev, lastHeartbeat: new Date() }));
     
-    console.log(`[CampaignProgressMonitor] Received WebSocket message:`, message);
+    logger.debug('WebSocket message received', {
+      component: 'CampaignProgressMonitor',
+      operation: 'websocket_message',
+      campaignId: campaignKey.id,
+      messageType: message.type
+    });
 
     switch (message.type) {
       case 'subscription_confirmed':
-        console.log(`[DEBUG] Campaign subscription confirmed for ${message.campaignId}`);
+        logger.info('Campaign subscription confirmed', {
+          component: 'CampaignProgressMonitor',
+          operation: 'subscription_confirmed',
+          campaignId: message.campaignId
+        });
         toast({
           title: "Campaign Subscription Active",
           description: `Now monitoring campaign ${campaignKey.id} for real-time updates.`
@@ -171,13 +181,25 @@ const CampaignProgressMonitor = memo(({
       }
 
       default:
-        console.log('Unknown WebSocket message type:', message.type);
+        logger.warn('Unknown WebSocket message type received', {
+          component: 'CampaignProgressMonitor',
+          operation: 'websocket_unknown_message',
+          campaignId: campaignKey.id,
+          messageType: message.type
+        });
     }
   }, [campaignKey.id, toast, onDomainReceived, onCampaignUpdate]);
 
   // Optimized WebSocket connection effect with minimal dependencies
   useEffect(() => {
-    console.log(`[DEBUG] useEffect triggered for campaign ${campaignKey.id} - shouldConnect: ${shouldConnect}, phase: ${campaignKey.currentPhase}, status: ${campaignKey.status}`);
+    logger.debug('WebSocket connection effect triggered', {
+      component: 'CampaignProgressMonitor',
+      operation: 'websocket_connection_effect',
+      campaignId: campaignKey.id,
+      shouldConnect,
+      currentPhase: campaignKey.currentPhase,
+      status: campaignKey.status
+    });
     
     if (shouldConnect && user) {
       // Use the websocketService
@@ -189,7 +211,12 @@ const CampaignProgressMonitor = memo(({
           handleWebSocketMessage(message);
         },
         (error) => {
-          console.error('WebSocket error:', error);
+          logger.error('WebSocket connection error', {
+            component: 'CampaignProgressMonitor',
+            operation: 'websocket_error',
+            campaignId: campaignKey.id,
+            error: error instanceof Error ? error.message : String(error)
+          });
           setConnectionHealth({ isConnected: false, lastHeartbeat: null });
           toast({
             title: "Connection Error",
@@ -208,7 +235,11 @@ const CampaignProgressMonitor = memo(({
     }
 
     return () => {
-      console.log(`[DEBUG] useEffect cleanup for campaign ${campaignKey.id}`);
+      logger.debug('WebSocket connection cleanup', {
+        component: 'CampaignProgressMonitor',
+        operation: 'websocket_cleanup',
+        campaignId: campaignKey.id
+      });
       if (cleanupRef.current) {
         cleanupRef.current();
         cleanupRef.current = null;
@@ -219,7 +250,10 @@ const CampaignProgressMonitor = memo(({
 
   // Optimized campaign state sync effect with memoized dependencies
   useEffect(() => {
-    console.log(`[CampaignProgressMonitor] Campaign prop changed for ${campaignKey.id}:`, {
+    logger.debug('Campaign prop changed', {
+      component: 'CampaignProgressMonitor',
+      operation: 'campaign_prop_sync',
+      campaignId: campaignKey.id,
       progress: campaign.progress,
       status: campaign.status,
       currentPhase: campaign.currentPhase

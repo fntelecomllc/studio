@@ -1,6 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import type { GenerateDomainsInput } from '@/ai/flows/generate-domains-flow';
+import { logger } from '@/lib/utils/logger';
 
 interface TestDomainsResponse {
   domains: string[];
@@ -104,7 +105,11 @@ export async function POST() {
     return NextResponse.json(response, { status: 200 });
 
   } catch (error: unknown) {
-    console.error("/api/dev/test-domains error:", error);
+    logger.error("API route error", {
+      route: "/api/dev/test-domains",
+      error: error instanceof Error ? error.message : String(error),
+      component: 'DevTestDomainsAPI'
+    });
     const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred.";
     return NextResponse.json({ errorMessage }, { status: 500 });
   }

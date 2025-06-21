@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import PageHeader from '@/components/shared/PageHeader';
+import { logger } from '@/lib/utils/logger';
 import StrictProtectedRoute from '@/components/auth/StrictProtectedRoute';
 import { ConditionalAccess } from '@/components/auth/ProtectedRoute';
 import type { CampaignViewModel, CampaignsListResponse, CampaignDeleteResponse, CampaignOperationResponse } from '@/lib/types';
@@ -67,7 +68,11 @@ function CampaignsPageContent() {
           (standardMessage: WebSocketMessage) => {
             if (!isMountedRef.current) return;
             
-            console.log('[CampaignsPage] WebSocket message received:', standardMessage);
+            logger.debug('WebSocket message received', {
+              component: 'CampaignsPage',
+              messageType: standardMessage.type,
+              campaignId: standardMessage.campaignId
+            });
             
             // Convert to legacy format for backward compatibility
             const message = adaptWebSocketMessage(standardMessage);
@@ -113,7 +118,11 @@ function CampaignsPageContent() {
             }
           },
           (error) => {
-            console.error('WebSocket error:', error);
+            logger.error('WebSocket connection error', {
+              component: 'CampaignsPage',
+              operation: 'websocket_callback',
+              error: error instanceof Error ? error.message : String(error)
+            });
             if (isMountedRef.current) {
               setWsConnected(false);
             }
@@ -122,8 +131,12 @@ function CampaignsPageContent() {
         
         setWsConnected(true);
 
-      } catch {
-        console.error('Failed to connect WebSocket:', error);
+      } catch (error: unknown) {
+        logger.error('Failed to connect WebSocket', {
+          component: 'CampaignsPage',
+          operation: 'websocket_connection',
+          error: error instanceof Error ? error.message : String(error)
+        });
         if (isMountedRef.current) {
           setWsConnected(false);
         }
@@ -149,24 +162,39 @@ function CampaignsPageContent() {
 
   // Subscribe to campaign state changes
   useStateSubscription('campaigns', (updatedCampaigns) => {
-    console.log('[CampaignsPage] State subscription triggered with:', updatedCampaigns);
+    logger.debug('State subscription triggered', {
+      component: 'CampaignsPage',
+      operation: 'state_subscription',
+      campaignCount: Array.isArray(updatedCampaigns) ? updatedCampaigns.length : 'not-array'
+    });
     if (Array.isArray(updatedCampaigns)) {
       setCampaigns(updatedCampaigns);
     }
   });
 
   const loadCampaignsData = useCallback(async (showLoadingSpinner = true, signal?: AbortSignal) => {
-    console.log(`[CampaignsPage] loadCampaignsData called with showLoadingSpinner: ${showLoadingSpinner}`);
+    logger.debug('Loading campaigns data', {
+      component: 'CampaignsPage',
+      operation: 'load_campaigns',
+      showLoadingSpinner,
+      requestId: signal ? 'with-signal' : 'no-signal'
+    });
     
     // MEMORY LEAK FIX: Check if component is still mounted
     if (!isMountedRef.current) {
-      console.log('[CampaignsPage] Component unmounted, skipping load');
+      logger.debug('Component unmounted, skipping load', {
+        component: 'CampaignsPage',
+        operation: 'load_campaigns_check'
+      });
       return;
     }
     
     // INFINITE LOOP PREVENTION: Check if already loading to prevent concurrent calls
     if (isGlobalLoading('campaigns_load')) {
-      console.log('[CampaignsPage] Already loading campaigns, skipping duplicate call');
+      logger.debug('Already loading campaigns, skipping duplicate call', {
+        component: 'CampaignsPage',
+        operation: 'load_campaigns_duplicate_prevention'
+      });
       return;
     }
     
@@ -179,17 +207,31 @@ function CampaignsPageContent() {
       
       // MEMORY LEAK FIX: Check if request was aborted or component unmounted
       if (signal?.aborted || !isMountedRef.current) {
-        console.log('[CampaignsPage] Request aborted or component unmounted');
+        logger.debug('Request aborted or component unmounted', {
+          component: 'CampaignsPage',
+          operation: 'load_campaigns_abort_check',
+          aborted: signal?.aborted,
+          mounted: isMountedRef.current
+        });
         return;
       }
 
       if (response.status === 'success' && Array.isArray(response.data)) {
-        console.log(`[CampaignsPage] Successfully loaded ${response.data.length} campaigns`);
+        logger.info('Successfully loaded campaigns', {
+          component: 'CampaignsPage',
+          operation: 'load_campaigns_success',
+          campaignCount: response.data.length
+        });
         if (isMountedRef.current) {
           setCampaigns(transformCampaignsToViewModels(response.data));
         }
       } else {
-        console.warn('[CampaignsPage] Failed to load campaigns:', response.message);
+        logger.warn('Failed to load campaigns', {
+          component: 'CampaignsPage',
+          operation: 'load_campaigns_failure',
+          message: response.message,
+          status: response.status
+        });
         if (isMountedRef.current) {
           setCampaigns([]);
           toast({
@@ -202,11 +244,20 @@ function CampaignsPageContent() {
     } catch (error: unknown) {
       // MEMORY LEAK FIX: Don't update state if component unmounted or request aborted
       if (signal?.aborted || !isMountedRef.current) {
-        console.log('[CampaignsPage] Request aborted or component unmounted during error handling');
+        logger.debug('Request aborted or component unmounted during error handling', {
+          component: 'CampaignsPage',
+          operation: 'load_campaigns_error_abort_check',
+          aborted: signal?.aborted,
+          mounted: isMountedRef.current
+        });
         return;
       }
       
-      console.error('[CampaignsPage] Error loading campaigns:', error);
+      logger.error('Error loading campaigns', {
+        component: 'CampaignsPage',
+        operation: 'load_campaigns_error',
+        error: error instanceof Error ? error.message : String(error)
+      });
       if (isMountedRef.current) {
         setCampaigns([]);
         const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred.";
@@ -226,7 +277,10 @@ function CampaignsPageContent() {
 
 
   useEffect(() => {
-    console.log('[CampaignsPage] Initial load effect triggered');
+    logger.debug('Initial load effect triggered', {
+      component: 'CampaignsPage',
+      operation: 'initial_load_effect'
+    });
     
     // MEMORY LEAK FIX: Create AbortController for this effect
     const abortController = new AbortController();
@@ -238,18 +292,29 @@ function CampaignsPageContent() {
     // MEMORY LEAK FIX: Set up interval with proper cleanup - reduced frequency for better performance
     const intervalId = setInterval(() => {
       if (!isMountedRef.current || abortController.signal.aborted) {
-        console.log('[CampaignsPage] Interval stopped due to unmount or abort');
+        logger.debug('Interval stopped due to unmount or abort', {
+          component: 'CampaignsPage',
+          operation: 'interval_stop',
+          mounted: isMountedRef.current,
+          aborted: abortController.signal.aborted
+        });
         clearInterval(intervalId);
         return;
       }
-      console.log('[CampaignsPage] Interval refresh triggered');
+      logger.debug('Interval refresh triggered', {
+        component: 'CampaignsPage',
+        operation: 'interval_refresh'
+      });
       loadCampaignsData(false, abortController.signal);
     }, 30000); // FIXED: Changed from 5 seconds to 30 seconds to reduce refresh frequency
     
     intervalRef.current = intervalId;
     
     return () => {
-      console.log('[CampaignsPage] Cleaning up interval and aborting requests');
+      logger.debug('Cleaning up interval and aborting requests', {
+        component: 'CampaignsPage',
+        operation: 'cleanup_effect'
+      });
       // MEMORY LEAK FIX: Clear interval
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -517,14 +582,24 @@ function CampaignsPageContent() {
       )}
      {/* Campaign Progress Monitors for active campaigns */}
      {campaigns.filter(c => isActiveStatus(normalizeStatus(c.status))).map(campaign => {
-       console.log(`[CampaignsPage] Rendering progress monitor for campaign ${campaign.id}`);
+       logger.debug('Rendering progress monitor for campaign', {
+         component: 'CampaignsPage',
+         operation: 'render_progress_monitor',
+         campaignId: campaign.id,
+         campaignStatus: campaign.status
+       });
        return (
          <div key={`monitor-${campaign.id}`} className="mb-4">
            <Suspense fallback={<ComponentLoader />}>
              <CampaignProgressMonitor
                campaign={campaign}
                onCampaignUpdate={(updates) => {
-                 console.log(`[CampaignsPage] Progress monitor update for ${campaign.id}:`, updates);
+                 logger.debug('Progress monitor update received', {
+                   component: 'CampaignsPage',
+                   operation: 'progress_monitor_update',
+                   campaignId: campaign.id,
+                   updateKeys: Object.keys(updates)
+                 });
                  // INFINITE LOOP PREVENTION: Avoid triggering state updates that cause re-renders
                  setCampaigns(prev => prev.map(c =>
                    c.id === campaign.id ? { ...c, ...updates } : c

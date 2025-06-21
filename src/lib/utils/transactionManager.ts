@@ -5,6 +5,7 @@
  */
 
 import { ApiError } from '@/lib/api/transformers/error-transformers';
+import { logger } from './logger';
 
 export interface TransactionStep<T = unknown> {
   name: string;
@@ -54,7 +55,7 @@ export class TransactionManager {
           const result = await this.executeStepWithRetry(step, retryDelay, timeout);
           results.set(step.name, result);
           completedSteps.push({ step, result });
-        } catch {
+        } catch (error) {
           errors.set(step.name, error as Error);
           
           // Rollback all completed steps
@@ -76,7 +77,7 @@ export class TransactionManager {
         errors,
         rolledBack: false
       };
-    } catch {
+    } catch (error) {
       // Global error during transaction
       errors.set('transaction', error as Error);
       
@@ -116,7 +117,7 @@ export class TransactionManager {
         ]);
         
         return result;
-      } catch {
+      } catch (error) {
         lastError = error as Error;
         
         // Don't retry if it's an ApiError with specific status codes
@@ -129,7 +130,12 @@ export class TransactionManager {
         
         // If we have retries left, wait and try again
         if (attempt < maxRetries) {
-          console.warn(`Step '${step.name}' failed on attempt ${attempt + 1}, retrying...`, error);
+          logger.warn(`Step '${step.name}' failed on attempt ${attempt + 1}, retrying...`, {
+            error,
+            attempt: attempt + 1,
+            maxRetries,
+            component: 'TransactionManager'
+          });
           await new Promise(resolve => setTimeout(resolve, retryDelay * (attempt + 1)));
         }
       }
@@ -144,7 +150,10 @@ export class TransactionManager {
   private static async rollbackSteps<T>(
     completedSteps: Array<{ step: TransactionStep<T>; result: T }>
   ): Promise<void> {
-    console.log('Rolling back transaction steps...');
+    logger.info('Rolling back transaction steps', {
+      stepCount: completedSteps.length,
+      component: 'TransactionManager'
+    });
     
     // Rollback in reverse order
     for (let i = completedSteps.length - 1; i >= 0; i--) {
@@ -155,10 +164,17 @@ export class TransactionManager {
       
       if (step.rollback) {
         try {
-          console.log(`Rolling back step: ${step.name}`);
+          logger.info(`Rolling back step: ${step.name}`, {
+            stepName: step.name,
+            component: 'TransactionManager'
+          });
           await step.rollback(result);
-        } catch {
-          console.error(`Failed to rollback step '${step.name}':`, error);
+        } catch (error) {
+          logger.error(`Failed to rollback step '${step.name}'`, {
+            error,
+            stepName: step.name,
+            component: 'TransactionManager'
+          });
           // Continue with other rollbacks even if one fails
         }
       }

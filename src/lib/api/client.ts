@@ -2,6 +2,7 @@
 // Enhanced API Client for session-based authentication
 import type { ApiResponse } from '@/lib/types';
 import { getApiConfig } from '@/lib/config/environment';
+import { logger } from '@/lib/utils/logger';
 
 // Unified error response types matching backend
 interface UnifiedErrorResponse {
@@ -174,7 +175,14 @@ class SessionApiClient {
                 }
                 
                 // Log error with request ID for debugging
-                console.error(`API Error [${unifiedError.request_id}]:`, unifiedError.error);
+                logger.error('API request failed with unified error response', {
+                  component: 'SessionApiClient',
+                  requestId: unifiedError.request_id,
+                  errorCode: unifiedError.error.code,
+                  errorMessage: unifiedError.error.message,
+                  url: url.toString(),
+                  action: 'request'
+                });
               }
               // Handle legacy error formats
               else if (errorData.error) {
@@ -248,12 +256,12 @@ class SessionApiClient {
             message: 'Request successful',
           };
         }
-      } catch {
+      } catch (error: unknown) {
         lastError = error as Error;
         
         // Don't retry on abort or certain errors
-        if (attempt < retries && 
-            error instanceof Error && 
+        if (attempt < retries &&
+            error instanceof Error &&
             error.name !== 'AbortError' &&
             !error.message.includes('Failed to fetch')) {
           // Exponential backoff

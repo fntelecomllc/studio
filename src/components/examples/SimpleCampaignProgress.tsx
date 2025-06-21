@@ -7,6 +7,7 @@
 
 import React, { useState } from 'react';
 import { useCampaignWebSocket, useCampaignMessages } from '@/lib/hooks/useWebSocket';
+import { logger } from '@/lib/utils/logger';
 import { CampaignWebSocketIndicator } from '@/components/websocket/WebSocketStatus.simple';
 import type { WebSocketMessage } from '@/lib/services/websocketService.simple';
 
@@ -21,7 +22,12 @@ export function SimpleCampaignProgress({ campaignId }: CampaignProgressProps) {
 
   // Handle campaign messages with automatic connection management
   const handleMessage = (message: WebSocketMessage) => {
-    console.log('Received campaign message:', message);
+    logger.debug('Received campaign message', {
+      component: 'SimpleCampaignProgress',
+      campaignId,
+      messageType: message.type,
+      messageData: message.data
+    });
     
     switch (message.type) {
       case 'campaign_progress':

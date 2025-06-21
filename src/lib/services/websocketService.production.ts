@@ -6,6 +6,7 @@
  */
 
 import { UUID, ISODateString } from '@/lib/types/branded';
+import { logger } from '@/lib/utils/logger';
 import {
   WebSocketMessage,
   WebSocketMessageTypes,
@@ -61,9 +62,7 @@ class ProductionWebSocketService {
    */
   private createConnection(): WebSocket {
     const url = this.getWebSocketUrl();
-    console.log(`[WebSocket] Connecting to: ${url}`);
-    console.log(`[WebSocket] Current origin: ${window.location.origin}`);
-    console.log(`[WebSocket] Current protocol: ${window.location.protocol}`);
+    logger.info('Production WebSocket connecting', { url, origin: window.location.origin, protocol: window.location.protocol }, { component: 'ProductionWebSocketService' });
     
     const ws = new WebSocket(url);
     
@@ -80,7 +79,7 @@ class ProductionWebSocketService {
     if (!state.ws) return;
 
     state.ws.onopen = () => {
-      console.log(`[WebSocket] Connected: ${connectionId}`);
+      logger.info('Production WebSocket connected', { connectionId }, { component: 'ProductionWebSocketService' });
       state.reconnectAttempts = 0;
       
       // Subscribe to campaigns
@@ -95,42 +94,43 @@ class ProductionWebSocketService {
         const message = parseWebSocketMessage(event.data);
         
         if (!message) {
-          console.error('[WebSocket] Failed to parse message:', event.data);
+          logger.error('Failed to parse production WebSocket message', null, { component: 'ProductionWebSocketService', operation: 'parseMessage', rawData: event.data });
           return;
         }
         
-        console.log(`[WebSocket] Message received:`, message);
+        logger.info('Production WebSocket message received', { messageType: message.type }, { component: 'ProductionWebSocketService' });
         
         // Call all message handlers with the typed message
         state.messageHandlers.forEach(handler => {
           try {
             handler(message);
-          } catch {
-            console.error('[WebSocket] Error in message handler:', error);
+          } catch (error) {
+            logger.error('Error in production WebSocket message handler', error, { component: 'ProductionWebSocketService', operation: 'messageHandler' });
           }
         });
-      } catch {
-        console.error('[WebSocket] Error processing message:', error, event.data);
+      } catch (error) {
+        logger.error('Error processing production WebSocket message', error, { component: 'ProductionWebSocketService', operation: 'processMessage', rawData: event.data });
       }
     };
 
     state.ws.onerror = (error) => {
-      console.error(`[WebSocket] Error: ${connectionId}`, error);
+      logger.error('Production WebSocket error', error, { component: 'ProductionWebSocketService', connectionId });
       state.errorHandlers.forEach(handler => {
         try {
           handler(error);
         } catch (err) {
-          console.error('[WebSocket] Error in error handler:', err);
+          logger.error('Error in production WebSocket error handler', err, { component: 'ProductionWebSocketService', connectionId });
         }
       });
     };
 
     state.ws.onclose = (event) => {
-      console.log(`[WebSocket] Closed: ${connectionId}`, { 
+      logger.info('Production WebSocket closed', { 
+        connectionId,
         code: event.code, 
         reason: event.reason, 
         wasClean: event.wasClean 
-      });
+      }, { component: 'ProductionWebSocketService' });
       
       state.ws = null;
       
@@ -154,7 +154,7 @@ class ProductionWebSocketService {
         timestamp: new Date().toISOString()
       };
       ws.send(JSON.stringify(message));
-      console.log(`[WebSocket] Subscribed to campaign: ${campaignId}`);
+      logger.info('Production WebSocket subscribed to campaign', { campaignId }, { component: 'ProductionWebSocketService' });
     }
   }
 
@@ -171,7 +171,7 @@ class ProductionWebSocketService {
         timestamp: new Date().toISOString()
       };
       ws.send(JSON.stringify(message));
-      console.log(`[WebSocket] Unsubscribed from campaign: ${campaignId}`);
+      logger.info('Production WebSocket unsubscribed from campaign', { campaignId }, { component: 'ProductionWebSocketService' });
     }
   }
 
@@ -182,7 +182,12 @@ class ProductionWebSocketService {
     const delay = this.baseReconnectDelay * Math.pow(2, state.reconnectAttempts);
     state.reconnectAttempts++;
     
-    console.log(`[WebSocket] Scheduling reconnect ${state.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms for: ${connectionId}`);
+    logger.info('Production WebSocket scheduling reconnect', { 
+      connectionId,
+      attempt: state.reconnectAttempts, 
+      maxAttempts: this.maxReconnectAttempts, 
+      delayMs: delay 
+    }, { component: 'ProductionWebSocketService' });
     
     state.reconnectTimer = setTimeout(() => {
       if (this.connections.get(connectionId) === state) {
@@ -195,7 +200,7 @@ class ProductionWebSocketService {
    * Reconnect WebSocket
    */
   private reconnect(connectionId: string, state: ConnectionState): void {
-    console.log(`[WebSocket] Reconnecting: ${connectionId}`);
+    logger.info('Production WebSocket reconnecting', { connectionId }, { component: 'ProductionWebSocketService' });
     
     state.ws = this.createConnection();
     state.isIntentionalClose = false;
@@ -341,7 +346,7 @@ class ProductionWebSocketService {
       }
       
       this.connections.delete(connectionId);
-      console.log(`[WebSocket] Disconnected from campaign: ${campaignId}`);
+      logger.info('Production WebSocket disconnected from campaign', { campaignId }, { component: 'ProductionWebSocketService' });
     }
   }
 
@@ -373,7 +378,7 @@ class ProductionWebSocketService {
       this.globalConnection = null;
     }
 
-    console.log('[WebSocket] All connections closed');
+    logger.info('Production WebSocket all connections closed', {}, { component: 'ProductionWebSocketService' });
   }
 
   /**
@@ -413,9 +418,9 @@ class ProductionWebSocketService {
         timestamp: new Date().toISOString()
       };
       state.ws.send(JSON.stringify(formattedMessage));
-      console.log(`[WebSocket] Sent message to ${campaignId}:`, formattedMessage);
+      logger.info('Production WebSocket message sent', { campaignId, message: formattedMessage }, { component: 'ProductionWebSocketService' });
     } else {
-      console.warn(`[WebSocket] Cannot send message - not connected to ${campaignId}`);
+      logger.warn('Production WebSocket cannot send message - not connected', { campaignId }, { component: 'ProductionWebSocketService' });
     }
   }
 }

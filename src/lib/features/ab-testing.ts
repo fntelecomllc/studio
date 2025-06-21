@@ -15,6 +15,7 @@ import React from 'react';
 import { z } from 'zod';
 import { featureFlags, UserContext } from './feature-flags';
 import { errorTracker } from '../monitoring/error-tracker';
+import { logger } from '@/lib/utils/logger';
 
 // Experiment configuration schema
 export const ExperimentSchema = z.object({
@@ -162,14 +163,26 @@ class ABTestingService {
   trackConversion(event: ConversionEvent): void {
     const experiment = this.experiments.get(event.experimentId);
     if (!experiment) {
-      console.warn(`Experiment ${event.experimentId} not found`);
+      logger.warn('Experiment not found for conversion tracking', {
+        component: 'ABTestingService',
+        method: 'trackConversion',
+        experimentId: event.experimentId,
+        variantId: event.variantId,
+        goalId: event.goalId
+      });
       return;
     }
 
     // Validate goal exists
     const goal = experiment.goals.find(g => g.id === event.goalId);
     if (!goal) {
-      console.warn(`Goal ${event.goalId} not found in experiment ${event.experimentId}`);
+      logger.warn('Goal not found in experiment for conversion tracking', {
+        component: 'ABTestingService',
+        method: 'trackConversion',
+        experimentId: event.experimentId,
+        goalId: event.goalId,
+        availableGoals: experiment.goals.map(g => g.id)
+      });
       return;
     }
 
@@ -450,7 +463,7 @@ class ABTestingService {
     try {
       // This would fetch from your API
       // For now, we'll use local experiments
-    } catch {
+    } catch (error: unknown) {
       errorTracker.trackError(error as Error, {
         component: 'ABTestingService',
         url: '/api/experiments',
@@ -486,7 +499,7 @@ class ABTestingService {
       //   headers: { 'Content-Type': 'application/json' },
       //   body: JSON.stringify({ events })
       // });
-    } catch {
+    } catch (error: unknown) {
       // Re-queue events on failure
       this.analyticsQueue.unshift(...events);
       errorTracker.trackError(error as Error, {
@@ -512,8 +525,12 @@ class ABTestingService {
       };
       
       localStorage.setItem(this.storageKey, JSON.stringify(data));
-    } catch {
-      console.error('Failed to save A/B test data:', error);
+    } catch (error: unknown) {
+      logger.error('Failed to save A/B test data to localStorage', {
+        component: 'ABTestingService',
+        method: 'saveToStorage',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   }
 
@@ -541,8 +558,12 @@ class ABTestingService {
       data.conversions?.forEach(([id, events]: [string, ConversionEvent[]]) => {
         this.conversions.set(id, events);
       });
-    } catch {
-      console.error('Failed to load A/B test data:', error);
+    } catch (error: unknown) {
+      logger.error('Failed to load A/B test data from localStorage', {
+        component: 'ABTestingService',
+        method: 'loadFromStorage',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   }
 

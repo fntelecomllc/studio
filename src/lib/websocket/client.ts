@@ -8,6 +8,7 @@ import {
   webSocketReconnectionConfig 
 } from '@/lib/config/websocket';
 import { authService } from '@/lib/services/authService';
+import { logger } from '../utils/logger';
 
 export interface WebSocketMessage {
   type: string;
@@ -123,8 +124,12 @@ class SessionWebSocketClient {
       handlers.forEach(handler => {
         try {
           handler(data);
-        } catch {
-          console.error(`Error in WebSocket event handler for ${event}:`, error);
+        } catch (error) {
+          logger.error(`Error in WebSocket event handler for ${event}`, {
+            error,
+            event,
+            component: 'WebSocketClient'
+          });
         }
       });
     }
@@ -154,9 +159,9 @@ class SessionWebSocketClient {
       // Setup event handlers
       this.setupWebSocketHandlers();
       
-    } catch {
+    } catch (error) {
       this.isConnecting = false;
-      console.error('WebSocket connection failed:', error);
+      logger.error('WebSocket connection failed', { error, component: 'WebSocketClient' });
       this.emit('error', error);
       
       if (this.config.enableAutoReconnect) {
@@ -191,7 +196,7 @@ class SessionWebSocketClient {
     if (!this.ws) return;
 
     this.ws.onopen = (event) => {
-      console.log('WebSocket connected');
+      logger.websocket('WebSocket connected successfully');
       this.isConnecting = false;
       this.isAuthenticated = true;
       this.reconnectAttempts = 0;
@@ -209,7 +214,10 @@ class SessionWebSocketClient {
     };
 
     this.ws.onclose = (event) => {
-      console.log('WebSocket disconnected', event.code, event.reason);
+      logger.websocket('WebSocket disconnected', {
+        code: event.code,
+        reason: event.reason
+      });
       this.isAuthenticated = false;
       this.stopTimers();
       
@@ -222,7 +230,7 @@ class SessionWebSocketClient {
     };
 
     this.ws.onerror = (event) => {
-      console.error('WebSocket error:', event);
+      logger.error('WebSocket error occurred', { event, component: 'WebSocketClient' });
       this.emit('error', event);
     };
 
@@ -237,8 +245,8 @@ class SessionWebSocketClient {
         }
         
         this.emit('message', message);
-      } catch {
-        console.error('Error parsing WebSocket message:', error);
+      } catch (error) {
+        logger.error('Error parsing WebSocket message', { error, component: 'WebSocketClient' });
       }
     };
   }
@@ -260,14 +268,14 @@ class SessionWebSocketClient {
       }
       
       this.lastSessionValidation = Date.now();
-    } catch {
-      console.error('Session validation failed:', error);
+    } catch (error) {
+      logger.error('Session validation failed', { error, component: 'WebSocketClient' });
       this.handleSessionExpired();
     }
   }
 
   private handleSessionExpired(): void {
-    console.warn('WebSocket session expired');
+    logger.warn('WebSocket session expired', { component: 'WebSocketClient' });
     this.isAuthenticated = false;
     
     // Close connection
@@ -321,12 +329,20 @@ class SessionWebSocketClient {
 
   private scheduleReconnect(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('Max reconnection attempts reached');
+      logger.error('Max WebSocket reconnection attempts reached', {
+        maxAttempts: this.maxReconnectAttempts,
+        component: 'WebSocketClient'
+      });
       return;
     }
 
     const delay = this.calculateReconnectDelay();
-    console.log(`Scheduling WebSocket reconnection in ${delay}ms (attempt ${this.reconnectAttempts + 1})`);
+    logger.info('Scheduling WebSocket reconnection', {
+      delay,
+      attempt: this.reconnectAttempts + 1,
+      maxAttempts: this.maxReconnectAttempts,
+      component: 'WebSocketClient'
+    });
     
     this.emit('reconnecting', { 
       attempt: this.reconnectAttempts + 1, 
@@ -362,7 +378,11 @@ class SessionWebSocketClient {
   // Message handling
   send(message: WebSocketMessage): void {
     if (!this.isConnected() || !this.isAuthenticated) {
-      console.warn('WebSocket not connected or not authenticated, queueing message');
+      logger.warn('WebSocket not connected or not authenticated, queueing message', {
+        isConnected: this.isConnected(),
+        isAuthenticated: this.isAuthenticated,
+        component: 'WebSocketClient'
+      });
       this.queueMessage(message);
       return;
     }
@@ -374,8 +394,8 @@ class SessionWebSocketClient {
       };
       
       this.ws!.send(JSON.stringify(messageWithTimestamp));
-    } catch {
-      console.error('Error sending WebSocket message:', error);
+    } catch (error) {
+      logger.error('Error sending WebSocket message', { error, component: 'WebSocketClient' });
       this.queueMessage(message);
     }
   }

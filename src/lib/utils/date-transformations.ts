@@ -4,6 +4,7 @@
  */
 
 import { ISODateString, createISODateString } from '@/lib/types/branded';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * Timezone constants
@@ -62,19 +63,32 @@ export function transformBackendTimestamp(
     } else if (timestamp instanceof Date) {
       date = timestamp;
     } else {
-      console.warn('Invalid timestamp format:', timestamp);
+      logger.warn('Invalid timestamp format provided', {
+        component: 'DateTransformations',
+        timestamp,
+        action: 'transformBackendTimestamp'
+      });
       return undefined;
     }
     
     // Validate the date
     if (isNaN(date.getTime())) {
-      console.warn('Invalid date from timestamp:', timestamp);
+      logger.warn('Invalid date created from timestamp', {
+        component: 'DateTransformations',
+        timestamp,
+        action: 'transformBackendTimestamp'
+      });
       return undefined;
     }
     
     return createISODateString(date.toISOString());
-  } catch {
-    console.error('Error transforming timestamp:', error, timestamp);
+  } catch (error: unknown) {
+    logger.error('Error transforming timestamp', {
+      component: 'DateTransformations',
+      error,
+      timestamp,
+      action: 'transformBackendTimestamp'
+    });
     return undefined;
   }
 }
@@ -102,8 +116,15 @@ export function formatISODate(
     };
     
     return new Intl.DateTimeFormat('en-US', options).format(date);
-  } catch {
-    console.error('Error formatting date:', error, isoDate);
+  } catch (error: unknown) {
+    logger.error('Error formatting date', {
+      component: 'DateTransformations',
+      error,
+      isoDate,
+      format,
+      timezone,
+      action: 'formatISODate'
+    });
     return isoDate; // Fallback to raw ISO string
   }
 }
@@ -136,8 +157,13 @@ export function getRelativeTime(
     } else {
       return rtf.format(-diffSeconds, 'second');
     }
-  } catch {
-    console.error('Error getting relative time:', error, isoDate);
+  } catch (error: unknown) {
+    logger.error('Error getting relative time', {
+      component: 'DateTransformations',
+      error,
+      isoDate,
+      action: 'getRelativeTime'
+    });
     return formatISODate(isoDate);
   }
 }
@@ -156,8 +182,13 @@ export function toUTCISOString(
       return undefined;
     }
     return createISODateString(dateObj.toISOString());
-  } catch {
-    console.error('Error converting to UTC ISO string:', error, date);
+  } catch (error: unknown) {
+    logger.error('Error converting to UTC ISO string', {
+      component: 'DateTransformations',
+      error,
+      date,
+      action: 'toUTCISOString'
+    });
     return undefined;
   }
 }
@@ -176,8 +207,13 @@ export function parseISODate(
       return undefined;
     }
     return date;
-  } catch {
-    console.error('Error parsing ISO date:', error, isoDate);
+  } catch (error: unknown) {
+    logger.error('Error parsing ISO date', {
+      component: 'DateTransformations',
+      error,
+      isoDate,
+      action: 'parseISODate'
+    });
     return undefined;
   }
 }

@@ -9,6 +9,7 @@ import type { UUID } from '@/lib/types/branded';
 import type { Campaign, CampaignOperationResponse } from '@/lib/types';
 import { transformErrorResponse } from '@/lib/api/transformers/error-transformers';
 import { performanceMonitor } from '@/lib/monitoring/performance-monitor';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * Bulk operation request for campaigns
@@ -140,7 +141,7 @@ class EnhancedCampaignService {
               'ms',
               { operation, status: 'success' }
             );
-          } catch {
+          } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             failed.push({
               campaignId,
@@ -235,7 +236,7 @@ class EnhancedCampaignService {
             error: 'Campaign not found'
           });
         }
-      } catch {
+      } catch (error) {
         failed.push({
           campaignId: update.campaignId,
           error: error instanceof Error ? error.message : 'Unknown error'
@@ -318,8 +319,8 @@ class EnhancedCampaignService {
       }
 
       return await response.blob();
-    } catch {
-      console.error('[CampaignService] Failed to export campaigns:', error);
+    } catch (error) {
+      logger.error('Failed to export campaigns', error, { component: 'CampaignService', operation: 'exportCampaigns', endpoint: '/api/v2/campaigns/export' });
       throw transformErrorResponse(error, 500, '/api/v2/campaigns/export');
     }
   }

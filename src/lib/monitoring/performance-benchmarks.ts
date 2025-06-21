@@ -11,6 +11,7 @@ import {
   validateCampaignResponse,
   validateUserResponse
 } from '../validation/runtime-validators';
+import { logger } from '../utils/logger';
 
 // Type validators - these are simple validators for benchmarking
 const isSafeBigInt = (value: unknown): value is SafeBigInt => {
@@ -123,7 +124,7 @@ export class PerformanceBenchmarkRunner {
     const startTime = Date.now();
     const results: BenchmarkResult[] = [];
 
-    console.log(`Running performance benchmarks with ${iterations} iterations...`);
+    logger.info('Starting performance benchmark suite', { iterations, timestamp: new Date().toISOString() }, { component: 'PerformanceBenchmarks' });
 
     // Type validation benchmarks
     results.push(...await this.runValidationBenchmarks(iterations));
@@ -380,10 +381,12 @@ export class PerformanceBenchmarkRunner {
    * Report benchmark results
    */
   private reportResults(suite: BenchmarkSuite): void {
-    console.log(`\n${  '='.repeat(80)}`);
-    console.log(`Performance Benchmark Results - ${new Date(suite.timestamp).toLocaleString()}`);
-    console.log('='.repeat(80));
-    console.log(`Total Duration: ${suite.totalDuration}ms\n`);
+    logger.info('Performance benchmark suite completed', {
+      suiteName: suite.name,
+      totalDuration: suite.totalDuration,
+      totalBenchmarks: suite.results.length,
+      timestamp: new Date(suite.timestamp).toLocaleString()
+    }, { component: 'PerformanceBenchmarks' });
 
     // Group by category
     const categories = new Map<string, BenchmarkResult[]>();
@@ -393,31 +396,20 @@ export class PerformanceBenchmarkRunner {
       categories.set(result.category, categoryResults);
     });
 
-    // Print results by category
+    // Log results by category
     categories.forEach((results, category) => {
-      console.log(`\n${category} Benchmarks:`);
-      console.log('-'.repeat(80));
-      console.log(
-        'Name'.padEnd(40) +
-        'Avg (ms)'.padEnd(12) +
-        'Min (ms)'.padEnd(12) +
-        'Max (ms)'.padEnd(12) +
-        'Ops/sec'.padEnd(12)
-      );
-      console.log('-'.repeat(80));
-
-      results.forEach(result => {
-        console.log(
-          result.name.padEnd(40) +
-          result.average.toFixed(3).padEnd(12) +
-          result.min.toFixed(3).padEnd(12) +
-          result.max.toFixed(3).padEnd(12) +
-          result.opsPerSecond.toFixed(0).padEnd(12)
-        );
-      });
+      logger.info(`Benchmark category results: ${category}`, {
+        category,
+        benchmarkCount: results.length,
+        results: results.map(result => ({
+          name: result.name,
+          averageMs: Number(result.average.toFixed(3)),
+          minMs: Number(result.min.toFixed(3)),
+          maxMs: Number(result.max.toFixed(3)),
+          opsPerSecond: Number(result.opsPerSecond.toFixed(0))
+        }))
+      }, { component: 'PerformanceBenchmarks' });
     });
-
-    console.log(`\n${  '='.repeat(80)}`);
 
     // Record to monitoring service
     performanceMonitor.recordCustomMetric(
@@ -435,41 +427,47 @@ export class PerformanceBenchmarkRunner {
    * Compare two benchmark suites
    */
   compareSuites(suite1: BenchmarkSuite, suite2: BenchmarkSuite): void {
-    console.log(`\n${  '='.repeat(80)}`);
-    console.log('Benchmark Comparison');
-    console.log('='.repeat(80));
-    console.log(`Suite 1: ${suite1.name}`);
-    console.log(`Suite 2: ${suite2.name}\n`);
+    logger.info('Starting benchmark suite comparison', {
+      suite1Name: suite1.name,
+      suite2Name: suite2.name,
+      suite1Results: suite1.results.length,
+      suite2Results: suite2.results.length
+    }, { component: 'PerformanceBenchmarks' });
 
     const results1Map = new Map(suite1.results.map(r => [r.name, r]));
     const results2Map = new Map(suite2.results.map(r => [r.name, r]));
 
-    console.log(
-      'Benchmark'.padEnd(40) +
-      'Suite 1'.padEnd(12) +
-      'Suite 2'.padEnd(12) +
-      'Change (%)'.padEnd(12) +
-      'Status'.padEnd(10)
-    );
-    console.log('-'.repeat(80));
+    const comparisons: Array<{
+      name: string;
+      suite1Average: number;
+      suite2Average: number;
+      changePercent: number;
+      status: string;
+    }> = [];
 
     results1Map.forEach((result1, name) => {
       const result2 = results2Map.get(name);
       if (!result2) return;
 
       const change = ((result2.average - result1.average) / result1.average) * 100;
-      const status = change < 0 ? '✓ Faster' : change > 5 ? '✗ Slower' : '= Same';
+      const status = change < 0 ? 'Faster' : change > 5 ? 'Slower' : 'Same';
 
-      console.log(
-        name.padEnd(40) +
-        result1.average.toFixed(3).padEnd(12) +
-        result2.average.toFixed(3).padEnd(12) +
-        `${change > 0 ? '+' : ''}${change.toFixed(1)}%`.padEnd(12) +
-        status.padEnd(10)
-      );
+      comparisons.push({
+        name,
+        suite1Average: Number(result1.average.toFixed(3)),
+        suite2Average: Number(result2.average.toFixed(3)),
+        changePercent: Number(change.toFixed(1)),
+        status
+      });
     });
 
-    console.log(`\n${  '='.repeat(80)}`);
+    logger.info('Benchmark suite comparison completed', {
+      comparisons,
+      totalComparisons: comparisons.length,
+      fasterCount: comparisons.filter(c => c.status === 'Faster').length,
+      slowerCount: comparisons.filter(c => c.status === 'Slower').length,
+      sameCount: comparisons.filter(c => c.status === 'Same').length
+    }, { component: 'PerformanceBenchmarks' });
   }
 
   /**
@@ -531,7 +529,7 @@ export function criticalPath(target: any, propertyKey: string, descriptor: Prope
       );
       
       return result;
-    } catch {
+    } catch (error) {
       performance.mark(endMark);
       
       const duration = performance.now() - startTime;

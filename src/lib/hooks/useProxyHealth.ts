@@ -6,6 +6,7 @@ import { getProxies, testProxy, testAllProxies } from '@/lib/services/proxyServi
 import type { Proxy, ProxiesListResponse, ProxyActionResponse } from '@/lib/types';
 import { UUID, createUUID, safeBigIntToNumber } from '@/lib/types/branded';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/lib/utils/logger';
 
 export interface ProxyHealthMetrics {
   totalProxies: number;
@@ -139,8 +140,12 @@ export function useProxyHealth(options: UseProxyHealthOptions = {}) {
           variant: "destructive"
         });
       }
-    } catch {
-      console.error('Error fetching proxy data:', error);
+    } catch (error: unknown) {
+      logger.error('Error fetching proxy data', {
+        component: 'useProxyHealth',
+        error,
+        action: 'fetchProxyData'
+      });
       toast({
         title: "Network Error",
         description: "Failed to connect to proxy service",
@@ -179,8 +184,12 @@ export function useProxyHealth(options: UseProxyHealthOptions = {}) {
           variant: "destructive"
         });
       }
-    } catch {
-      console.error('Error running health checks:', error);
+    } catch (error: unknown) {
+      logger.error('Error running proxy health checks', {
+        component: 'useProxyHealth',
+        error,
+        action: 'runHealthChecks'
+      });
       toast({
         title: "Health Check Error",
         description: "Failed to complete health checks",
@@ -215,8 +224,13 @@ export function useProxyHealth(options: UseProxyHealthOptions = {}) {
       } else {
         throw new Error(response.message || 'Test failed');
       }
-    } catch {
-      console.error(`Error testing proxy ${proxyId}:`, error);
+    } catch (error: unknown) {
+      logger.error('Error testing specific proxy', {
+        component: 'useProxyHealth',
+        proxyId,
+        error,
+        action: 'testSpecificProxy'
+      });
       throw error;
     }
   }, [proxies, calculateHealthMetrics]);
