@@ -608,8 +608,8 @@ async function main() {
   }
 }
 
-// CommonJS main module check
-if (require.main === module) {
+// ES module main check
+if (import.meta.url === `file://${process.argv[1]}`) {
   main();
 }
 

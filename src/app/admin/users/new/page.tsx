@@ -135,7 +135,7 @@ export default function CreateUserPage() {
     } catch (error) {
       if (error instanceof z.ZodError) {
         const fieldErrors: Partial<Record<keyof CreateUserFormData, string>> = {};
-        error.errors.forEach((err: any) => {
+        error.errors.forEach((err: z.ZodIssue) => {
           if (err.path.length > 0) {
             const field = err.path[0] as keyof CreateUserFormData;
             fieldErrors[field] = err.message;
@@ -349,7 +349,7 @@ export default function CreateUserPage() {
                 Roles <span className="text-red-500">*</span>
               </Label>
               <Select
-                onValueChange={(value) => handleInputChange('roleIds', [value])}
+                onValueChange={(value: string) => handleInputChange('roleIds', [value])}
               >
                 <SelectTrigger className={errors.roleIds ? 'border-red-500' : ''}>
                   <SelectValue placeholder="Select a role" />
@@ -381,7 +381,7 @@ export default function CreateUserPage() {
                 <Checkbox
                   id="mustChangePassword"
                   checked={formData.mustChangePassword}
-                  onCheckedChange={(checked) => 
+                  onCheckedChange={(checked: boolean) =>
                     handleInputChange('mustChangePassword', Boolean(checked))
                   }
                 />

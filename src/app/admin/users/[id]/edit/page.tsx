@@ -167,7 +167,7 @@ export default function EditUserPage() {
     } catch (error) {
       if (error instanceof z.ZodError) {
         const fieldErrors: Partial<Record<keyof UpdateUserFormData, string>> = {};
-        error.errors.forEach((err: any) => {
+        error.errors.forEach((err: z.ZodIssue) => {
           if (err.path.length > 0) {
             const field = err.path[0] as keyof UpdateUserFormData;
             fieldErrors[field] = err.message;
@@ -422,7 +422,7 @@ export default function EditUserPage() {
                 <Label>Roles</Label>
                 <Select
                   value={formData.roleIds?.[0] || ''}
-                  onValueChange={(value) => handleInputChange('roleIds', [value])}
+                  onValueChange={(value: string) => handleInputChange('roleIds', [value])}
                 >
                   <SelectTrigger className={errors.roleIds ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Select a role" />
@@ -459,7 +459,7 @@ export default function EditUserPage() {
                     <Checkbox
                       id="isActive"
                       checked={formData.isActive}
-                      onCheckedChange={(checked) => 
+                      onCheckedChange={(checked: boolean) =>
                         handleInputChange('isActive', Boolean(checked))
                       }
                     />
@@ -485,7 +485,7 @@ export default function EditUserPage() {
                     <Checkbox
                       id="mustChangePassword"
                       checked={formData.mustChangePassword}
-                      onCheckedChange={(checked) => 
+                      onCheckedChange={(checked: boolean) =>
                         handleInputChange('mustChangePassword', Boolean(checked))
                       }
                     />
