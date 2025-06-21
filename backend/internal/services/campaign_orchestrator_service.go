@@ -722,7 +722,8 @@ func (s *campaignOrchestratorServiceImpl) CancelCampaign(ctx context.Context, ca
 		return opErr
 	}
 	if campaign.Status == models.CampaignStatusCompleted || campaign.Status == models.CampaignStatusFailed ||
-		campaign.Status == models.CampaignStatusArchived || campaign.Status == models.CampaignStatusCancelled {
+		campaign.Status == models.CampaignStatusCancelled ||
+		(campaign.BusinessStatus != nil && *campaign.BusinessStatus == models.CampaignBusinessStatusArchived) {
 		opErr = fmt.Errorf("campaign %s already in a final state: %s", campaignID, campaign.Status)
 		return opErr
 	}

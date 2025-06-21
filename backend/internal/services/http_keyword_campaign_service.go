@@ -802,20 +802,38 @@ func (s *httpKeywordCampaignServiceImpl) ProcessHTTPKeywordCampaignBatch(ctx con
 						dbRes.FoundAdHocKeywords = nil
 					}
 
+					// Set system-level status to success since HTTP validation succeeded
+					dbRes.ValidationStatus = string(models.HTTPValidationStatusSuccess)
+					
+					// Set business-level status based on keyword findings
 					if (foundKeywordsFromSetsJSON != nil && string(foundKeywordsFromSetsJSON) != "null" && string(foundKeywordsFromSetsJSON) != "[]") || len(adhocKeywordsFoundForThisDomain) > 0 {
-						dbRes.ValidationStatus = "lead_valid"
+						leadValid := models.HTTPBusinessStatusLeadValid
+						dbRes.BusinessStatus = &leadValid
 					} else {
-						dbRes.ValidationStatus = "http_valid_no_keywords"
+						httpValidNoKeywords := models.HTTPBusinessStatusHTTPValidNoKeywords
+						dbRes.BusinessStatus = &httpValidNoKeywords
 					}
 				} else if finalHTTPValResult.Status == "ErrorCancelled" {
-					dbRes.ValidationStatus = "cancelled_during_processing"
+					// Set system-level status to error and business-level status to cancelled
+					dbRes.ValidationStatus = string(models.HTTPValidationStatusError)
+					cancelledStatus := models.HTTPBusinessStatusCancelledDuringProcessing
+					dbRes.BusinessStatus = &cancelledStatus
 				} else if finalHTTPValResult.Error != "" {
-					dbRes.ValidationStatus = "invalid_http_response_error"
+					// Set system-level status to failed and business-level status to response error
+					dbRes.ValidationStatus = string(models.HTTPValidationStatusFailed)
+					responseErrorStatus := models.HTTPBusinessStatusInvalidHTTPResponseError
+					dbRes.BusinessStatus = &responseErrorStatus
 				} else {
-					dbRes.ValidationStatus = "invalid_http_code"
+					// Set system-level status to failed and business-level status to invalid code
+					dbRes.ValidationStatus = string(models.HTTPValidationStatusFailed)
+					invalidCodeStatus := models.HTTPBusinessStatusInvalidHTTPCode
+					dbRes.BusinessStatus = &invalidCodeStatus
 				}
 			} else {
-				dbRes.ValidationStatus = "processing_failed_before_http"
+				// Set system-level status to error and business-level status to processing failed
+				dbRes.ValidationStatus = string(models.HTTPValidationStatusError)
+				processingFailedStatus := models.HTTPBusinessStatusProcessingFailedBeforeHTTP
+				dbRes.BusinessStatus = &processingFailedStatus
 			}
 			muResults.Lock()
 			dbResults = append(dbResults, dbRes)

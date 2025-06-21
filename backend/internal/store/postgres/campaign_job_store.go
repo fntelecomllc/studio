@@ -211,9 +211,9 @@ func (s *campaignJobStorePostgres) GetNextQueuedJob(ctx context.Context, campaig
 	defer tx.Rollback()
 
 	now := time.Now().UTC()
-	selectArgs := []interface{}{models.JobStatusQueued, models.JobStatusRetry, now}
-	// Check for both queued jobs AND retry jobs that are ready to be executed again
-	selectQuery := "SELECT id FROM campaign_jobs WHERE (status = $1 OR (status = $2 AND next_execution_at <= $3)) AND (scheduled_at IS NULL OR scheduled_at <= $3)"
+	selectArgs := []interface{}{models.JobStatusQueued, now}
+	// Check for queued jobs AND jobs with retry business status that are ready to be executed again
+	selectQuery := "SELECT id FROM campaign_jobs WHERE (status = $1 OR (business_status = 'retry' AND next_execution_at <= $2)) AND (scheduled_at IS NULL OR scheduled_at <= $2)"
 
 	if len(campaignTypes) > 0 {
 		var typePlaceholders []string
@@ -234,16 +234,17 @@ func (s *campaignJobStorePostgres) GetNextQueuedJob(ctx context.Context, campaig
 		return nil, fmt.Errorf("pg: failed to select next queued job: %w", err)
 	}
 
-	// First, update the job to mark it as processing
-	updateQuery := `UPDATE campaign_jobs SET 
-				status = $1, 
-				processing_server_id = $2, 
-				updated_at = NOW(), 
+	// First, update the job to mark it as running with processing business status
+	updateQuery := `UPDATE campaign_jobs SET
+				status = $1,
+				business_status = $2,
+				processing_server_id = $3,
+				updated_at = NOW(),
 				attempts = attempts + 1,
 				scheduled_at = COALESCE(scheduled_at, NOW())
-			  WHERE id = $3`
+			  WHERE id = $4`
 
-	result, err := tx.ExecContext(ctx, updateQuery, models.JobStatusProcessing, workerID, jobID)
+	result, err := tx.ExecContext(ctx, updateQuery, models.JobStatusRunning, models.JobBusinessStatusProcessing, workerID, jobID)
 	if err != nil {
 		return nil, fmt.Errorf("pg: failed to update job %s: %w", jobID, err)
 	}

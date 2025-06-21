@@ -192,34 +192,25 @@ func (s *campaignWorkerServiceImpl) processJob(ctx context.Context, job *models.
 			job.Status = models.JobStatusFailed
 			log.Printf("Worker [%s]: Job %s failed after %d attempts. Last error: %s", workerName, job.ID, job.Attempts, processErr.Error())
 
-			// Update campaign status - need to check current campaign status to ensure valid state transition
+			// Update campaign status - state machine now properly handles all transitions including pending->failed
 			if s.campaignOrchestratorSvc != nil {
 				errMsg := fmt.Sprintf("Job %s failed after max retries: %v", job.ID, processErr)
 				
-				// Get current campaign status to determine appropriate action
-				campaign, _, err := s.campaignOrchestratorSvc.GetCampaignDetails(jobCtx, job.CampaignID)
-				if err != nil {
-					log.Printf("Worker [%s]: Failed to get campaign %s details for status update: %v", workerName, job.CampaignID, err)
+				log.Printf("Worker [%s]: Job %s failed after %d attempts, setting campaign %s status to failed",
+					workerName, job.ID, job.Attempts, job.CampaignID)
+				
+				// Use SetCampaignErrorStatus which will now properly validate the transition using the fixed state machine
+				if err := s.campaignOrchestratorSvc.SetCampaignErrorStatus(jobCtx, job.CampaignID, errMsg); err != nil {
+					log.Printf("Worker [%s]: Failed to set campaign %s error status: %v", workerName, job.CampaignID, err)
 				} else {
-					// If campaign is still in pending state, transition to cancelled instead of failed
-					// since pending->failed is not a valid state transition
-					if campaign.Status == models.CampaignStatusPending {
-						if err := s.campaignOrchestratorSvc.CancelCampaign(jobCtx, job.CampaignID); err != nil {
-							log.Printf("Worker [%s]: Failed to cancel campaign %s after job failure: %v", workerName, job.CampaignID, err)
-						} else {
-							log.Printf("Worker [%s]: Campaign %s cancelled due to job failure while in pending state", workerName, job.CampaignID)
-						}
-					} else {
-						// Campaign is in another state where transition to failed might be valid
-						if err := s.campaignOrchestratorSvc.SetCampaignErrorStatus(jobCtx, job.CampaignID, errMsg); err != nil {
-							log.Printf("Worker [%s]: Failed to set campaign %s error status: %v", workerName, job.CampaignID, err)
-						}
-					}
+					log.Printf("Worker [%s]: Successfully set campaign %s to failed status", workerName, job.CampaignID)
 				}
 			}
 		} else {
 			// Still have retries left, schedule for retry
-			job.Status = models.JobStatusRetry
+			job.Status = models.JobStatusQueued
+			retryStatus := models.JobBusinessStatusRetry
+			job.BusinessStatus = &retryStatus
 			retryDelay := time.Duration(s.appConfig.Worker.ErrorRetryDelaySeconds) * time.Second
 			if retryDelay <= 0 {
 				retryDelay = workerErrorRetryDelayDefault
@@ -266,7 +257,9 @@ func (s *campaignWorkerServiceImpl) processJob(ctx context.Context, job *models.
 				// If job update failed, we should handle this gracefully
 				if !jobUpdateSuccessful {
 					// Try to set job to retry status so it can be picked up again
-					job.Status = models.JobStatusRetry
+					job.Status = models.JobStatusQueued
+					retryStatus := models.JobBusinessStatusRetry
+					job.BusinessStatus = &retryStatus
 					job.NextExecutionAt = sql.NullTime{Time: time.Now().UTC().Add(30 * time.Second), Valid: true}
 					if err := s.jobStore.UpdateJob(jobCtx, nil, job); err != nil {
 						log.Printf("Worker [%s]: CRITICAL - Failed to set job %s to retry after job update failure: %v", workerName, job.ID, err)
@@ -290,8 +283,8 @@ func (s *campaignWorkerServiceImpl) processJob(ctx context.Context, job *models.
 					for _, otherJob := range otherJobs {
 						if otherJob.ID != job.ID &&
 							(otherJob.Status == models.JobStatusQueued ||
-								otherJob.Status == models.JobStatusProcessing ||
-								otherJob.Status == models.JobStatusRetry) {
+								otherJob.Status == models.JobStatusRunning ||
+								(otherJob.BusinessStatus != nil && *otherJob.BusinessStatus == models.JobBusinessStatusRetry)) {
 							activeJobsCount++
 						}
 					}

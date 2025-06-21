@@ -295,7 +295,7 @@ func (s *CampaignWorkerServiceTestSuite) TestJobProcessingFailure() {
 	updatedCampaign, err := s.CampaignStore.GetCampaignByID(ctx, s.DB, campaign.ID)
 	require.NoError(t, err)
 	require.NotNil(t, updatedCampaign)
-	assert.Equal(t, models.CampaignStatusCancelled, updatedCampaign.Status, "Campaign should be marked as cancelled when it fails before processing starts")
+	assert.Equal(t, models.CampaignStatusFailed, updatedCampaign.Status, "Campaign should be marked as failed when processing starts but fails after retries")
 }
 
 func (s *CampaignWorkerServiceTestSuite) TestRetryThenSuccess() {
@@ -433,13 +433,13 @@ func (s *CampaignWorkerServiceTestSuite) TestJobCancellation() {
 	for i := 0; i < 10; i++ {
 		processingJob, err = s.CampaignJobStore.GetJobByID(ctx, initialJob.ID)
 		require.NoError(t, err)
-		if processingJob != nil && processingJob.Status == models.JobStatusProcessing {
+		if processingJob != nil && processingJob.Status == models.JobStatusRunning {
 			t.Logf("Job %s is now processing (iteration %d)", initialJob.ID, i+1)
 			break
 		}
 		time.Sleep(300 * time.Millisecond)
 	}
-	assert.Equal(t, models.JobStatusProcessing, processingJob.Status, "Job should be in processing state before cancellation")
+	assert.Equal(t, models.JobStatusRunning, processingJob.Status, "Job should be in processing state before cancellation")
 
 	workerCancelFunc()
 	workerWg.Wait()
@@ -449,7 +449,7 @@ func (s *CampaignWorkerServiceTestSuite) TestJobCancellation() {
 	require.NotNil(t, cancelledJob)
 	assert.NotEqual(t, models.JobStatusCompleted, cancelledJob.Status, "Job should NOT be marked as completed after cancellation")
 	assert.NotEqual(t, models.JobStatusFailed, cancelledJob.Status, "Job should NOT be marked as failed after cancellation")
-	assert.Contains(t, []models.CampaignJobStatusEnum{models.JobStatusProcessing, models.JobStatusQueued, models.JobStatusRetry}, cancelledJob.Status, "Job should be in a recoverable state after cancellation")
+	assert.Contains(t, []models.CampaignJobStatusEnum{models.JobStatusRunning, models.JobStatusQueued}, cancelledJob.Status, "Job should be in a recoverable state after cancellation")
 }
 
 func (s *CampaignWorkerServiceTestSuite) TestJobStuckInProcessing() {
@@ -508,7 +508,7 @@ func (s *CampaignWorkerServiceTestSuite) TestJobStuckInProcessing() {
 		require.NoError(t, err)
 		if stuckJob != nil {
 			observedStatuses = append(observedStatuses, stuckJob.Status)
-			if stuckJob.Status == models.JobStatusCompleted || stuckJob.Status == models.JobStatusFailed || stuckJob.Status == models.JobStatusRetry {
+			if stuckJob.Status == models.JobStatusCompleted || stuckJob.Status == models.JobStatusFailed || (stuckJob.BusinessStatus != nil && *stuckJob.BusinessStatus == models.JobBusinessStatusRetry) {
 				break
 			}
 		}
@@ -518,7 +518,7 @@ func (s *CampaignWorkerServiceTestSuite) TestJobStuckInProcessing() {
 	workerCancelFunc()
 	workerWg.Wait()
 
-	assert.NotEqual(t, models.JobStatusProcessing, stuckJob.Status, "Job should not remain stuck in processing state after DB/network error")
-	assert.Contains(t, []models.CampaignJobStatusEnum{models.JobStatusRetry, models.JobStatusFailed, models.JobStatusCompleted}, stuckJob.Status, "Job should eventually transition out of processing state")
+	assert.NotEqual(t, models.JobStatusRunning, stuckJob.Status, "Job should not remain stuck in processing state after DB/network error")
+	assert.Contains(t, []models.CampaignJobStatusEnum{models.JobStatusFailed, models.JobStatusCompleted}, stuckJob.Status, "Job should eventually transition out of processing state")
 	t.Logf("Observed job status transitions: %v", observedStatuses)
 }

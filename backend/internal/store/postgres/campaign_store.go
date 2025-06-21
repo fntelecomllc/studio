@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/fntelecomllc/studio/backend/internal/models"
+	"github.com/fntelecomllc/studio/backend/internal/monitoring"
 	"github.com/fntelecomllc/studio/backend/internal/store"
 
 	"github.com/google/uuid"
@@ -295,13 +296,35 @@ func (s *campaignStorePostgres) CreateGeneratedDomains(ctx context.Context, exec
 	if len(domains) == 0 {
 		return nil
 	}
-	stmt, err := exec.PrepareNamedContext(ctx, `INSERT INTO generated_domains
+
+	// Extract campaign ID for logging
+	var campaignID string
+	if len(domains) > 0 && domains[0] != nil {
+		campaignID = domains[0].GenerationCampaignID.String()
+	}
+
+	// Log database metrics before operation
+	if db, ok := exec.(*sqlx.DB); ok {
+		metrics := monitoring.NewDatabaseMetrics(db)
+		metrics.LogConnectionPoolStats("CreateGeneratedDomains_start", campaignID)
+	}
+
+	query := `INSERT INTO generated_domains
 		(id, domain_generation_campaign_id, domain_name, source_keyword, source_pattern, tld, offset_index, generated_at, created_at)
-		VALUES (:id, :domain_generation_campaign_id, :domain_name, :source_keyword, :source_pattern, :tld, :offset_index, :generated_at, :created_at)`)
+		VALUES (:id, :domain_generation_campaign_id, :domain_name, :source_keyword, :source_pattern, :tld, :offset_index, :generated_at, :created_at)`
+	
+	monitoring.LogPreparedStatementLifecycle("CreateGeneratedDomains", campaignID, query, "prepare_start", nil)
+	stmt, err := exec.PrepareNamedContext(ctx, query)
 	if err != nil {
+		monitoring.LogPreparedStatementLifecycle("CreateGeneratedDomains", campaignID, query, "prepare_failed", err)
 		return err
 	}
-	defer stmt.Close()
+	monitoring.LogPreparedStatementLifecycle("CreateGeneratedDomains", campaignID, query, "prepare_success", nil)
+
+	defer func() {
+		closeErr := stmt.Close()
+		monitoring.LogResourceCleanup("prepared_statement", campaignID, closeErr == nil, closeErr)
+	}()
 
 	for _, domain := range domains {
 		if domain.ID == uuid.Nil {
@@ -315,9 +338,18 @@ func (s *campaignStorePostgres) CreateGeneratedDomains(ctx context.Context, exec
 		}
 		_, err := stmt.ExecContext(ctx, domain)
 		if err != nil {
+			monitoring.LogPreparedStatementLifecycle("CreateGeneratedDomains", campaignID, query, "exec_failed", err)
 			return err
 		}
 	}
+
+	// Log final database metrics
+	if db, ok := exec.(*sqlx.DB); ok {
+		metrics := monitoring.NewDatabaseMetrics(db)
+		metrics.LogConnectionPoolStats("CreateGeneratedDomains_end", campaignID)
+	}
+
+	monitoring.LogPreparedStatementLifecycle("CreateGeneratedDomains", campaignID, query, "complete", nil)
 	return nil
 }
 
@@ -417,17 +449,39 @@ func (s *campaignStorePostgres) CreateDNSValidationResults(ctx context.Context, 
 	if len(results) == 0 {
 		return nil
 	}
-	stmt, err := exec.PrepareNamedContext(ctx, `INSERT INTO dns_validation_results
-	       (id, dns_campaign_id, generated_domain_id, domain_name, validation_status, dns_records, validated_by_persona_id, attempts, last_checked_at, created_at)
-	       VALUES (:id, :dns_campaign_id, :generated_domain_id, :domain_name, :validation_status, :dns_records, :validated_by_persona_id, :attempts, :last_checked_at, :created_at)
+
+	// Extract campaign ID for logging
+	var campaignID string
+	if len(results) > 0 && results[0] != nil {
+		campaignID = results[0].DNSCampaignID.String()
+	}
+
+	// Log database metrics before operation
+	if db, ok := exec.(*sqlx.DB); ok {
+		metrics := monitoring.NewDatabaseMetrics(db)
+		metrics.LogConnectionPoolStats("CreateDNSValidationResults_start", campaignID)
+	}
+
+	query := `INSERT INTO dns_validation_results
+	       (id, dns_campaign_id, generated_domain_id, domain_name, validation_status, business_status, dns_records, validated_by_persona_id, attempts, last_checked_at, created_at)
+	       VALUES (:id, :dns_campaign_id, :generated_domain_id, :domain_name, :validation_status, :business_status, :dns_records, :validated_by_persona_id, :attempts, :last_checked_at, :created_at)
 	       ON CONFLICT (dns_campaign_id, domain_name) DO UPDATE SET
-	           validation_status = EXCLUDED.validation_status, dns_records = EXCLUDED.dns_records,
+	           validation_status = EXCLUDED.validation_status, business_status = EXCLUDED.business_status, dns_records = EXCLUDED.dns_records,
 	           validated_by_persona_id = EXCLUDED.validated_by_persona_id, attempts = dns_validation_results.attempts + 1,
-	           last_checked_at = EXCLUDED.last_checked_at, created_at = EXCLUDED.created_at`)
+	           last_checked_at = EXCLUDED.last_checked_at, created_at = EXCLUDED.created_at`
+
+	monitoring.LogPreparedStatementLifecycle("CreateDNSValidationResults", campaignID, query, "prepare_start", nil)
+	stmt, err := exec.PrepareNamedContext(ctx, query)
 	if err != nil {
+		monitoring.LogPreparedStatementLifecycle("CreateDNSValidationResults", campaignID, query, "prepare_failed", err)
 		return err
 	}
-	defer stmt.Close()
+	monitoring.LogPreparedStatementLifecycle("CreateDNSValidationResults", campaignID, query, "prepare_success", nil)
+
+	defer func() {
+		closeErr := stmt.Close()
+		monitoring.LogResourceCleanup("prepared_statement", campaignID, closeErr == nil, closeErr)
+	}()
 
 	for _, result := range results {
 		if result.ID == uuid.Nil {
@@ -442,9 +496,18 @@ func (s *campaignStorePostgres) CreateDNSValidationResults(ctx context.Context, 
 		}
 		_, err := stmt.ExecContext(ctx, result)
 		if err != nil {
+			monitoring.LogPreparedStatementLifecycle("CreateDNSValidationResults", campaignID, query, "exec_failed", err)
 			return err
 		}
 	}
+
+	// Log final database metrics
+	if db, ok := exec.(*sqlx.DB); ok {
+		metrics := monitoring.NewDatabaseMetrics(db)
+		metrics.LogConnectionPoolStats("CreateDNSValidationResults_end", campaignID)
+	}
+
+	monitoring.LogPreparedStatementLifecycle("CreateDNSValidationResults", campaignID, query, "complete", nil)
 	return nil
 }
 
@@ -487,7 +550,8 @@ func (s *campaignStorePostgres) CountDNSValidationResults(ctx context.Context, e
 	query := `SELECT COUNT(*) FROM dns_validation_results WHERE dns_campaign_id = $1`
 	args := []interface{}{campaignID}
 	if onlyValid {
-		query += " AND validation_status = $2"
+		// Use business_status field for business-level filtering
+		query += " AND business_status = $2"
 		args = append(args, "valid_dns")
 	}
 	var count int64
@@ -505,7 +569,7 @@ func (s *campaignStorePostgres) GetDomainsForDNSValidation(ctx context.Context, 
 	       LEFT JOIN dns_validation_results dvr ON gd.id = dvr.generated_domain_id AND dvr.dns_campaign_id = $1
 	       WHERE gd.domain_generation_campaign_id = $2
 	         AND gd.offset_index > $3
-	         AND (dvr.id IS NULL OR dvr.validation_status NOT IN ('valid_dns'))
+	         AND (dvr.id IS NULL OR dvr.business_status NOT IN ('valid_dns'))
 	       ORDER BY gd.offset_index ASC
 	       LIMIT $4`
 	err := exec.SelectContext(ctx, &domains, query, dnsCampaignID, sourceGenerationCampaignID, lastOffsetIndex, limit)
@@ -677,20 +741,42 @@ func (s *campaignStorePostgres) CreateHTTPKeywordResults(ctx context.Context, ex
 	if len(results) == 0 {
 		return nil
 	}
-	stmt, err := exec.PrepareNamedContext(ctx, `INSERT INTO http_keyword_results
-		      (id, http_keyword_campaign_id, dns_result_id, domain_name, validation_status, http_status_code, response_headers, page_title, extracted_content_snippet, found_keywords_from_sets, found_ad_hoc_keywords, content_hash, validated_by_persona_id, used_proxy_id, attempts, last_checked_at, created_at)
-		      VALUES (:id, :http_keyword_campaign_id, :dns_result_id, :domain_name, :validation_status, :http_status_code, :response_headers, :page_title, :extracted_content_snippet, :found_keywords_from_sets, :found_ad_hoc_keywords, :content_hash, :validated_by_persona_id, :used_proxy_id, :attempts, :last_checked_at, :created_at)
+
+	// Extract campaign ID for logging
+	var campaignID string
+	if len(results) > 0 && results[0] != nil {
+		campaignID = results[0].HTTPKeywordCampaignID.String()
+	}
+
+	// Log database metrics before operation
+	if db, ok := exec.(*sqlx.DB); ok {
+		metrics := monitoring.NewDatabaseMetrics(db)
+		metrics.LogConnectionPoolStats("CreateHTTPKeywordResults_start", campaignID)
+	}
+
+	query := `INSERT INTO http_keyword_results
+		      (id, http_keyword_campaign_id, dns_result_id, domain_name, validation_status, business_status, http_status_code, response_headers, page_title, extracted_content_snippet, found_keywords_from_sets, found_ad_hoc_keywords, content_hash, validated_by_persona_id, used_proxy_id, attempts, last_checked_at, created_at)
+		      VALUES (:id, :http_keyword_campaign_id, :dns_result_id, :domain_name, :validation_status, :business_status, :http_status_code, :response_headers, :page_title, :extracted_content_snippet, :found_keywords_from_sets, :found_ad_hoc_keywords, :content_hash, :validated_by_persona_id, :used_proxy_id, :attempts, :last_checked_at, :created_at)
 		      ON CONFLICT (http_keyword_campaign_id, domain_name) DO UPDATE SET
-		          validation_status = EXCLUDED.validation_status, http_status_code = EXCLUDED.http_status_code,
+		          validation_status = EXCLUDED.validation_status, business_status = EXCLUDED.business_status, http_status_code = EXCLUDED.http_status_code,
 		          response_headers = EXCLUDED.response_headers, page_title = EXCLUDED.page_title,
 		          extracted_content_snippet = EXCLUDED.extracted_content_snippet, found_keywords_from_sets = EXCLUDED.found_keywords_from_sets,
 		          found_ad_hoc_keywords = EXCLUDED.found_ad_hoc_keywords, content_hash = EXCLUDED.content_hash,
 		          validated_by_persona_id = EXCLUDED.validated_by_persona_id, used_proxy_id = EXCLUDED.used_proxy_id,
-		          attempts = http_keyword_results.attempts + 1, last_checked_at = EXCLUDED.last_checked_at, created_at = EXCLUDED.created_at`)
+		          attempts = http_keyword_results.attempts + 1, last_checked_at = EXCLUDED.last_checked_at, created_at = EXCLUDED.created_at`
+
+	monitoring.LogPreparedStatementLifecycle("CreateHTTPKeywordResults", campaignID, query, "prepare_start", nil)
+	stmt, err := exec.PrepareNamedContext(ctx, query)
 	if err != nil {
+		monitoring.LogPreparedStatementLifecycle("CreateHTTPKeywordResults", campaignID, query, "prepare_failed", err)
 		return err
 	}
-	defer stmt.Close()
+	monitoring.LogPreparedStatementLifecycle("CreateHTTPKeywordResults", campaignID, query, "prepare_success", nil)
+
+	defer func() {
+		closeErr := stmt.Close()
+		monitoring.LogResourceCleanup("prepared_statement", campaignID, closeErr == nil, closeErr)
+	}()
 
 	for _, result := range results {
 		if result.ID == uuid.Nil {
@@ -707,9 +793,18 @@ func (s *campaignStorePostgres) CreateHTTPKeywordResults(ctx context.Context, ex
 		}
 		_, err := stmt.ExecContext(ctx, &dbRes)
 		if err != nil {
+			monitoring.LogPreparedStatementLifecycle("CreateHTTPKeywordResults", campaignID, query, "exec_failed", err)
 			return err
 		}
 	}
+
+	// Log final database metrics
+	if db, ok := exec.(*sqlx.DB); ok {
+		metrics := monitoring.NewDatabaseMetrics(db)
+		metrics.LogConnectionPoolStats("CreateHTTPKeywordResults_end", campaignID)
+	}
+
+	monitoring.LogPreparedStatementLifecycle("CreateHTTPKeywordResults", campaignID, query, "complete", nil)
 	return nil
 }
 
@@ -755,9 +850,9 @@ func (s *campaignStorePostgres) GetDomainsForHTTPValidation(ctx context.Context,
 	              dvr.dns_records, dvr.validated_by_persona_id, dvr.attempts, dvr.last_checked_at, dvr.created_at
 	       FROM dns_validation_results dvr
 	       LEFT JOIN http_keyword_results hkr ON dvr.domain_name = hkr.domain_name AND hkr.http_keyword_campaign_id = $1
-	       WHERE dvr.dns_campaign_id = $2 AND dvr.validation_status = 'valid_dns'
+	       WHERE dvr.dns_campaign_id = $2 AND dvr.business_status = 'valid_dns'
 	         AND dvr.domain_name > $3
-	         AND (hkr.id IS NULL OR hkr.validation_status NOT IN ('lead_valid', 'http_valid_no_keywords'))
+	         AND (hkr.id IS NULL OR hkr.business_status NOT IN ('lead_valid', 'http_valid_no_keywords'))
 	       ORDER BY dvr.domain_name ASC LIMIT $4`
 	err := exec.SelectContext(ctx, &dnsResults, query, httpKeywordCampaignID, sourceCampaignID, lastDomainName, limit)
 	return dnsResults, err

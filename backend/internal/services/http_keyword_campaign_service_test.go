@@ -85,13 +85,17 @@ func (s *HTTPKeywordCampaignServiceTestSuite) TestCreateCampaign() {
 
 	// Create mock DNS validation results first
 	nowForLastCheckedAt132 := time.Now()
+	validDNSStatus := models.DNSBusinessStatusValidDNS
 	mockResolvedDomain1 := &models.DNSValidationResult{
-		ID: uuid.New(), DNSCampaignID: dnsCampaign.ID, DomainName: "resolved1.com", ValidationStatus: "valid_dns",
+		ID: uuid.New(), DNSCampaignID: dnsCampaign.ID, DomainName: "resolved1.com",
+		ValidationStatus: string(models.DNSValidationStatusResolved), BusinessStatus: &validDNSStatus,
 		DNSRecords: models.JSONRawMessagePtr(json.RawMessage(`{"ips":["1.2.3.4"]}`)), LastCheckedAt: &nowForLastCheckedAt132,
 	}
 	nowForLastCheckedAt136 := time.Now()
+	validDNSStatus2 := models.DNSBusinessStatusValidDNS
 	mockResolvedDomain2 := &models.DNSValidationResult{
-		ID: uuid.New(), DNSCampaignID: dnsCampaign.ID, DomainName: "resolved2.com", ValidationStatus: "valid_dns",
+		ID: uuid.New(), DNSCampaignID: dnsCampaign.ID, DomainName: "resolved2.com",
+		ValidationStatus: string(models.DNSValidationStatusResolved), BusinessStatus: &validDNSStatus2,
 		DNSRecords: models.JSONRawMessagePtr(json.RawMessage(`{"ips":["1.2.3.5"]}`)), LastCheckedAt: &nowForLastCheckedAt136,
 	}
 	require.NoError(t, s.CampaignStore.CreateDNSValidationResults(ctx, s.DB, []*models.DNSValidationResult{mockResolvedDomain1, mockResolvedDomain2}))

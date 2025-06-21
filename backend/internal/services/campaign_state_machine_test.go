@@ -13,23 +13,30 @@ func TestCampaignStateMachine(t *testing.T) {
 		to       CampaignStatus
 		expected bool
 	}{
-		// Valid transitions
+		// Valid transitions - UPDATED to match fixed business requirements
 		{"pending to queued", StatusPending, StatusQueued, true},
+		{"pending to running", StatusPending, StatusRunning, true},     // FIXED: Now valid for business logic
+		{"pending to failed", StatusPending, StatusFailed, true},       // FIXED: Critical for job failures
 		{"pending to cancelled", StatusPending, StatusCancelled, true},
 		{"queued to running", StatusQueued, StatusRunning, true},
+		{"queued to pausing", StatusQueued, StatusPausing, true},       // FIXED: Added missing pausing support
 		{"queued to paused", StatusQueued, StatusPaused, true},
 		{"queued to cancelled", StatusQueued, StatusCancelled, true},
+		{"running to pausing", StatusRunning, StatusPausing, true},     // FIXED: Added missing pausing support
 		{"running to paused", StatusRunning, StatusPaused, true},
 		{"running to completed", StatusRunning, StatusCompleted, true},
 		{"running to failed", StatusRunning, StatusFailed, true},
+		{"pausing to paused", StatusPausing, StatusPaused, true},       // FIXED: Added missing pausing transitions
+		{"pausing to running", StatusPausing, StatusRunning, true},     // FIXED: Added missing pausing transitions
+		{"pausing to cancelled", StatusPausing, StatusCancelled, true}, // FIXED: Added missing pausing transitions
 		{"paused to running", StatusPaused, StatusRunning, true},
 		{"paused to cancelled", StatusPaused, StatusCancelled, true},
+		{"paused to archived", StatusPaused, StatusArchived, true},     // FIXED: Allow direct archive from paused
 		{"completed to archived", StatusCompleted, StatusArchived, true},
 		{"failed to queued", StatusFailed, StatusQueued, true},
 		{"failed to archived", StatusFailed, StatusArchived, true},
 
 		// Invalid transitions
-		{"pending to running", StatusPending, StatusRunning, false},
 		{"pending to completed", StatusPending, StatusCompleted, false},
 		{"queued to completed", StatusQueued, StatusCompleted, false},
 		{"running to queued", StatusRunning, StatusQueued, false},
@@ -55,10 +62,12 @@ func TestGetValidTransitions(t *testing.T) {
 		status   CampaignStatus
 		expected []CampaignStatus
 	}{
-		{StatusPending, []CampaignStatus{StatusQueued, StatusCancelled}},
-		{StatusQueued, []CampaignStatus{StatusRunning, StatusPaused, StatusCancelled}},
-		{StatusRunning, []CampaignStatus{StatusPaused, StatusCompleted, StatusFailed}},
-		{StatusPaused, []CampaignStatus{StatusRunning, StatusCancelled}},
+		// FIXED: Updated to match corrected state machine transitions
+		{StatusPending, []CampaignStatus{StatusQueued, StatusRunning, StatusFailed, StatusCancelled}},
+		{StatusQueued, []CampaignStatus{StatusRunning, StatusPausing, StatusPaused, StatusCancelled}},
+		{StatusRunning, []CampaignStatus{StatusPausing, StatusPaused, StatusCompleted, StatusFailed}},
+		{StatusPausing, []CampaignStatus{StatusPaused, StatusRunning, StatusCancelled}}, // FIXED: Added missing StatusPausing
+		{StatusPaused, []CampaignStatus{StatusRunning, StatusCancelled, StatusArchived}},
 		{StatusCompleted, []CampaignStatus{StatusArchived}},
 		{StatusFailed, []CampaignStatus{StatusQueued, StatusArchived}},
 		{StatusArchived, []CampaignStatus{}},

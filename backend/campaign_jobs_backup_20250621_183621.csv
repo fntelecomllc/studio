@@ -1,0 +1,1 @@
+id,campaign_id,job_type,status,scheduled_at,attempts,max_attempts,last_attempted_at,last_error,processing_server_id,created_at,updated_at,job_payload,next_execution_at,locked_at,locked_by

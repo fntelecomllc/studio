@@ -11,6 +11,7 @@ import (
 
 	"github.com/fntelecomllc/studio/backend/internal/domainexpert"
 	"github.com/fntelecomllc/studio/backend/internal/models"
+	"github.com/fntelecomllc/studio/backend/internal/monitoring"
 	"github.com/fntelecomllc/studio/backend/internal/store"
 	"github.com/fntelecomllc/studio/backend/internal/websocket"
 	"github.com/google/uuid"
@@ -67,32 +68,50 @@ func (s *domainGenerationServiceImpl) CreateCampaign(ctx context.Context, req Cr
 		sqlTx, startTxErr = s.db.BeginTxx(ctx, nil)
 		if startTxErr != nil {
 			log.Printf("[DomainGenerationService.CreateCampaign] Error beginning SQL transaction for %s: %v", req.Name, startTxErr)
+			monitoring.LogTransactionEvent(campaignID.String(), "create_campaign", "begin_failed", startTxErr)
 			return nil, fmt.Errorf("failed to start SQL transaction: %w", startTxErr)
 		}
 		querier = sqlTx
 		log.Printf("[DomainGenerationService.CreateCampaign] SQL Transaction started for %s.", req.Name)
+		monitoring.LogTransactionEvent(campaignID.String(), "create_campaign", "begin_success", nil)
+
+		// Log initial database metrics
+		if s.db != nil {
+			metrics := monitoring.NewDatabaseMetrics(s.db)
+			metrics.LogConnectionPoolStats("CreateCampaign_tx_start", campaignID.String())
+		}
 
 		defer func() {
 			if p := recover(); p != nil {
 				log.Printf("[DomainGenerationService.CreateCampaign] Panic recovered (SQL) for %s, rolling back: %v", req.Name, p)
 				if sqlTx != nil { // Check if sqlTx is not nil before rollback
-					sqlTx.Rollback()
+					rollbackErr := sqlTx.Rollback()
+					monitoring.LogTransactionEvent(campaignID.String(), "create_campaign", "rollback_panic", rollbackErr)
 				}
 				panic(p)
 			} else if opErr != nil {
 				log.Printf("[DomainGenerationService.CreateCampaign] Error occurred (SQL) for %s, rolling back: %v", req.Name, opErr)
 				if sqlTx != nil { // Check if sqlTx is not nil before rollback
-					sqlTx.Rollback()
+					rollbackErr := sqlTx.Rollback()
+					monitoring.LogTransactionEvent(campaignID.String(), "create_campaign", "rollback_error", rollbackErr)
 				}
 			} else {
 				if sqlTx != nil { // Check if sqlTx is not nil before commit
 					if commitErr := sqlTx.Commit(); commitErr != nil {
 						log.Printf("[DomainGenerationService.CreateCampaign] Error committing SQL transaction for %s: %v", req.Name, commitErr)
+						monitoring.LogTransactionEvent(campaignID.String(), "create_campaign", "commit_failed", commitErr)
 						opErr = commitErr
 					} else {
 						log.Printf("[DomainGenerationService.CreateCampaign] SQL Transaction committed for %s.", req.Name)
+						monitoring.LogTransactionEvent(campaignID.String(), "create_campaign", "commit_success", nil)
 					}
 				}
+			}
+
+			// Log final database metrics
+			if s.db != nil {
+				metrics := monitoring.NewDatabaseMetrics(s.db)
+				metrics.LogConnectionPoolStats("CreateCampaign_tx_end", campaignID.String())
 			}
 		}()
 	} else {
@@ -346,32 +365,50 @@ func (s *domainGenerationServiceImpl) ProcessGenerationCampaignBatch(ctx context
 		if startTxErr != nil {
 			opErr = fmt.Errorf("failed to begin SQL transaction for campaign %s: %w", campaignID, startTxErr)
 			log.Printf("[ProcessGenerationCampaignBatch] %v", opErr)
+			monitoring.LogTransactionEvent(campaignID.String(), "process_batch", "begin_failed", startTxErr)
 			return false, 0, opErr
 		}
 		querier = sqlTx
 		log.Printf("[ProcessGenerationCampaignBatch] SQL Transaction started for %s.", campaignID)
+		monitoring.LogTransactionEvent(campaignID.String(), "process_batch", "begin_success", nil)
+
+		// Log initial database metrics
+		if s.db != nil {
+			metrics := monitoring.NewDatabaseMetrics(s.db)
+			metrics.LogConnectionPoolStats("ProcessBatch_tx_start", campaignID.String())
+		}
 
 		defer func() {
 			if p := recover(); p != nil {
 				log.Printf("[ProcessGenerationCampaignBatch] Panic recovered (SQL) for %s, rolling back: %v", campaignID, p)
 				if sqlTx != nil {
-					sqlTx.Rollback()
+					rollbackErr := sqlTx.Rollback()
+					monitoring.LogTransactionEvent(campaignID.String(), "process_batch", "rollback_panic", rollbackErr)
 				}
 				panic(p)
 			} else if opErr != nil {
 				log.Printf("[ProcessGenerationCampaignBatch] Rolled back SQL transaction for campaign %s due to error: %v", campaignID, opErr)
 				if sqlTx != nil {
-					sqlTx.Rollback()
+					rollbackErr := sqlTx.Rollback()
+					monitoring.LogTransactionEvent(campaignID.String(), "process_batch", "rollback_error", rollbackErr)
 				}
 			} else {
 				if sqlTx != nil {
 					if commitErr := sqlTx.Commit(); commitErr != nil {
 						log.Printf("[ProcessGenerationCampaignBatch] Failed to commit SQL transaction for campaign %s: %v", campaignID, commitErr)
+						monitoring.LogTransactionEvent(campaignID.String(), "process_batch", "commit_failed", commitErr)
 						opErr = commitErr
 					} else {
 						log.Printf("[ProcessGenerationCampaignBatch] SQL Transaction committed for %s.", campaignID)
+						monitoring.LogTransactionEvent(campaignID.String(), "process_batch", "commit_success", nil)
 					}
 				}
+			}
+
+			// Log final database metrics
+			if s.db != nil {
+				metrics := monitoring.NewDatabaseMetrics(s.db)
+				metrics.LogConnectionPoolStats("ProcessBatch_tx_end", campaignID.String())
 			}
 		}()
 	} else {
@@ -391,7 +428,7 @@ func (s *domainGenerationServiceImpl) ProcessGenerationCampaignBatch(ctx context
 		return false, 0, opErr
 	}
 
-	if campaign.Status == models.CampaignStatusCompleted || campaign.Status == models.CampaignStatusFailed || campaign.Status == models.CampaignStatusCancelled || campaign.Status == models.CampaignStatusArchived {
+	if campaign.Status == models.CampaignStatusCompleted || campaign.Status == models.CampaignStatusFailed || campaign.Status == models.CampaignStatusCancelled || campaign.BusinessStatus != nil && *campaign.BusinessStatus == models.CampaignBusinessStatusArchived {
 		log.Printf("ProcessGenerationCampaignBatch: Campaign %s already in terminal state (status: %s). No action.", campaignID, campaign.Status)
 		return true, 0, nil
 	}

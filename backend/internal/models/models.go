@@ -18,7 +18,7 @@ const (
 	CampaignTypeHTTPKeywordValidation CampaignTypeEnum = "http_keyword_validation"
 )
 
-// CampaignStatusEnum defines the status of a campaign
+// CampaignStatusEnum defines the system-level status of a campaign
 type CampaignStatusEnum string
 
 const (
@@ -29,8 +29,17 @@ const (
 	CampaignStatusPaused    CampaignStatusEnum = "paused"
 	CampaignStatusCompleted CampaignStatusEnum = "completed"
 	CampaignStatusFailed    CampaignStatusEnum = "failed"    // Terminal failure after retries or critical error
-	CampaignStatusArchived  CampaignStatusEnum = "archived"  // For long-term storage, not active
 	CampaignStatusCancelled CampaignStatusEnum = "cancelled" // User initiated cancellation
+)
+
+// CampaignBusinessStatusEnum defines business-level status flags for campaigns
+type CampaignBusinessStatusEnum string
+
+const (
+	CampaignBusinessStatusArchived       CampaignBusinessStatusEnum = "archived"        // For long-term storage, not active
+	CampaignBusinessStatusPriority       CampaignBusinessStatusEnum = "priority"        // High priority campaign
+	CampaignBusinessStatusExperimental   CampaignBusinessStatusEnum = "experimental"    // Test/experimental campaign
+	CampaignBusinessStatusProductionReady CampaignBusinessStatusEnum = "production_ready" // Ready for production use
 )
 
 // PersonaTypeEnum defines the type of persona
@@ -59,20 +68,29 @@ const (
 	KeywordRuleTypeRegex  KeywordRuleTypeEnum = "regex"
 )
 
-// CampaignJobStatusEnum defines the status of a background campaign job
+// CampaignJobStatusEnum defines the system-level status of a background campaign job
 type CampaignJobStatusEnum string
 
 const (
-	JobStatusPending    CampaignJobStatusEnum = "pending" // Updated to match database
-	JobStatusQueued     CampaignJobStatusEnum = "queued"
-	JobStatusRunning    CampaignJobStatusEnum = "running" // Updated to match database
-	JobStatusProcessing CampaignJobStatusEnum = "processing"
-	JobStatusCompleted  CampaignJobStatusEnum = "completed"
-	JobStatusFailed     CampaignJobStatusEnum = "failed"
-	JobStatusRetry      CampaignJobStatusEnum = "retry"
+	JobStatusPending   CampaignJobStatusEnum = "pending"
+	JobStatusQueued    CampaignJobStatusEnum = "queued"
+	JobStatusRunning   CampaignJobStatusEnum = "running"
+	JobStatusCompleted CampaignJobStatusEnum = "completed"
+	JobStatusFailed    CampaignJobStatusEnum = "failed"
+	JobStatusCancelled CampaignJobStatusEnum = "cancelled"
 )
 
-// ValidationStatusEnum defines domain validation status
+// CampaignJobBusinessStatusEnum defines business-level status flags for campaign jobs
+type CampaignJobBusinessStatusEnum string
+
+const (
+	JobBusinessStatusProcessing      CampaignJobBusinessStatusEnum = "processing"       // Currently processing data
+	JobBusinessStatusRetry           CampaignJobBusinessStatusEnum = "retry"            // Requires retry
+	JobBusinessStatusPriorityQueued  CampaignJobBusinessStatusEnum = "priority_queued"  // High priority in queue
+	JobBusinessStatusBatchOptimized  CampaignJobBusinessStatusEnum = "batch_optimized"  // Optimized for batch processing
+)
+
+// ValidationStatusEnum defines system-level domain validation status
 type ValidationStatusEnum string
 
 const (
@@ -83,24 +101,51 @@ const (
 	ValidationStatusSkipped ValidationStatusEnum = "skipped"
 )
 
-// DNSValidationStatusEnum defines DNS-specific validation status
+// DNSValidationStatusEnum defines DNS-specific system validation status
 type DNSValidationStatusEnum string
 
 const (
+	DNSValidationStatusPending    DNSValidationStatusEnum = "pending"
 	DNSValidationStatusResolved   DNSValidationStatusEnum = "resolved"
 	DNSValidationStatusUnresolved DNSValidationStatusEnum = "unresolved"
 	DNSValidationStatusTimeout    DNSValidationStatusEnum = "timeout"
 	DNSValidationStatusError      DNSValidationStatusEnum = "error"
 )
 
-// HTTPValidationStatusEnum defines HTTP-specific validation status
+// DNSValidationBusinessStatusEnum defines business-level DNS validation flags
+type DNSValidationBusinessStatusEnum string
+
+const (
+	DNSBusinessStatusValidDNS                     DNSValidationBusinessStatusEnum = "valid_dns"
+	DNSBusinessStatusLeadValid                    DNSValidationBusinessStatusEnum = "lead_valid"
+	DNSBusinessStatusHTTPValidNoKeywords          DNSValidationBusinessStatusEnum = "http_valid_no_keywords"
+	DNSBusinessStatusCancelledDuringProcessing    DNSValidationBusinessStatusEnum = "cancelled_during_processing"
+	DNSBusinessStatusInvalidHTTPResponseError     DNSValidationBusinessStatusEnum = "invalid_http_response_error"
+	DNSBusinessStatusInvalidHTTPCode              DNSValidationBusinessStatusEnum = "invalid_http_code"
+	DNSBusinessStatusProcessingFailedBeforeHTTP   DNSValidationBusinessStatusEnum = "processing_failed_before_http"
+)
+
+// HTTPValidationStatusEnum defines HTTP-specific system validation status
 type HTTPValidationStatusEnum string
 
 const (
+	HTTPValidationStatusPending HTTPValidationStatusEnum = "pending"
 	HTTPValidationStatusSuccess HTTPValidationStatusEnum = "success"
 	HTTPValidationStatusFailed  HTTPValidationStatusEnum = "failed"
 	HTTPValidationStatusTimeout HTTPValidationStatusEnum = "timeout"
 	HTTPValidationStatusError   HTTPValidationStatusEnum = "error"
+)
+
+// HTTPValidationBusinessStatusEnum defines business-level HTTP validation flags
+type HTTPValidationBusinessStatusEnum string
+
+const (
+	HTTPBusinessStatusLeadValid                    HTTPValidationBusinessStatusEnum = "lead_valid"
+	HTTPBusinessStatusHTTPValidNoKeywords          HTTPValidationBusinessStatusEnum = "http_valid_no_keywords"
+	HTTPBusinessStatusCancelledDuringProcessing    HTTPValidationBusinessStatusEnum = "cancelled_during_processing"
+	HTTPBusinessStatusInvalidHTTPResponseError     HTTPValidationBusinessStatusEnum = "invalid_http_response_error"
+	HTTPBusinessStatusInvalidHTTPCode              HTTPValidationBusinessStatusEnum = "invalid_http_code"
+	HTTPBusinessStatusProcessingFailedBeforeHTTP   HTTPValidationBusinessStatusEnum = "processing_failed_before_http"
 )
 
 // DNSConfigDetails holds configuration specific to DNS personas
@@ -219,22 +264,23 @@ type KeywordRule struct {
 
 // Campaign represents a generic campaign
 type Campaign struct {
-	ID                 uuid.UUID          `db:"id" json:"id"`
-	Name               string             `db:"name" json:"name" validate:"required"`
-	CampaignType       CampaignTypeEnum   `db:"campaign_type" json:"campaignType" validate:"required"`
-	Status             CampaignStatusEnum `db:"status" json:"status" validate:"required"`
-	UserID             *uuid.UUID         `db:"user_id" json:"userId,omitempty"`
-	CreatedAt          time.Time          `db:"created_at" json:"createdAt"`
-	UpdatedAt          time.Time          `db:"updated_at" json:"updatedAt"`
-	StartedAt          *time.Time         `db:"started_at" json:"startedAt,omitempty"`
-	CompletedAt        *time.Time         `db:"completed_at" json:"completedAt,omitempty"`
-	ProgressPercentage *float64           `db:"progress_percentage" json:"progressPercentage,omitempty" validate:"omitempty,gte=0,lte=100"`
-	TotalItems         *int64             `db:"total_items" json:"totalItems,omitempty" validate:"omitempty,gte=0"`
-	ProcessedItems     *int64             `db:"processed_items" json:"processedItems,omitempty" validate:"omitempty,gte=0"`
-	ErrorMessage       *string            `db:"error_message" json:"errorMessage,omitempty"`
-	SuccessfulItems    *int64             `db:"successful_items" json:"successfulItems,omitempty"`
-	FailedItems        *int64             `db:"failed_items" json:"failedItems,omitempty"`
-	Metadata           *json.RawMessage   `db:"metadata" json:"metadata,omitempty"`
+	ID                 uuid.UUID                   `db:"id" json:"id"`
+	Name               string                      `db:"name" json:"name" validate:"required"`
+	CampaignType       CampaignTypeEnum            `db:"campaign_type" json:"campaignType" validate:"required"`
+	Status             CampaignStatusEnum          `db:"status" json:"status" validate:"required"`
+	BusinessStatus     *CampaignBusinessStatusEnum `db:"business_status" json:"businessStatus,omitempty"`
+	UserID             *uuid.UUID                  `db:"user_id" json:"userId,omitempty"`
+	CreatedAt          time.Time                   `db:"created_at" json:"createdAt"`
+	UpdatedAt          time.Time                   `db:"updated_at" json:"updatedAt"`
+	StartedAt          *time.Time                  `db:"started_at" json:"startedAt,omitempty"`
+	CompletedAt        *time.Time                  `db:"completed_at" json:"completedAt,omitempty"`
+	ProgressPercentage *float64                    `db:"progress_percentage" json:"progressPercentage,omitempty" validate:"omitempty,gte=0,lte=100"`
+	TotalItems         *int64                      `db:"total_items" json:"totalItems,omitempty" validate:"omitempty,gte=0"`
+	ProcessedItems     *int64                      `db:"processed_items" json:"processedItems,omitempty" validate:"omitempty,gte=0"`
+	ErrorMessage       *string                     `db:"error_message" json:"errorMessage,omitempty"`
+	SuccessfulItems    *int64                      `db:"successful_items" json:"successfulItems,omitempty"`
+	FailedItems        *int64                      `db:"failed_items" json:"failedItems,omitempty"`
+	Metadata           *json.RawMessage            `db:"metadata" json:"metadata,omitempty"`
 
 	// Additional tracking fields
 	EstimatedCompletionAt *time.Time `db:"estimated_completion_at" json:"estimatedCompletionAt,omitempty"`
@@ -304,16 +350,17 @@ type DNSValidationCampaignParams struct {
 
 // DNSValidationResult stores the outcome of a DNS validation for a domain
 type DNSValidationResult struct {
-	ID                   uuid.UUID        `db:"id" json:"id" firestore:"id"`
-	DNSCampaignID        uuid.UUID        `db:"dns_campaign_id" json:"dnsCampaignId" firestore:"dnsCampaignId" validate:"required"`
-	GeneratedDomainID    uuid.NullUUID    `db:"generated_domain_id" json:"generatedDomainId,omitempty" firestore:"generatedDomainId,omitempty"`
-	DomainName           string           `db:"domain_name" json:"domainName" firestore:"domainName" validate:"required"`
-	ValidationStatus     string           `db:"validation_status" json:"validationStatus" firestore:"validationStatus" validate:"required"`
-	DNSRecords           *json.RawMessage `db:"dns_records" json:"dnsRecords,omitempty" firestore:"dnsRecords,omitempty"`
-	ValidatedByPersonaID uuid.NullUUID    `db:"validated_by_persona_id" json:"validatedByPersonaId,omitempty" firestore:"validatedByPersonaId,omitempty"`
-	Attempts             *int             `db:"attempts" json:"attempts,omitempty" firestore:"attempts,omitempty" validate:"omitempty,gte=0"`
-	LastCheckedAt        *time.Time       `db:"last_checked_at" json:"lastCheckedAt,omitempty" firestore:"lastCheckedAt,omitempty"`
-	CreatedAt            time.Time        `db:"created_at" json:"createdAt" firestore:"createdAt"`
+	ID                   uuid.UUID                         `db:"id" json:"id" firestore:"id"`
+	DNSCampaignID        uuid.UUID                         `db:"dns_campaign_id" json:"dnsCampaignId" firestore:"dnsCampaignId" validate:"required"`
+	GeneratedDomainID    uuid.NullUUID                     `db:"generated_domain_id" json:"generatedDomainId,omitempty" firestore:"generatedDomainId,omitempty"`
+	DomainName           string                            `db:"domain_name" json:"domainName" firestore:"domainName" validate:"required"`
+	ValidationStatus     string                            `db:"validation_status" json:"validationStatus" firestore:"validationStatus" validate:"required"`
+	BusinessStatus       *DNSValidationBusinessStatusEnum `db:"business_status" json:"businessStatus,omitempty" firestore:"businessStatus,omitempty"`
+	DNSRecords           *json.RawMessage                  `db:"dns_records" json:"dnsRecords,omitempty" firestore:"dnsRecords,omitempty"`
+	ValidatedByPersonaID uuid.NullUUID                     `db:"validated_by_persona_id" json:"validatedByPersonaId,omitempty" firestore:"validatedByPersonaId,omitempty"`
+	Attempts             *int                              `db:"attempts" json:"attempts,omitempty" firestore:"attempts,omitempty" validate:"omitempty,gte=0"`
+	LastCheckedAt        *time.Time                        `db:"last_checked_at" json:"lastCheckedAt,omitempty" firestore:"lastCheckedAt,omitempty"`
+	CreatedAt            time.Time                         `db:"created_at" json:"createdAt" firestore:"createdAt"`
 }
 
 // HTTPKeywordCampaignParams holds parameters for an HTTP & Keyword validation campaign
@@ -338,12 +385,13 @@ type HTTPKeywordCampaignParams struct {
 
 // HTTPKeywordResult stores the outcome of an HTTP validation and keyword search
 type HTTPKeywordResult struct {
-	ID                      uuid.UUID        `db:"id" json:"id" firestore:"id"`
-	HTTPKeywordCampaignID   uuid.UUID        `db:"http_keyword_campaign_id" json:"httpKeywordCampaignId" firestore:"httpKeywordCampaignId" validate:"required"`
-	DNSResultID             uuid.NullUUID    `db:"dns_result_id" json:"dnsResultId,omitempty" firestore:"dnsResultId,omitempty"`
-	DomainName              string           `db:"domain_name" json:"domainName" firestore:"domainName" validate:"required"`
-	ValidationStatus        string           `db:"validation_status" json:"validationStatus" firestore:"validationStatus" validate:"required"`
-	HTTPStatusCode          *int32           `db:"http_status_code" json:"httpStatusCode,omitempty" firestore:"httpStatusCode,omitempty"`
+	ID                      uuid.UUID                          `db:"id" json:"id" firestore:"id"`
+	HTTPKeywordCampaignID   uuid.UUID                          `db:"http_keyword_campaign_id" json:"httpKeywordCampaignId" firestore:"httpKeywordCampaignId" validate:"required"`
+	DNSResultID             uuid.NullUUID                      `db:"dns_result_id" json:"dnsResultId,omitempty" firestore:"dnsResultId,omitempty"`
+	DomainName              string                             `db:"domain_name" json:"domainName" firestore:"domainName" validate:"required"`
+	ValidationStatus        string                             `db:"validation_status" json:"validationStatus" firestore:"validationStatus" validate:"required"`
+	BusinessStatus          *HTTPValidationBusinessStatusEnum `db:"business_status" json:"businessStatus,omitempty" firestore:"businessStatus,omitempty"`
+	HTTPStatusCode          *int32                             `db:"http_status_code" json:"httpStatusCode,omitempty" firestore:"httpStatusCode,omitempty"`
 	ResponseHeaders         *json.RawMessage `db:"response_headers" json:"responseHeaders,omitempty" firestore:"responseHeaders,omitempty"`
 	PageTitle               *string          `db:"page_title" json:"pageTitle,omitempty" firestore:"pageTitle,omitempty"`
 	ExtractedContentSnippet *string          `db:"extracted_content_snippet" json:"extractedContentSnippet,omitempty" firestore:"extractedContentSnippet,omitempty"`
@@ -372,22 +420,23 @@ type AuditLog struct {
 
 // CampaignJob represents a job for the background worker system.
 type CampaignJob struct {
-	ID                 uuid.UUID             `db:"id" json:"id" firestore:"id"`
-	CampaignID         uuid.UUID             `db:"campaign_id" json:"campaignId" firestore:"campaignId"`
-	JobType            CampaignTypeEnum      `db:"job_type" json:"jobType" firestore:"jobType"` // Renamed from CampaignType to JobType
-	Status             CampaignJobStatusEnum `db:"status" json:"status" firestore:"status"`
-	ScheduledAt        time.Time             `db:"scheduled_at" json:"scheduledAt" firestore:"scheduledAt"`
-	JobPayload         *json.RawMessage      `db:"job_payload" json:"jobPayload,omitempty" firestore:"jobPayload,omitempty"` // Renamed from Payload to JobPayload
-	Attempts           int                   `db:"attempts" json:"attempts" firestore:"attempts"`
-	MaxAttempts        int                   `db:"max_attempts" json:"maxAttempts" firestore:"maxAttempts"`
-	LastError          sql.NullString        `db:"last_error" json:"lastError,omitempty" firestore:"lastError,omitempty"`
-	LastAttemptedAt    sql.NullTime          `db:"last_attempted_at" json:"lastAttemptedAt,omitempty" firestore:"lastAttemptedAt,omitempty"`          // Added
-	ProcessingServerID sql.NullString        `db:"processing_server_id" json:"processingServerId,omitempty" firestore:"processingServerId,omitempty"` // Changed WorkerID to ProcessingServerID to match DB
-	CreatedAt          time.Time             `db:"created_at" json:"createdAt" firestore:"createdAt"`
-	UpdatedAt          time.Time             `db:"updated_at" json:"updatedAt" firestore:"updatedAt"`
-	NextExecutionAt    sql.NullTime          `db:"next_execution_at" json:"nextExecutionAt,omitempty" firestore:"nextExecutionAt,omitempty"`
-	LockedAt           sql.NullTime          `db:"locked_at" json:"lockedAt,omitempty" firestore:"lockedAt,omitempty"`
-	LockedBy           sql.NullString        `db:"locked_by" json:"lockedBy,omitempty" firestore:"lockedBy,omitempty"`
+	ID                 uuid.UUID                      `db:"id" json:"id" firestore:"id"`
+	CampaignID         uuid.UUID                      `db:"campaign_id" json:"campaignId" firestore:"campaignId"`
+	JobType            CampaignTypeEnum               `db:"job_type" json:"jobType" firestore:"jobType"` // Renamed from CampaignType to JobType
+	Status             CampaignJobStatusEnum          `db:"status" json:"status" firestore:"status"`
+	BusinessStatus     *CampaignJobBusinessStatusEnum `db:"business_status" json:"businessStatus,omitempty" firestore:"businessStatus,omitempty"`
+	ScheduledAt        time.Time                      `db:"scheduled_at" json:"scheduledAt" firestore:"scheduledAt"`
+	JobPayload         *json.RawMessage               `db:"job_payload" json:"jobPayload,omitempty" firestore:"jobPayload,omitempty"` // Renamed from Payload to JobPayload
+	Attempts           int                            `db:"attempts" json:"attempts" firestore:"attempts"`
+	MaxAttempts        int                            `db:"max_attempts" json:"maxAttempts" firestore:"maxAttempts"`
+	LastError          sql.NullString                 `db:"last_error" json:"lastError,omitempty" firestore:"lastError,omitempty"`
+	LastAttemptedAt    sql.NullTime                   `db:"last_attempted_at" json:"lastAttemptedAt,omitempty" firestore:"lastAttemptedAt,omitempty"`          // Added
+	ProcessingServerID sql.NullString                 `db:"processing_server_id" json:"processingServerId,omitempty" firestore:"processingServerId,omitempty"` // Changed WorkerID to ProcessingServerID to match DB
+	CreatedAt          time.Time                      `db:"created_at" json:"createdAt" firestore:"createdAt"`
+	UpdatedAt          time.Time                      `db:"updated_at" json:"updatedAt" firestore:"updatedAt"`
+	NextExecutionAt    sql.NullTime                   `db:"next_execution_at" json:"nextExecutionAt,omitempty" firestore:"nextExecutionAt,omitempty"`
+	LockedAt           sql.NullTime                   `db:"locked_at" json:"lockedAt,omitempty" firestore:"lockedAt,omitempty"`
+	LockedBy           sql.NullString                 `db:"locked_by" json:"lockedBy,omitempty" firestore:"lockedBy,omitempty"`
 }
 
 // ProxyPool represents a proxy pool configuration

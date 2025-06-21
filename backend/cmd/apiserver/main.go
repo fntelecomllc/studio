@@ -45,6 +45,7 @@ import (
 	"github.com/fntelecomllc/studio/backend/internal/httpvalidator"
 	"github.com/fntelecomllc/studio/backend/internal/keywordscanner"
 	"github.com/fntelecomllc/studio/backend/internal/middleware"
+	"github.com/fntelecomllc/studio/backend/internal/monitoring"
 	"github.com/fntelecomllc/studio/backend/internal/proxymanager"
 	"github.com/fntelecomllc/studio/backend/internal/services"
 	"github.com/fntelecomllc/studio/backend/internal/store"
@@ -141,6 +142,11 @@ func main() {
 	db.SetMaxIdleConns(appConfig.Server.DBMaxIdleConns)
 	db.SetConnMaxLifetime(time.Duration(appConfig.Server.DBConnMaxLifetimeMinutes) * time.Minute)
 	log.Println("Successfully connected to PostgreSQL database.")
+
+	// Log initial database connection pool metrics and establish baseline
+	metrics := monitoring.NewDatabaseMetrics(db)
+	metrics.LogConnectionPoolStats("application_startup", "server_init")
+	log.Println("Database connection pool monitoring initialized.")
 
 	campaignStore = pg_store.NewCampaignStorePostgres(db)
 	personaStore = pg_store.NewPersonaStorePostgres(db)
