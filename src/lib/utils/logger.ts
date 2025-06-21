@@ -35,18 +35,18 @@ class Logger {
   debug(message: string, data?: unknown, context?: LogContext): void {
     const formattedMessage = this.formatMessage('debug', message, context);
     if (data !== undefined) {
-      console.debug(formattedMessage, data);
+      console.warn(formattedMessage, data);
     } else {
-      console.debug(formattedMessage);
+      console.warn(formattedMessage);
     }
   }
 
   info(message: string, data?: unknown, context?: LogContext): void {
     const formattedMessage = this.formatMessage('info', message, context);
     if (data !== undefined) {
-      console.log(formattedMessage, data);
+      console.warn(formattedMessage, data);
     } else {
-      console.log(formattedMessage);
+      console.warn(formattedMessage);
     }
   }
 

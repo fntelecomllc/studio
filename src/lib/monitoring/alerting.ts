@@ -450,8 +450,8 @@ if (process.env.NODE_ENV === 'production') {
 
 // Example alert handler that logs to console
 alertingService.onAlert((alert) => {
-  const emoji = alert.severity === 'critical' ? '🚨' : 
-                alert.severity === 'warning' ? '⚠️' : 'ℹ️';
+  const _emoji = alert.severity === 'critical' ? '🚨' :
+                 alert.severity === 'warning' ? '⚠️' : 'ℹ️';
   
   if (alert.status === 'active') {
     logger.warn('Alert triggered', {

@@ -162,7 +162,7 @@ export function useAuth() {
     try {
       const userData = await AuthService.getCurrentUser();
       setUser(userData);
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
       setUser(null);
     } finally {
       setIsLoading(false);
