@@ -107,7 +107,7 @@ export function useMemoryMonitoring(options: {
             isMonitoring: true
           };
         });
-      } catch {
+      } catch (error) {
         console.error('[MemoryMonitoring] Error checking memory:', error);
       }
     };

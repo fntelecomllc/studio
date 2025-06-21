@@ -169,7 +169,7 @@ export function ProtectedRoute({
       if (success) {
         setSessionWarningDismissed(false);
       }
-    } catch {
+    } catch (error) {
       console.error('Session refresh failed:', error);
     } finally {
       setIsRefreshingSession(false);

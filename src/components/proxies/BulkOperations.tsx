@@ -181,7 +181,7 @@ export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: B
           errorCount++;
           errors.push(`${proxy.address}: ${response.message}`);
         }
-      } catch {
+      } catch (error) {
         errorCount++;
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         errors.push(`${proxy.address}: ${errorMessage}`);
@@ -258,7 +258,7 @@ export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: B
       // Refresh proxy data
       onProxiesUpdate();
       
-    } catch {
+    } catch (error) {
       console.error('Bulk operation failed:', error);
       toast({
         title: "Bulk Operation Failed",

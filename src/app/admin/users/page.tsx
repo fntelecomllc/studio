@@ -75,7 +75,7 @@ export default function UserManagementPage() {
       } else {
         setErrorMessage(result.error?.message || 'Failed to load users');
       }
-    } catch {
+    } catch (error) {
       console.error('Load users error:', error);
       setErrorMessage('An unexpected error occurred while loading users');
     } finally {
@@ -104,7 +104,7 @@ export default function UserManagementPage() {
       } else {
         setErrorMessage(result.error?.message || 'Failed to update user status');
       }
-    } catch {
+    } catch (error) {
       console.error('Toggle user status error:', error);
       setErrorMessage('An unexpected error occurred while updating user status');
     } finally {
@@ -134,7 +134,7 @@ export default function UserManagementPage() {
       } else {
         setErrorMessage(result.error?.message || 'Failed to delete user');
       }
-    } catch {
+    } catch (error) {
       console.error('Delete user error:', error);
       setErrorMessage('An unexpected error occurred while deleting user');
     } finally {

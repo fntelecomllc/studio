@@ -159,7 +159,7 @@ export function createSafeBigInt(value: string | number | bigint): SafeBigInt {
     }
     
     return bigIntValue as SafeBigInt;
-  } catch {
+  } catch (error) {
     throw new Error(`Failed to create SafeBigInt: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

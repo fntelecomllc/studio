@@ -38,7 +38,7 @@ export function useTransformationMonitor<T extends (...args: any[]) => any>(
         );
         
         return result;
-      } catch {
+      } catch (error) {
         const duration = performance.now() - startTime;
         
         transformationMonitor.recordTransformation(
@@ -231,7 +231,7 @@ export function useTransformationBenchmark() {
       setResults(prev => new Map(prev).set(name, result));
       
       return result;
-    } catch {
+    } catch (error) {
       monitoringService.recordError(
         error as Error,
         `Benchmark failed: ${name}`
@@ -285,7 +285,7 @@ export function useApiTransformationMonitor() {
         );
         
         return result;
-      } catch {
+      } catch (error) {
         const duration = performance.now() - startTime;
         
         transformationMonitor.recordTransformation(

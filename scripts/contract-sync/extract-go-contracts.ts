@@ -657,7 +657,7 @@ async function main() {
     
     console.log('✅ Contract extraction complete!');
     process.exit(0);
-  } catch {
+  } catch (error) {
     console.error('❌ Contract extraction failed:', error);
     process.exit(1);
   }

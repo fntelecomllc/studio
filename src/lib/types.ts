@@ -893,6 +893,7 @@ export interface Lead {
   extractedAt: string;
   metadata?: Record<string, unknown>;
   similarityScore?: number; // For content similarity matching
+  previousCampaignId?: string; // For similarity comparison tracking
 }
 
 // Start Campaign Phase Payload

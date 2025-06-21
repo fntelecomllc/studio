@@ -14,7 +14,6 @@
 
 
 // May contain unused imports in some cases
-// @ts-expect-error - API client type compatibility
 import type { ModelsUserAPI } from './models-user-api';
 
 /**

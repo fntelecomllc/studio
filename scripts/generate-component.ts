@@ -61,7 +61,7 @@ class CodeGenerator {
       
       console.log(chalk.green.bold('\n✅ Code generation completed successfully!\n'));
       this.printNextSteps(config);
-    } catch {
+    } catch (error) {
       console.error(chalk.red.bold('\n❌ Code generation failed:'), error);
       process.exit(1);
     }

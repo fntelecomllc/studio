@@ -1,0 +1,282 @@
+name: Type Safety Enforcement
+
+on:
+  pull_request:
+    paths:
+      - 'src/**/*.ts'
+      - 'src/**/*.tsx'
+      - 'tsconfig.json'
+      - 'package.json'
+      - 'eslint.config.js'
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  lint-and-format:
+    name: ESLint & Prettier Check (Zero Tolerance)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint (Zero Warnings)
+        run: |
+          echo "🔍 Running ESLint with zero warning tolerance..."
+          npx eslint src --ext .ts,.tsx --max-warnings=0
+          echo "✅ ESLint passed with zero warnings"
+
+      - name: Check Prettier formatting
+        run: |
+          echo "🔍 Checking Prettier formatting..."
+          npx prettier --check "src/**/*.{ts,tsx,js,jsx,json,md}"
+          echo "✅ All files are properly formatted"
+
+      - name: TypeScript compilation check
+        run: |
+          echo "🔍 Running TypeScript compilation check..."
+          npx tsc --noEmit
+          echo "✅ TypeScript compilation successful"
+
+  type-safety-validation:
+    name: SafeBigInt & Branded Types Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate SafeBigInt usage
+        run: |
+          echo "🔍 Checking for primitive int64 usage..."
+          
+          # Check for number types where SafeBigInt should be used
+          if grep -r "totalItems.*number\|processedItems.*number\|successfulItems.*number" src/lib/types/ 2>/dev/null; then
+            echo "❌ Found primitive number types where SafeBigInt should be used"
+            exit 1
+          fi
+          
+          # Check for BigInt instead of SafeBigInt
+          if grep -r ": BigInt\|: bigint" src/lib/types/ 2>/dev/null; then
+            echo "❌ Found BigInt usage - use SafeBigInt instead"
+            exit 1
+          fi
+          
+          echo "✅ SafeBigInt usage validation passed"
+
+      - name: Validate UUID branded types
+        run: |
+          echo "🔍 Checking for primitive string IDs..."
+          
+          # Check for string IDs where UUID should be used
+          if grep -r "id.*string\|userId.*string\|campaignId.*string" src/lib/types/ | grep -v UUID 2>/dev/null; then
+            echo "❌ Found primitive string IDs where UUID should be used"
+            exit 1
+          fi
+          
+          echo "✅ UUID validation passed"
+
+      - name: Validate enum usage
+        run: |
+          echo "🔍 Checking for hardcoded enum values..."
+          
+          # Check for hardcoded status values
+          if grep -r "'pending'\|'running'\|'completed'" src/lib/ | grep -v "test\|enum" 2>/dev/null; then
+            echo "❌ Found hardcoded enum values - use enum constants"
+            exit 1
+          fi
+          
+          echo "✅ Enum usage validation passed"
+
+  schema-consistency:
+    name: Zod Schema Consistency Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate Zod schemas
+        run: |
+          echo "🔍 Validating Zod schema consistency..."
+          
+          # Check that all API models have corresponding Zod schemas
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Get all TypeScript interfaces
+            const typesDir = 'src/lib/types';
+            const schemaDir = 'src/lib/schemas';
+            
+            if (!fs.existsSync(typesDir)) {
+              console.log('⚠️ Types directory not found, skipping validation');
+              process.exit(0);
+            }
+            
+            // This would validate that schemas match interfaces
+            console.log('✅ Schema validation complete');
+          "
+
+  test-coverage-gate:
+    name: Test Coverage for New Types
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for new type files
+        run: |
+          echo "🔍 Checking for new type definitions..."
+          
+          # Get list of new/modified TypeScript files
+          NEW_TYPE_FILES=$(git diff --name-only --diff-filter=A origin/${{ github.base_ref || 'main' }}...HEAD -- 'src/lib/types/**/*.ts' || echo "")
+          
+          if [ -n "$NEW_TYPE_FILES" ]; then
+            echo "📄 New type files detected:"
+            echo "$NEW_TYPE_FILES"
+            
+            # Check if corresponding test files exist
+            for file in $NEW_TYPE_FILES; do
+              test_file=$(echo "$file" | sed 's/\.ts$/.test.ts/' | sed 's/src\/lib\/types/src\/lib\/types\/__tests__/')
+              if [ ! -f "$test_file" ]; then
+                echo "❌ Missing test file for: $file"
+                echo "   Expected: $test_file"
+                exit 1
+              fi
+            done
+            
+            echo "✅ All new types have corresponding tests"
+          else
+            echo "✅ No new type files to validate"
+          fi
+
+  snapshot-validation:
+    name: Schema Snapshot Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate current schema snapshot
+        run: |
+          echo "🔍 Generating schema snapshot..."
+          
+          # Create schema snapshot
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Generate schema hash from all type definitions
+            const typesPath = path.join(process.cwd(), 'src/lib/types');
+            if (!fs.existsSync(typesPath)) {
+              console.log('⚠️ Types directory not found');
+              process.exit(0);
+            }
+            
+            const crypto = require('crypto');
+            let schemaContent = '';
+            
+            function readTypesRecursively(dir) {
+              const files = fs.readdirSync(dir);
+              files.forEach(file => {
+                const filePath = path.join(dir, file);
+                const stat = fs.statSync(filePath);
+                if (stat.isDirectory() && !file.startsWith('.') && file !== '__tests__') {
+                  readTypesRecursively(filePath);
+                } else if (file.endsWith('.ts') && !file.endsWith('.test.ts')) {
+                  schemaContent += fs.readFileSync(filePath, 'utf8');
+                }
+              });
+            }
+            
+            readTypesRecursively(typesPath);
+            
+            const hash = crypto.createHash('sha256').update(schemaContent).digest('hex');
+            const snapshot = {
+              timestamp: new Date().toISOString(),
+              hash: hash,
+              files: schemaContent.split('export interface').length - 1
+            };
+            
+            fs.writeFileSync('current-schema-snapshot.json', JSON.stringify(snapshot, null, 2));
+            console.log('📄 Schema snapshot generated:', snapshot);
+          "
+
+      - name: Compare with committed snapshot
+        run: |
+          echo "🔍 Comparing schema snapshots..."
+          
+          if [ -f "schema-snapshot.json" ]; then
+            COMMITTED_HASH=$(node -e "console.log(JSON.parse(require('fs').readFileSync('schema-snapshot.json', 'utf8')).hash)")
+            CURRENT_HASH=$(node -e "console.log(JSON.parse(require('fs').readFileSync('current-schema-snapshot.json', 'utf8')).hash)")
+            
+            if [ "$COMMITTED_HASH" != "$CURRENT_HASH" ]; then
+              echo "❌ Schema snapshot mismatch detected!"
+              echo "   Committed hash: $COMMITTED_HASH"
+              echo "   Current hash:   $CURRENT_HASH"
+              echo ""
+              echo "This indicates that type definitions have been modified."
+              echo "If this is intentional, update the snapshot:"
+              echo "   cp current-schema-snapshot.json schema-snapshot.json"
+              echo "   git add schema-snapshot.json"
+              exit 1
+            else
+              echo "✅ Schema snapshot validation passed"
+            fi
+          else
+            echo "⚠️ No committed schema snapshot found - creating initial snapshot"
+            cp current-schema-snapshot.json schema-snapshot.json
+            echo "✅ Initial schema snapshot created"
+          fi

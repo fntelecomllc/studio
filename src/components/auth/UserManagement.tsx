@@ -117,7 +117,7 @@ export function UserManagement({
       } else {
         setErrorMessage(result.error?.message || 'Failed to load users');
       }
-    } catch {
+    } catch (error) {
       console.error('Load users error:', error);
       setErrorMessage('An unexpected error occurred while loading users');
     } finally {
@@ -164,7 +164,7 @@ export function UserManagement({
       createUserSchema.parse(createForm);
       setCreateErrors({});
       return true;
-    } catch {
+    } catch (error) {
       if (error instanceof z.ZodError) {
         const fieldErrors: Partial<Record<keyof CreateUserFormData, string>> = {};
         error.errors.forEach(err => {
@@ -184,7 +184,7 @@ export function UserManagement({
       updateUserSchema.parse(updateForm);
       setUpdateErrors({});
       return true;
-    } catch {
+    } catch (error) {
       if (error instanceof z.ZodError) {
         const fieldErrors: Partial<Record<keyof UpdateUserFormData, string>> = {};
         error.errors.forEach(err => {
@@ -243,7 +243,7 @@ export function UserManagement({
       } else {
         setErrorMessage(result.error?.message || 'Failed to create user');
       }
-    } catch {
+    } catch (error) {
       console.error('Create user error:', error);
       setErrorMessage('An unexpected error occurred while creating user');
     } finally {
@@ -279,7 +279,7 @@ export function UserManagement({
       } else {
         setErrorMessage(result.error?.message || 'Failed to update user');
       }
-    } catch {
+    } catch (error) {
       console.error('Update user error:', error);
       setErrorMessage('An unexpected error occurred while updating user');
     } finally {
@@ -310,7 +310,7 @@ export function UserManagement({
       } else {
         setErrorMessage(result.error?.message || 'Failed to delete user');
       }
-    } catch {
+    } catch (error) {
       console.error('Delete user error:', error);
       setErrorMessage('An unexpected error occurred while deleting user');
     } finally {

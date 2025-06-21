@@ -245,13 +245,13 @@ export function monitorTransformation(transformationType: string) {
         );
         
         return result;
-      } catch {
+      } catch (error) {
         const duration = performance.now() - startTime;
         
         transformationMonitor.recordTransformation(
           `${transformationType}_error`,
           duration,
-          { 
+          {
             method: propertyKey,
             error: error instanceof Error ? error.message : 'unknown'
           }
@@ -379,7 +379,7 @@ export class BatchTransformationProcessor<T, R> {
           resolver.resolve(result);
         }
       });
-    } catch {
+    } catch (error) {
       // Reject all promises
       resolvers.forEach(resolver => {
         resolver.reject(error);

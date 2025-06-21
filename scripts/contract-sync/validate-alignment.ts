@@ -602,7 +602,7 @@ async function main() {
       console.log(`\n❌ Contract validation failed with ${report.issueCount.critical} critical and ${report.issueCount.high} high severity issues`);
       process.exit(1);
     }
-  } catch {
+  } catch (error) {
     console.error('❌ Validation failed:', error);
     process.exit(1);
   }

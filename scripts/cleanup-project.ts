@@ -92,7 +92,7 @@ class ProjectCleanup {
           await this.performCleanup();
         }
       }
-    } catch {
+    } catch (error) {
       console.error(chalk.red('❌ Cleanup failed:'), error);
       process.exit(1);
     }

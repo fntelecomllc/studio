@@ -22,11 +22,18 @@
     "api:generate-client": "npx @openapitools/openapi-generator-cli generate --generator-key typescript-api",
     "api:generate": "npm run api:generate-spec && npm run api:generate-client",
     "api:validate": "scripts/validate-contracts.sh",
-    "contracts:extract": "ts-node scripts/contract-sync/extract-go-contracts.ts",
-    "contracts:validate": "ts-node scripts/contract-sync/validate-alignment.ts",
-    "contracts:sync": "npm run contracts:extract && npm run contracts:validate",
+    "contracts:extract": "npx ts-node scripts/contract-sync/extract-go-contracts.ts backend extracted-contracts.json",
+    "contracts:validate": "npx ts-node scripts/contract-sync/validate-alignment.ts validation-report.json",
+    "contracts:generate": "npx ts-node scripts/contract-sync/generate-types.ts extracted-contracts.json src/lib/types/generated",
+    "contracts:sync": "npm run contracts:extract && npm run contracts:generate",
+    "contracts:full-check": "npm run contracts:extract && npm run contracts:validate",
+    "lint:strict": "eslint src --ext .ts,.tsx --max-warnings=0",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:fix": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
+    "type-check": "tsc --noEmit",
     "typecheck:strict": "tsc --noEmit --strict",
-    "ci:validate": "npm run typecheck:strict && npm run test && npm run contracts:sync"
+    "ci:validate": "npm run typecheck:strict && npm run lint:strict && npm run test && npm run contracts:full-check",
+    "setup:hooks": "./scripts/setup-hooks.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^4.1.3",

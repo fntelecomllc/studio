@@ -474,7 +474,7 @@ async function main() {
     await generator.generate();
     console.log('\n✅ Type generation complete!');
     process.exit(0);
-  } catch {
+  } catch (error) {
     console.error('❌ Type generation failed:', error);
     process.exit(1);
   }

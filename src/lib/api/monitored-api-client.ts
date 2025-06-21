@@ -33,7 +33,7 @@ class MonitoredApiClient {
       monitoringService.endApiRequest(requestId, url, method, startTime, status);
       
       return response;
-    } catch {
+    } catch (error) {
       monitoringService.recordApiError(url, method, startTime, error as Error);
       throw error;
     }

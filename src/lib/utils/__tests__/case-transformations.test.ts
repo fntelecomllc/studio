@@ -255,7 +255,7 @@ describe('Case Transformation Utilities', () => {
       const result = transformSpecificFields(
         obj,
         ['age', 'score'],
-        (value) => value * 2
+        (value: unknown) => (value as number) * 2
       );
 
       expect(result).toEqual({
@@ -276,7 +276,7 @@ describe('Case Transformation Utilities', () => {
       const result = transformSpecificFields(
         obj,
         ['age', 'score'],
-        (value) => value * 2
+        (value: unknown) => (value as number) * 2
       );
 
       expect(result).toEqual({

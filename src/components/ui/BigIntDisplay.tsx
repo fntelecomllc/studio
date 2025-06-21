@@ -47,7 +47,7 @@ function formatBigIntValue(
       const strValue = String(value);
       bigIntValue = BigInt(strValue);
     }
-  } catch {
+  } catch (error) {
     console.error('Error converting value to BigInt:', value, error);
     return 'Invalid';
   }

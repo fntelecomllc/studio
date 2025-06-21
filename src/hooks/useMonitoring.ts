@@ -127,7 +127,7 @@ export function useApiMonitoring() {
       const result = await apiCall();
       monitoringService.endApiRequest(requestId, url, method, startTime, 200);
       return result;
-    } catch {
+    } catch (error) {
       monitoringService.recordApiError(url, method, startTime, error as Error);
       throw error;
     }

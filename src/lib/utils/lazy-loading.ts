@@ -220,7 +220,7 @@ export function useInfiniteScroll({
               timer.end(),
               'ms'
             );
-          } catch {
+          } catch (error) {
             monitoringService.recordError(
               error as Error,
               'infinite_scroll_load_error'

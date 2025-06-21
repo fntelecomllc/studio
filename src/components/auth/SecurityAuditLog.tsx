@@ -139,7 +139,7 @@ export function SecurityAuditLog({
       // In a real app, this would be an API call
       await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
       setSecurityEvents(MOCK_SECURITY_EVENTS);
-    } catch {
+    } catch (error) {
       console.error('Load security events error:', error);
       setErrorMessage('Failed to load security events');
     } finally {
@@ -156,7 +156,7 @@ export function SecurityAuditLog({
       // In a real app, this would be an API call
       await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
       setAuditLog(MOCK_AUDIT_LOG);
-    } catch {
+    } catch (error) {
       console.error('Load audit log error:', error);
       setErrorMessage('Failed to load audit log');
     } finally {

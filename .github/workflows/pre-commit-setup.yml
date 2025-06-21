@@ -1,0 +1,101 @@
+name: Pre-commit Hook Setup
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Run weekly to ensure hooks are up to date
+    - cron: '0 2 * * 1'
+
+jobs:
+  setup-hooks:
+    name: Install and Update Pre-commit Hooks
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install pre-commit hooks
+        run: |
+          echo "🔧 Setting up pre-commit hooks..."
+          
+          # Copy the pre-commit hook
+          mkdir -p .git/hooks
+          cp scripts/contract-sync/pre-commit-hook.sh .git/hooks/pre-commit
+          chmod +x .git/hooks/pre-commit
+          
+          echo "✅ Pre-commit hooks installed"
+
+      - name: Test pre-commit hook
+        run: |
+          echo "🧪 Testing pre-commit hook functionality..."
+          
+          # Create a temporary commit to test the hook
+          echo "# Test commit for hook validation" > test-commit.md
+          git add test-commit.md
+          
+          # Test the hook (should pass on clean repo)
+          if .git/hooks/pre-commit; then
+            echo "✅ Pre-commit hook test passed"
+          else
+            echo "❌ Pre-commit hook test failed"
+            exit 1
+          fi
+          
+          # Clean up
+          git reset HEAD test-commit.md
+          rm -f test-commit.md
+
+      - name: Generate hook installation guide
+        run: |
+          cat > HOOK_SETUP.md << 'EOF'
+          # Pre-commit Hook Installation
+
+          ## Automatic Installation
+
+          Run the setup script:
+          ```bash
+          ./scripts/setup-hooks.sh
+          ```
+
+          ## Manual Installation
+
+          1. Copy the pre-commit hook:
+          ```bash
+          cp scripts/contract-sync/pre-commit-hook.sh .git/hooks/pre-commit
+          chmod +x .git/hooks/pre-commit
+          ```
+
+          2. Test the hook:
+          ```bash
+          .git/hooks/pre-commit
+          ```
+
+          ## What the Hook Validates
+
+          - ✅ Contract alignment between backend and frontend
+          - ✅ Type safety (SafeBigInt, UUID, enums)
+          - ✅ ESLint with zero warnings
+          - ✅ Prettier formatting
+          - ✅ Generated types are up to date
+
+          ## Bypassing (NOT RECOMMENDED)
+
+          In emergencies only:
+          ```bash
+          git commit --no-verify -m "Emergency commit"
+          ```
+
+          **Note:** This bypasses ALL safety checks and may introduce contract violations.
+          EOF
+
+          echo "📄 Hook installation guide created: HOOK_SETUP.md"

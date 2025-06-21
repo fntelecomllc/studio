@@ -180,7 +180,7 @@ export function WebSocketStatusProvider({ children }: { children: React.ReactNod
       }
 
       return testResult;
-    } catch {
+    } catch (error) {
       const testDuration = Date.now() - testStartTime;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       

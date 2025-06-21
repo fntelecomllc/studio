@@ -472,7 +472,7 @@ describe('API Client Wrapper Validation', () => {
       try {
         validateApiResponse(mockResponse, strictValidator, 'strict validation');
         fail('Should have thrown ApiValidationError');
-      } catch {
+      } catch (error) {
         expect(error).toBeInstanceOf(ApiValidationError);
         expect((error as ApiValidationError).message).toContain('strict validation');
         expect((error as ApiValidationError).originalResponse).toEqual({ invalid: 'data' });

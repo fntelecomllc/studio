@@ -101,7 +101,7 @@ export function UserProfile({
       passwordChangeSchema.parse(passwordForm);
       setErrors({});
       return true;
-    } catch {
+    } catch (error) {
       if (error instanceof z.ZodError) {
         const fieldErrors: Partial<Record<keyof PasswordChangeFormData, string>> = {};
         error.errors.forEach(err => {
@@ -151,7 +151,7 @@ export function UserProfile({
       } else {
         setErrorMessage(result.error?.message || 'Failed to change password. Please try again.');
       }
-    } catch {
+    } catch (error) {
       console.error('Password change error:', error);
       setErrorMessage('An unexpected error occurred. Please try again.');
     } finally {

@@ -1,0 +1,287 @@
+name: Contract Alignment Gate
+
+on:
+  pull_request:
+    paths:
+      - 'backend/internal/models/**'
+      - 'backend/internal/api/**'
+      - 'backend/database/migrations/**'
+      - 'src/lib/types/**'
+      - 'src/lib/api-client/**'
+      - 'scripts/contract-sync/**'
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'backend/internal/models/**'
+      - 'backend/internal/api/**'
+      - 'backend/database/migrations/**'
+      - 'src/lib/types/**'
+      - 'src/lib/api-client/**'
+
+jobs:
+  validate-contracts:
+    name: Validate Contract Alignment
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+          cache: true
+          cache-dependency-path: backend/go.sum
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install Go dependencies
+        working-directory: backend
+        run: go mod download
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Setup database
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+        run: |
+          cd backend
+          go run cmd/migrate/main.go up
+
+      - name: Extract Go contracts
+        run: |
+          npx ts-node scripts/contract-sync/extract-go-contracts.ts backend extracted-contracts.json
+
+      - name: Validate contract alignment
+        id: validate
+        run: |
+          npx ts-node scripts/contract-sync/validate-alignment.ts validation-report.json || echo "VALIDATION_FAILED=true" >> $GITHUB_ENV
+
+      - name: Upload validation report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: contract-validation-report
+          path: |
+            validation-report.json
+            validation-report.md
+
+      - name: Comment PR with validation results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // Read validation report
+            let report;
+            try {
+              report = JSON.parse(fs.readFileSync('validation-report.json', 'utf8'));
+            } catch (error) {
+              console.error('Failed to read validation report:', error);
+              return;
+            }
+            
+            // Generate comment
+            let comment = '## 📋 Contract Alignment Validation Report\n\n';
+            
+            if (report.passed) {
+              comment += '✅ **All contract alignment checks passed!**\n\n';
+            } else {
+              comment += '❌ **Contract alignment validation failed**\n\n';
+              comment += `- **Critical Issues:** ${report.issueCount.critical}\n`;
+              comment += `- **High Issues:** ${report.issueCount.high}\n`;
+              comment += `- **Medium Issues:** ${report.issueCount.medium}\n`;
+              comment += `- **Low Issues:** ${report.issueCount.low}\n\n`;
+              
+              // Add critical issues
+              const criticalIssues = report.issues.filter(i => i.severity === 'CRITICAL');
+              if (criticalIssues.length > 0) {
+                comment += '### 🚨 Critical Issues\n\n';
+                criticalIssues.forEach(issue => {
+                  comment += `- **[${issue.layer}]** ${issue.description}\n`;
+                });
+                comment += '\n';
+              }
+              
+              // Add high issues
+              const highIssues = report.issues.filter(i => i.severity === 'HIGH');
+              if (highIssues.length > 0) {
+                comment += '### ⚠️ High Priority Issues\n\n';
+                highIssues.forEach(issue => {
+                  comment += `- **[${issue.layer}]** ${issue.description}\n`;
+                });
+                comment += '\n';
+              }
+            }
+            
+            // Add recommendations
+            if (report.recommendations && report.recommendations.length > 0) {
+              comment += '### 💡 Recommendations\n\n';
+              report.recommendations.forEach(rec => {
+                comment += `- ${rec}\n`;
+              });
+            }
+            
+            // Find and update existing comment or create new one
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && comment.body.includes('Contract Alignment Validation Report')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }
+
+      - name: Check for type regeneration
+        if: env.VALIDATION_FAILED != 'true'
+        run: |
+          # Check if generated types are up to date
+          CONTRACTS_HASH=$(sha256sum extracted-contracts.json | cut -d' ' -f1)
+          
+          if [ -f "src/lib/types/generated/.contracts-hash" ]; then
+            EXISTING_HASH=$(cat src/lib/types/generated/.contracts-hash)
+            if [ "$CONTRACTS_HASH" != "$EXISTING_HASH" ]; then
+              echo "⚠️ Generated types are out of date"
+              echo "Run: npx ts-node scripts/contract-sync/generate-types.ts"
+              exit 1
+            fi
+          else
+            echo "⚠️ No generated types hash found"
+            echo "Run: npx ts-node scripts/contract-sync/generate-types.ts"
+            exit 1
+          fi
+
+      - name: Fail if validation failed
+        if: env.VALIDATION_FAILED == 'true'
+        run: |
+          echo "❌ Contract validation failed. See report above for details."
+          exit 1
+
+  check-migrations:
+    name: Verify Database Migrations
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.changed_files, 'backend/database/migrations/') || contains(github.event.pull_request.changed_files, 'migrations/contract_alignment/')
+    
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Test migrations up/down
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+        run: |
+          cd backend
+          
+          # Run all migrations up
+          go run cmd/migrate/main.go up
+          
+          # Run contract alignment migrations
+          for migration in ../migrations/contract_alignment/*.sql; do
+            echo "Running migration: $migration"
+            psql $DATABASE_URL -f "$migration"
+          done
+          
+          # Verify schema is valid
+          go run cmd/schema_validator/main.go
+
+      - name: Test migration rollback
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+        run: |
+          # This would test rollback procedures
+          echo "Testing migration rollbacks..."
+          # Add rollback testing logic here
+
+  security-check:
+    name: Security Check for Contract Changes
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Check for security-sensitive changes
+        run: |
+          # Check for changes in auth-related contracts
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E "(auth|user|session|permission)" | grep -E "(models|types)"; then
+            echo "⚠️ Security-sensitive contract changes detected"
+            echo "SECURITY_REVIEW_REQUIRED=true" >> $GITHUB_ENV
+          fi
+
+      - name: Add security review label
+        if: env.SECURITY_REVIEW_REQUIRED == 'true'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['security-review-required']
+            });

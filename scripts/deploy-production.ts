@@ -125,7 +125,7 @@ class ProductionDeployment {
         warnings: this.warnings,
         metrics: await this.collectMetrics()
       };
-    } catch {
+    } catch (error) {
       const duration = Date.now() - this.startTime;
       const version = this.getCurrentVersion();
 
@@ -159,7 +159,7 @@ class ProductionDeployment {
       if (gitStatus.trim() && !this.config.force) {
         throw new Error('Uncommitted changes detected. Commit or stash changes before deploying.');
       }
-    } catch {
+    } catch (error) {
       if (!this.config.force) {
         throw error;
       }
@@ -361,7 +361,7 @@ class ProductionDeployment {
     try {
       // Implement rollback logic based on deployment platform
       console.log(chalk.green('✓ Rollback completed'));
-    } catch {
+    } catch (error) {
       console.error(chalk.red('❌ Rollback failed:'), error);
     }
   }

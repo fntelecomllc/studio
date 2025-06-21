@@ -14,10 +14,8 @@
 
 
 // May contain unused imports in some cases
-// @ts-expect-error - API client type compatibility
 import type { ModelsCampaignStatusEnum } from './models-campaign-status-enum';
 // May contain unused imports in some cases
-// @ts-expect-error - API client type compatibility
 import type { ModelsCampaignTypeEnum } from './models-campaign-type-enum';
 
 /**

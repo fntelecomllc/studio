@@ -89,8 +89,8 @@ class AuthService {
         logAuth.init('No active session found');
         this.clearAuth();
       }
-    } catch {
-      logAuth.error('Session initialization failed', _error);
+    } catch (error) {
+      logAuth.error('Session initialization failed', error);
       this.clearAuth();
     } finally {
       this.setLoading(false);
@@ -160,8 +160,8 @@ class AuthService {
           fieldErrors: Object.keys(fieldErrors).length > 0 ? fieldErrors : undefined
         };
       }
-    } catch {
-      const errorMsg = _error instanceof Error ? _error.message : 'Network error';
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Network error';
       logAuth.error('Login error', { error: errorMsg });
       loadingStore.stopLoading(LOADING_OPERATIONS.LOGIN, 'failed', errorMsg);
       return { success: false, error: errorMsg };
@@ -190,7 +190,7 @@ class AuthService {
         logAuth.warn('Logout request failed', { status: response.status });
         loadingStore.stopLoading(LOADING_OPERATIONS.LOGOUT, 'failed', `Logout failed with status: ${response.status}`);
       }
-    } catch {
+    } catch (error) {
       logAuth.error('Logout error', { error: error instanceof Error ? error.message : 'Unknown error' });
       loadingStore.stopLoading(LOADING_OPERATIONS.LOGOUT, 'failed', error instanceof Error ? error.message : 'Unknown error');
     } finally {
@@ -211,7 +211,7 @@ class AuthService {
         logAuth.warn('Failed to fetch available permissions', { status: response.status });
         return [];
       }
-    } catch {
+    } catch (error) {
       logAuth.error('Error fetching available permissions', error);
       return [];
     }
@@ -280,8 +280,8 @@ class AuthService {
 
       const data = await response.json();
       return { success: response.ok, error: data.message };
-    } catch {
-      return { success: false, error: _error instanceof Error ? _error.message : 'Network error' };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Network error' };
     }
   }
 
@@ -340,7 +340,7 @@ class AuthService {
       const data = await response.json();
       const transformedUser = data.user ? TypeTransformer.transformUser(data.user) : undefined;
       return { success: response.ok, user: transformedUser, error: data.message };
-    } catch {
+    } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Network error' };
     }
   }
@@ -355,7 +355,7 @@ class AuthService {
       const data = await response.json();
       const transformedUser = data.user ? TypeTransformer.transformUser(data.user) : undefined;
       return { success: response.ok, user: transformedUser, error: data.message };
-    } catch {
+    } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Network error' };
     }
   }
@@ -368,7 +368,7 @@ class AuthService {
 
       const data = await response.json();
       return { success: response.ok, error: data.message };
-    } catch {
+    } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Network error' };
     }
   }
@@ -400,7 +400,7 @@ class AuthService {
       const data = await response.json();
       const transformedUser = data.user ? TypeTransformer.transformUser(data.user) : undefined;
       return { user: transformedUser, error: data.message };
-    } catch {
+    } catch (error) {
       return { error: error instanceof Error ? error.message : 'Network error' };
     }
   }
@@ -452,7 +452,7 @@ class AuthService {
         loadingStore.stopLoading(LOADING_OPERATIONS.SESSION_REFRESH, 'failed', errorMsg);
         return { success: false, error: errorMsg };
       }
-    } catch {
+    } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Network error';
       logAuth.error('Session refresh error', { error: errorMsg });
       loadingStore.stopLoading(LOADING_OPERATIONS.SESSION_REFRESH, 'failed', errorMsg);
@@ -509,7 +509,7 @@ class AuthService {
     this.listeners.forEach(listener => {
       try {
         listener(state);
-      } catch {
+      } catch (error) {
         logAuth.error('Error in auth listener', error);
       }
     });

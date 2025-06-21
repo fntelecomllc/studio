@@ -82,7 +82,7 @@ export default function PersonaListItem({ persona, onDelete, onTest, onToggleSta
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       toast({ title: "Persona Exported", description: `${persona.name} has been exported.` });
-    } catch {
+    } catch (error) {
       toast({ title: "Export Failed", description: "Could not export persona.", variant: "destructive" });
       console.error("Persona export error:", error);
     }

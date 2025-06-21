@@ -56,6 +56,22 @@ firebase-debug.log
 *.bak
 *.tmp
 
+# Contract sync temporary files
+extracted-contracts.json
+extracted-contracts.d.ts
+validation-report.json
+validation-report.md
+
+# Backup files
+*.backup
+*.md.backup
+
+# Legacy scripts
+convert_responses.py
+fix_auth_responses.sh
+fix_responses.py
+fix_userid_types.sh
+
 # Backend build artifacts
 backend/bin/
 backend/build/
