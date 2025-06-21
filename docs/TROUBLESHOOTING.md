@@ -499,6 +499,102 @@ sudo ufw allow 80
 sudo ufw allow 443
 ```
 
+### Database Constraint Violations
+
+**Symptoms:**
+- PostgreSQL constraint violation errors
+- Failed INSERT/UPDATE operations
+- "violates check constraint" errors
+- Campaign processing failures with status field conflicts
+
+**Common Error Messages:**
+```
+ERROR: new row for relation "dns_validation_results" violates check constraint
+ERROR: new row for relation "http_keyword_results" violates check constraint
+ERROR: invalid input value for enum status_type
+```
+
+**Diagnosis:**
+```bash
+# Check for constraint violations in logs
+docker-compose logs backend | grep -i "constraint\|violation"
+
+# Check database constraints
+docker-compose exec postgres psql -U domainflow -d domainflow_dev -c "
+SELECT conname, contype, confrelid::regclass, conkey
+FROM pg_constraint
+WHERE contype IN ('c', 'f')
+ORDER BY conname;
+"
+
+# Check enum types and constraints
+docker-compose exec postgres psql -U domainflow -d domainflow_dev -c "
+SELECT t.typname, e.enumlabel
+FROM pg_type t
+JOIN pg_enum e ON t.oid = e.enumtypid
+WHERE t.typname LIKE '%status%'
+ORDER BY t.typname, e.enumsortorder;
+"
+```
+
+**Root Cause Analysis:**
+The most common cause is **status field separation violations** where:
+1. System-level status values (pending, running, completed, failed) are written to business-level status fields
+2. Business-level status values (valid_dns, lead_valid, http_valid_no_keywords) are written to system-level status fields
+3. Missing `business_status` fields in INSERT queries
+
+**Solutions:**
+
+**Status Field Separation Fix:**
+```go
+// ✅ CORRECT: Separate system and business status fields
+func (s *CampaignStore) CreateDNSValidationResults(campaignID uuid.UUID, results []models.DNSValidationResult) error {
+    query := `
+    INSERT INTO dns_validation_results (
+        id, campaign_id, domain_name, record_type, record_value,
+        is_valid, response_time_ms, error_message,
+        status, business_status, checked_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    // Note: Both 'status' (system) AND 'business_status' (business) fields included
+}
+
+// ❌ INCORRECT: Missing business_status field
+func (s *CampaignStore) CreateDNSValidationResults(campaignID uuid.UUID, results []models.DNSValidationResult) error {
+    query := `
+    INSERT INTO dns_validation_results (
+        id, campaign_id, domain_name, record_type, record_value,
+        is_valid, response_time_ms, error_message,
+        status, checked_at  -- Missing business_status!
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+}
+```
+
+**Verify Fix Implementation:**
+```bash
+# Check that both status fields are present in queries
+cd backend
+grep -r "INSERT INTO.*_results" internal/store/postgres/ | grep -E "(status.*business_status|business_status.*status)"
+
+# Run tests to verify constraint compliance
+go test -v ./internal/services -run "TestCampaignWorkerService|TestDNSCampaignService|TestHTTPKeywordCampaignService"
+
+# Check for any remaining constraint violations
+go test -race -v ./...
+```
+
+**Prevention:**
+1. **Always include both status fields** in validation result INSERT queries:
+   - `status` for system-level processing states
+   - `business_status` for domain-specific validation states
+2. **Follow architectural separation** between system and business concerns
+3. **Run comprehensive tests** before deploying status-related changes
+4. **Monitor constraint violations** in production logs
+
+**Status Field Usage Guidelines:**
+- **System Status (`status`)**: `pending`, `running`, `completed`, `failed`, `cancelled`
+- **Business Status (`business_status`)**: `valid_dns`, `lead_valid`, `http_valid_no_keywords`, etc.
+- **Never mix** system status values in business status fields or vice versa
+
 ## Container Issues
 
 ### Container Keeps Restarting

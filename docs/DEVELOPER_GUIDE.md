@@ -1062,4 +1062,218 @@ type CampaignService interface {
     GetCampaign(ctx context.Context, id string) (*models.Campaign, error)
     ListCampaigns(ctx context.Context, userID string, filters CampaignFilters) ([]*models.Campaign, error)
     UpdateCampaign(ctx context.Context, id string, req UpdateCampaignRequest) (*models.Campaign, error)
-    DeleteCampaign(ctx context.Context, i
+    DeleteCampaign(ctx context.Context, id string) error
+    StartCampaign(ctx context.Context, id string) error
+    StopCampaign(ctx context.Context, id string) error
+}
+
+type CreateCampaignRequest struct {
+    Name         string                 `json:"name" validate:"required,min=1,max=255"`
+    Description  string                 `json:"description"`
+    CampaignType string                 `json:"campaignType" validate:"required,oneof=domain_generation dns_validation http_keyword"`
+    Parameters   map[string]interface{} `json:"parameters" validate:"required"`
+}
+
+type CampaignFilters struct {
+    Status       []string `json:"status"`
+    CampaignType []string `json:"campaignType"`
+    CreatedAfter *time.Time `json:"createdAfter"`
+    CreatedBefore *time.Time `json:"createdBefore"`
+    Limit        int      `json:"limit"`
+    Offset       int      `json:"offset"`
+}
+```
+
+## Database Development
+
+### Status Field Architecture Pattern
+
+**Critical Architecture Rule**: DomainFlow implements strict separation between system-level and business-level status fields to prevent database constraint violations.
+
+#### Status Field Types
+
+**System Status Fields (`status`)**
+- **Purpose**: Track technical processing workflow states
+- **Values**: `pending`, `running`, `completed`, `failed`, `cancelled`, `pausing`, `paused`, `archived`
+- **Usage**: Job scheduling, workflow management, system operations
+- **Scope**: Universal across all record types
+
+**Business Status Fields (`business_status`)**
+- **Purpose**: Track domain-specific validation and business logic results
+- **Values**: Domain-specific (varies by record type)
+- **Usage**: Business logic, user-facing results, decision making
+- **Scope**: Specific to the business domain of each record type
+
+#### Implementation Examples
+
+**✅ CORRECT: DNS Validation Results**
+```go
+// Always include BOTH status fields in INSERT operations
+func (s *CampaignStore) CreateDNSValidationResults(campaignID uuid.UUID, results []models.DNSValidationResult) error {
+    query := `
+    INSERT INTO dns_validation_results (
+        id, campaign_id, domain_name, record_type, record_value,
+        is_valid, response_time_ms, error_message,
+        status, business_status, checked_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    
+    for _, result := range results {
+        err := s.db.Exec(query,
+            result.ID, campaignID, result.DomainName, result.RecordType, result.RecordValue,
+            result.IsValid, result.ResponseTimeMs, result.ErrorMessage,
+            result.Status,         // System status: pending, completed, failed
+            result.BusinessStatus, // Business status: valid_dns, invalid_dns, lead_valid
+            result.CheckedAt,
+        ).Error
+        if err != nil {
+            return fmt.Errorf("failed to create DNS validation result: %w", err)
+        }
+    }
+    return nil
+}
+```
+
+**✅ CORRECT: HTTP Keyword Results**
+```go
+func (s *CampaignStore) CreateHTTPKeywordResults(campaignID uuid.UUID, results []models.HTTPKeywordResult) error {
+    query := `
+    INSERT INTO http_keyword_results (
+        id, campaign_id, url, keyword, found, occurrences,
+        context, response_code, response_time_ms,
+        status, business_status, checked_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    
+    for _, result := range results {
+        err := s.db.Exec(query,
+            result.ID, campaignID, result.URL, result.Keyword, result.Found, result.Occurrences,
+            result.Context, result.ResponseCode, result.ResponseTimeMs,
+            result.Status,         // System status: pending, completed, failed
+            result.BusinessStatus, // Business status: lead_valid, http_valid_no_keywords, http_invalid
+            result.CheckedAt,
+        ).Error
+        if err != nil {
+            return fmt.Errorf("failed to create HTTP keyword result: %w", err)
+        }
+    }
+    return nil
+}
+```
+
+**❌ INCORRECT: Missing Business Status Field**
+```go
+// This will cause database constraint violations!
+func (s *CampaignStore) CreateDNSValidationResults(campaignID uuid.UUID, results []models.DNSValidationResult) error {
+    query := `
+    INSERT INTO dns_validation_results (
+        id, campaign_id, domain_name, record_type, record_value,
+        is_valid, response_time_ms, error_message,
+        status, checked_at  -- Missing business_status field!
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    // This will violate database constraints
+}
+```
+
+#### Development Best Practices
+
+**1. Always Include Both Status Fields**
+```go
+// Template for result INSERT queries
+query := `
+INSERT INTO {table_name} (
+    -- ... other fields ...
+    status,         -- System-level status (required)
+    business_status, -- Business-level status (required)
+    -- ... timestamp fields ...
+) VALUES (?, ?, ..., ?, ?, ...)`
+```
+
+**2. Validate Status Field Values**
+```go
+// Validate system status values
+func ValidateSystemStatus(status string) error {
+    validStatuses := []string{"pending", "running", "completed", "failed", "cancelled"}
+    for _, valid := range validStatuses {
+        if status == valid {
+            return nil
+        }
+    }
+    return fmt.Errorf("invalid system status: %s", status)
+}
+
+// Validate business status values (domain-specific)
+func ValidateDNSBusinessStatus(status string) error {
+    validStatuses := []string{"pending", "valid_dns", "invalid_dns", "lead_valid", "timeout", "error"}
+    for _, valid := range validStatuses {
+        if status == valid {
+            return nil
+        }
+    }
+    return fmt.Errorf("invalid DNS business status: %s", status)
+}
+```
+
+**3. Test Status Field Compliance**
+```go
+func TestStatusFieldCompliance(t *testing.T) {
+    // Test that all result INSERT queries include both status fields
+    store := NewCampaignStore(testDB)
+    
+    // Test DNS validation results
+    dnsResults := []models.DNSValidationResult{{
+        ID: uuid.New(),
+        DomainName: "test.com",
+        RecordType: "A",
+        Status: "completed",           // System status
+        BusinessStatus: "valid_dns",   // Business status
+        CheckedAt: time.Now(),
+    }}
+    
+    err := store.CreateDNSValidationResults(uuid.New(), dnsResults)
+    assert.NoError(t, err, "DNS validation result creation should succeed with both status fields")
+    
+    // Test HTTP keyword results
+    httpResults := []models.HTTPKeywordResult{{
+        ID: uuid.New(),
+        URL: "https://test.com",
+        Keyword: "test",
+        Status: "completed",              // System status
+        BusinessStatus: "lead_valid",     // Business status
+        CheckedAt: time.Now(),
+    }}
+    
+    err = store.CreateHTTPKeywordResults(uuid.New(), httpResults)
+    assert.NoError(t, err, "HTTP keyword result creation should succeed with both status fields")
+}
+```
+
+#### Debugging Status Field Issues
+
+**Common Error Patterns:**
+```bash
+# Check for missing business_status fields in queries
+grep -r "INSERT INTO.*_results" backend/internal/store/postgres/ | \
+  grep -v "business_status" | \
+  head -5
+
+# Check for status field type mismatches
+grep -r "business_status.*=.*pending\|running\|completed" backend/ | \
+  head -5
+
+# Verify both fields are present in all result queries
+grep -r "INSERT INTO.*_results" backend/internal/store/postgres/ | \
+  grep -E "(status.*business_status|business_status.*status)"
+```
+
+**Testing Status Field Compliance:**
+```bash
+# Run status-specific tests
+go test -v ./internal/services -run "TestCampaignWorkerService|TestDNSCampaignService|TestHTTPKeywordCampaignService"
+
+# Run with race detection to catch concurrency issues
+go test -race -v ./internal/services
+
+# Check for constraint violations in test output
+go test ./... 2>&1 | grep -i "constraint\|violation"
+```
+
+## Service Layer Pattern

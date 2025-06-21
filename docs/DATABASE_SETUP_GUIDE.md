@@ -126,9 +126,15 @@ CREATE TABLE dns_validation_results (
     is_valid BOOLEAN NOT NULL,
     response_time_ms INTEGER,
     error_message TEXT,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',         -- System-level status
+    business_status VARCHAR(50) NOT NULL DEFAULT 'pending', -- Business-level status
     checked_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 ```
+
+**Status Field Architecture:**
+- `status`: System-level processing states (pending, running, completed, failed, cancelled)
+- `business_status`: Domain-specific validation states (valid_dns, lead_valid, invalid_dns, etc.)
 
 #### HTTP Keyword Results (`http_keyword_results`)
 Results from HTTP keyword analysis campaigns.
@@ -144,9 +150,15 @@ CREATE TABLE http_keyword_results (
     context TEXT,
     response_code INTEGER,
     response_time_ms INTEGER,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',         -- System-level status
+    business_status VARCHAR(50) NOT NULL DEFAULT 'pending', -- Business-level status
     checked_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 ```
+
+**Status Field Architecture:**
+- `status`: System-level processing states (pending, running, completed, failed, cancelled)
+- `business_status`: Domain-specific validation states (lead_valid, http_valid_no_keywords, http_invalid, etc.)
 
 #### Audit Logs (`audit_logs`)
 Comprehensive operation tracking.
@@ -393,12 +405,106 @@ WHERE schemaname = 'public'
 ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
 ```
 
+## Schema Architecture & Constraint Management
+
+### Status Field Separation Architecture
+
+DomainFlow implements a critical architectural pattern for status field separation to prevent database constraint violations:
+
+#### System vs Business Status Fields
+
+**System Status Fields (`status`)**
+- **Purpose**: Track technical processing states
+- **Values**: `pending`, `running`, `completed`, `failed`, `cancelled`
+- **Scope**: Universal across all campaign types
+- **Usage**: Job processing, workflow management, system operations
+
+**Business Status Fields (`business_status`)**
+- **Purpose**: Track domain-specific validation results
+- **Values**: Domain-specific (e.g., `valid_dns`, `lead_valid`, `http_valid_no_keywords`)
+- **Scope**: Specific to campaign/validation type
+- **Usage**: Business logic, result interpretation, user-facing status
+
+#### Implementation Guidelines
+
+**✅ CORRECT Implementation:**
+```sql
+-- DNS Validation Results - Both status fields included
+INSERT INTO dns_validation_results (
+    id, campaign_id, domain_name, record_type, record_value,
+    is_valid, response_time_ms, error_message,
+    status, business_status, checked_at           -- Both fields present
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- HTTP Keyword Results - Both status fields included
+INSERT INTO http_keyword_results (
+    id, campaign_id, url, keyword, found, occurrences,
+    context, response_code, response_time_ms,
+    status, business_status, checked_at           -- Both fields present
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+```
+
+**❌ INCORRECT Implementation:**
+```sql
+-- Missing business_status field - WILL CAUSE CONSTRAINT VIOLATIONS
+INSERT INTO dns_validation_results (
+    id, campaign_id, domain_name, record_type, record_value,
+    is_valid, response_time_ms, error_message,
+    status, checked_at                           -- Missing business_status!
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+```
+
+### Constraint Violation Prevention
+
+#### Common Violation Scenarios
+1. **Missing business_status in INSERT queries** - Most common cause
+2. **Status value type mismatch** - System status in business field or vice versa
+3. **Enum constraint violations** - Invalid status values for field type
+
+#### Verification Checklist
+```bash
+# 1. Verify both status fields in all result INSERT queries
+cd backend
+grep -r "INSERT INTO.*_results" internal/store/postgres/ | \
+  grep -E "(status.*business_status|business_status.*status)"
+
+# 2. Run comprehensive tests
+go test -race -v ./internal/services -run "Campaign.*Service"
+
+# 3. Check for constraint violations in logs
+docker-compose logs backend 2>&1 | grep -i "constraint\|violation"
+
+# 4. Validate database schema compliance
+psql -d domainflow_dev -c "
+SELECT table_name, column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_name LIKE '%_results' AND column_name LIKE '%status%'
+ORDER BY table_name, column_name;
+"
+```
+
+#### Monitoring & Alerting
+```sql
+-- Query to identify potential constraint issues
+SELECT
+    table_name,
+    COUNT(*) as total_records,
+    COUNT(CASE WHEN status IS NULL THEN 1 END) as null_status,
+    COUNT(CASE WHEN business_status IS NULL THEN 1 END) as null_business_status
+FROM (
+    SELECT 'dns_validation_results' as table_name, status, business_status FROM dns_validation_results
+    UNION ALL
+    SELECT 'http_keyword_results' as table_name, status, business_status FROM http_keyword_results
+) combined
+GROUP BY table_name;
+```
+
 ## Default Data
 
 ### Admin User
 ```sql
 -- Default admin user (change password in production)
-INSERT INTO users (id, username, email, password_hash, role, is_active) 
+INSERT INTO users (id, username, email, password_hash, role, is_active)
 VALUES (
     gen_random_uuid(),
     'admin',
