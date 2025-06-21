@@ -122,7 +122,7 @@ function CampaignsPageContent() {
         
         setWsConnected(true);
 
-      } catch (error) {
+      } catch {
         console.error('Failed to connect WebSocket:', error);
         if (isMountedRef.current) {
           setWsConnected(false);

@@ -139,7 +139,7 @@ export function useProxyHealth(options: UseProxyHealthOptions = {}) {
           variant: "destructive"
         });
       }
-    } catch (error) {
+    } catch {
       console.error('Error fetching proxy data:', error);
       toast({
         title: "Network Error",
@@ -179,7 +179,7 @@ export function useProxyHealth(options: UseProxyHealthOptions = {}) {
           variant: "destructive"
         });
       }
-    } catch (error) {
+    } catch {
       console.error('Error running health checks:', error);
       toast({
         title: "Health Check Error",
@@ -215,7 +215,7 @@ export function useProxyHealth(options: UseProxyHealthOptions = {}) {
       } else {
         throw new Error(response.message || 'Test failed');
       }
-    } catch (error) {
+    } catch {
       console.error(`Error testing proxy ${proxyId}:`, error);
       throw error;
     }

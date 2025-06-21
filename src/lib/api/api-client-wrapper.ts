@@ -78,7 +78,7 @@ export function validateApiResponse<T>(
     );
     
     return result.data as T;
-  } catch (error) {
+  } catch {
     // Record validation failure
     performanceMonitor.recordCustomMetric(
       'api_validation_failure',
@@ -131,7 +131,7 @@ export async function validateApiCall<TRequest, TResponse>(
     
     // Validate response
     return validateApiResponse(response, responseValidator, context);
-  } catch (error) {
+  } catch {
     if (error instanceof ApiValidationError || error instanceof RuntimeValidationError) {
       throw error;
     }
@@ -214,7 +214,7 @@ export function transformAndValidate<TInput, TOutput>(
     }
     
     return result.data as TOutput;
-  } catch (error) {
+  } catch {
     if (error instanceof ApiValidationError || error instanceof RuntimeValidationError) {
       throw error;
     }
@@ -281,7 +281,7 @@ export function transformCampaignApiResponse(
     );
     
     return result;
-  } catch (error) {
+  } catch {
     // Record transformation failure
     performanceMonitor.recordCustomMetric(
       'campaign_transform_failure',
@@ -491,7 +491,7 @@ export function configureAxiosForSafeBigInt(axiosInstance: {
         }
         
         return response;
-      } catch (error) {
+      } catch {
         // Log validation errors but don't break the response
         console.error('Response validation error:', error);
         if (error instanceof ApiValidationError) {

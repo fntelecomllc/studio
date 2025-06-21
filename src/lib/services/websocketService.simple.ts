@@ -132,7 +132,7 @@ export class WebSocketService {
           try {
             const message: WebSocketMessage = this.parseAndTransformMessage(event.data);
             this.handleMessage(message);
-          } catch (error) {
+          } catch {
             console.error('[WebSocket] Failed to parse message:', error);
             this.errorHandlers.forEach(handler => {
               try {
@@ -167,7 +167,7 @@ export class WebSocketService {
           reject(error);
         };
 
-      } catch (error) {
+      } catch {
         reject(error);
       }
     });
@@ -229,7 +229,7 @@ export class WebSocketService {
     this.messageHandlers.forEach(handler => {
       try {
         handler(message);
-      } catch (error) {
+      } catch {
         console.error('[WebSocket] Error in message handler:', error);
       }
     });
@@ -284,7 +284,7 @@ export class WebSocketService {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
         const subscribeMessage = {
           type: 'subscribe_campaign',
-          campaignId: campaignId,
+          campaignId,
           lastSequenceNumber: 0
         };
         this.ws.send(JSON.stringify(subscribeMessage));
@@ -313,7 +313,7 @@ export class WebSocketService {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
         const unsubscribeMessage = {
           type: 'unsubscribe_campaign',
-          campaignId: campaignId
+          campaignId
         };
         this.ws.send(JSON.stringify(unsubscribeMessage));
       }
@@ -399,7 +399,7 @@ export class WebSocketService {
         const serialized = this.serializeMessage(message);
         this.ws.send(serialized);
         console.log('[WebSocket] Sent message:', message);
-      } catch (error) {
+      } catch {
         console.error('[WebSocket] Failed to send message:', error);
       }
     } else {
@@ -418,7 +418,7 @@ export class WebSocketService {
         const serialized = this.serializeMessage(messageWithCampaign);
         this.ws.send(serialized);
         console.log(`[WebSocket] Sent message to campaign ${campaignId}:`, messageWithCampaign);
-      } catch (error) {
+      } catch {
         console.error('[WebSocket] Failed to send message to campaign:', error);
       }
     } else {
@@ -446,7 +446,7 @@ export class WebSocketService {
     this.messageHandlers.forEach(handler => {
       try {
         handler(message);
-      } catch (error) {
+      } catch {
         console.error('Error in message handler:', error);
       }
     });

@@ -79,7 +79,7 @@ export function useFormValidation<TFormData extends FieldValues>(
         setIsValidating(false);
         return { success: false, errors };
       }
-    } catch (error) {
+    } catch {
       const errorMessage = error instanceof Error ? error.message : "Validation failed";
       setValidationErrors({ general: errorMessage });
       
@@ -134,7 +134,7 @@ export function useFormValidation<TFormData extends FieldValues>(
   /**
    * Validate email field
    */
-  const validateEmail = useCallback((value: string, fieldName: string = 'email'): boolean => {
+  const validateEmail = useCallback((value: string, fieldName = 'email'): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     
     if (value && !emailRegex.test(value)) {
@@ -189,7 +189,7 @@ export function useTypeSafeFormSubmit<TFormData extends FieldValues, TTransforme
       if (validation.success && validation.data) {
         await onSubmit(validation.data as TTransformed);
       }
-    } catch (error) {
+    } catch {
       console.error('Form submission error:', error);
     } finally {
       setIsSubmitting(false);

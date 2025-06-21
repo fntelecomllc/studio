@@ -23,7 +23,7 @@ export function useAsyncOperation(operationId: string) {
       const result = await asyncFn();
       stopLoading(operationId, 'succeeded');
       return result;
-    } catch (error) {
+    } catch {
       const errorMessage = error instanceof Error ? error.message : 'An error occurred';
       setError(operationId, errorMessage);
       throw error;
@@ -55,7 +55,7 @@ export function useAsyncOperations(baseOperationId: string) {
       const result = await asyncFn();
       stopLoading(fullOperationId, 'succeeded');
       return result;
-    } catch (error) {
+    } catch {
       const errorMessage = error instanceof Error ? error.message : 'An error occurred';
       setError(fullOperationId, errorMessage);
       throw error;
@@ -99,7 +99,7 @@ export function useApiCall<T = unknown>(operationId: string) {
       const result = await asyncOp.execute(apiFunction, options?.loadingMessage);
       options?.onSuccess?.(result);
       return result;
-    } catch (error) {
+    } catch {
       const err = error instanceof Error ? error : new Error('Unknown error');
       options?.onError?.(err);
       return undefined;
@@ -135,7 +135,7 @@ export function useFormSubmission(operationId: string) {
       );
       options?.onSuccess?.(result);
       return true;
-    } catch (error) {
+    } catch {
       const err = error instanceof Error ? error : new Error('Submission failed');
       options?.onError?.(err);
       return false;
@@ -170,7 +170,7 @@ export function useDataFetch<T>(operationId: string) {
       );
       options?.onSuccess?.(data);
       return data;
-    } catch (error) {
+    } catch {
       const err = error instanceof Error ? error : new Error('Failed to load data');
       options?.onError?.(err);
       return undefined;

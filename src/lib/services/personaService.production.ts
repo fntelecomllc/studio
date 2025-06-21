@@ -81,7 +81,7 @@ function transformBackendPersona(backendPersona: BackendPersonaResponse): Person
         configDetails: config as HttpPersonaConfig,
       } as HttpPersona;
     }
-  } catch (error) {
+  } catch {
     console.error('Failed to transform backend persona:', error);
     throw new Error(`Invalid persona configuration: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
@@ -107,7 +107,7 @@ export async function createHttpPersona(payload: CreateHttpPersonaPayload): Prom
       throw new Error('No response data received');
     }
     return transformBackendPersona(response.data) as HttpPersona;
-  } catch (error) {
+  } catch {
     console.error('Failed to create HTTP persona:', error);
     throw error;
   }
@@ -134,7 +134,7 @@ export async function updateHttpPersona(
       throw new Error('No response data received');
     }
     return transformBackendPersona(response.data) as HttpPersona;
-  } catch (error) {
+  } catch {
     console.error('Failed to update HTTP persona:', error);
     throw error;
   }
@@ -160,7 +160,7 @@ export async function createDnsPersona(payload: CreateDnsPersonaPayload): Promis
       throw new Error('No response data received');
     }
     return transformBackendPersona(response.data) as DnsPersona;
-  } catch (error) {
+  } catch {
     console.error('Failed to create DNS persona:', error);
     throw error;
   }
@@ -187,7 +187,7 @@ export async function updateDnsPersona(
       throw new Error('No response data received');
     }
     return transformBackendPersona(response.data) as DnsPersona;
-  } catch (error) {
+  } catch {
     console.error('Failed to update DNS persona:', error);
     throw error;
   }
@@ -211,7 +211,7 @@ export async function getPersonas(filters?: {
     }
 
     return response.data.map(transformBackendPersona);
-  } catch (error) {
+  } catch {
     console.error('Failed to get personas:', error);
     throw error;
   }
@@ -224,7 +224,7 @@ export async function getPersonaById(personaId: string): Promise<Persona> {
       throw new Error('No response data received');
     }
     return transformBackendPersona(response.data);
-  } catch (error) {
+  } catch {
     console.error('Failed to get persona:', error);
     throw error;
   }
@@ -233,7 +233,7 @@ export async function getPersonaById(personaId: string): Promise<Persona> {
 export async function deletePersona(personaId: string): Promise<void> {
   try {
     await apiClient.delete(`/api/v2/personas/${personaId}`);
-  } catch (error) {
+  } catch {
     console.error('Failed to delete persona:', error);
     throw error;
   }
@@ -246,7 +246,7 @@ export async function testPersona(personaId: string): Promise<PersonaActionRespo
       throw new Error('No response data received');
     }
     return response.data;
-  } catch (error) {
+  } catch {
     console.error('Failed to test persona:', error);
     throw error;
   }

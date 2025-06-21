@@ -245,7 +245,7 @@ export function monitorTransformation(transformationType: string) {
         );
         
         return result;
-      } catch (error) {
+      } catch {
         const duration = performance.now() - startTime;
         
         transformationMonitor.recordTransformation(
@@ -321,8 +321,8 @@ export class BatchTransformationProcessor<T, R> {
 
   constructor(
     transformFn: (item: T) => R,
-    batchSize: number = 100,
-    batchTimeout: number = 10
+    batchSize = 100,
+    batchTimeout = 10
   ) {
     this.transformFn = transformFn;
     this.batchSize = batchSize;
@@ -379,7 +379,7 @@ export class BatchTransformationProcessor<T, R> {
           resolver.resolve(result);
         }
       });
-    } catch (error) {
+    } catch {
       // Reject all promises
       resolvers.forEach(resolver => {
         resolver.reject(error);
@@ -418,7 +418,7 @@ export class TransformationBenchmark {
   async benchmark<T>(
     name: string,
     fn: () => T | Promise<T>,
-    iterations: number = 100
+    iterations = 100
   ): Promise<{
     name: string;
     iterations: number;

@@ -9,7 +9,7 @@
  */
 export function normalizeArray<T>(
   value: T[] | null | undefined,
-  defaultToEmpty: boolean = true
+  defaultToEmpty = true
 ): T[] {
   if (value === null || value === undefined) {
     return defaultToEmpty ? [] : ([] as T[]);

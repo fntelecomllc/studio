@@ -1,8 +1,7 @@
 // Phase 5.3: Frontend Performance Improvements Configuration
 
 import dynamic from 'next/dynamic';
-import { ComponentType, lazy, ReactNode } from 'react';
-import React from 'react';
+import React, { ComponentType, lazy, ReactNode } from 'react';
 
 // Extend Window interface for gtag
 declare global {

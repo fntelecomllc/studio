@@ -348,7 +348,7 @@ class RateLimiter {
       };
       
       localStorage.setItem(this.storageKey, JSON.stringify(data));
-    } catch (error) {
+    } catch {
       console.error('Failed to save rate limit states:', error);
     }
   }
@@ -369,7 +369,7 @@ class RateLimiter {
       data.states.forEach(([key, state]: [string, RateLimitState]) => {
         this.states.set(key, state);
       });
-    } catch (error) {
+    } catch {
       console.error('Failed to load rate limit states:', error);
     }
   }
@@ -427,7 +427,7 @@ export function withRateLimit<T extends (...args: any[]) => Promise<any>>(
     
     try {
       return await fetchFn(...args);
-    } catch (error) {
+    } catch {
       // If request fails, refund the token
       const state = rateLimiter.getState(endpoint);
       if (state) {

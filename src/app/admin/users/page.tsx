@@ -59,7 +59,7 @@ export default function UserManagementPage() {
   const canViewUsers = hasPermission('users:read') || hasPermission('admin:all');
 
   // Load users with pagination
-  const loadUsers = useCallback(async (page: number = 1, limit: number = 20) => {
+  const loadUsers = useCallback(async (page = 1, limit = 20) => {
     if (!canViewUsers) return;
     
     setIsLoading(true);
@@ -75,7 +75,7 @@ export default function UserManagementPage() {
       } else {
         setErrorMessage(result.error?.message || 'Failed to load users');
       }
-    } catch (error) {
+    } catch {
       console.error('Load users error:', error);
       setErrorMessage('An unexpected error occurred while loading users');
     } finally {
@@ -104,7 +104,7 @@ export default function UserManagementPage() {
       } else {
         setErrorMessage(result.error?.message || 'Failed to update user status');
       }
-    } catch (error) {
+    } catch {
       console.error('Toggle user status error:', error);
       setErrorMessage('An unexpected error occurred while updating user status');
     } finally {
@@ -134,7 +134,7 @@ export default function UserManagementPage() {
       } else {
         setErrorMessage(result.error?.message || 'Failed to delete user');
       }
-    } catch (error) {
+    } catch {
       console.error('Delete user error:', error);
       setErrorMessage('An unexpected error occurred while deleting user');
     } finally {

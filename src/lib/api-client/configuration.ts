@@ -89,10 +89,20 @@ export class Configuration {
         this.accessToken = param.accessToken;
         this.basePath = param.basePath;
         this.serverIndex = param.serverIndex;
+        const baseOptionsObject = param.baseOptions && typeof param.baseOptions === 'object' && param.baseOptions !== null
+            ? param.baseOptions as Record<string, unknown>
+            : {};
+        
+        const headersObject = 'headers' in baseOptionsObject &&
+            typeof baseOptionsObject.headers === 'object' &&
+            baseOptionsObject.headers !== null
+            ? baseOptionsObject.headers as Record<string, unknown>
+            : {};
+
         this.baseOptions = {
-            ...param.baseOptions,
+            ...baseOptionsObject,
             headers: {
-                ...param.baseOptions?.headers,
+                ...headersObject,
             },
         };
         this.formDataCtor = param.formDataCtor;

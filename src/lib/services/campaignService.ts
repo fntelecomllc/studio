@@ -140,7 +140,7 @@ class EnhancedCampaignService {
               'ms',
               { operation, status: 'success' }
             );
-          } catch (error) {
+          } catch {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             failed.push({
               campaignId,
@@ -235,7 +235,7 @@ class EnhancedCampaignService {
             error: 'Campaign not found'
           });
         }
-      } catch (error) {
+      } catch {
         failed.push({
           campaignId: update.campaignId,
           error: error instanceof Error ? error.message : 'Unknown error'
@@ -318,7 +318,7 @@ class EnhancedCampaignService {
       }
 
       return await response.blob();
-    } catch (error) {
+    } catch {
       console.error('[CampaignService] Failed to export campaigns:', error);
       throw transformErrorResponse(error, 500, '/api/v2/campaigns/export');
     }

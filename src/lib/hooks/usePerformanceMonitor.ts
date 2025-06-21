@@ -137,7 +137,7 @@ export function useCallbackMonitor<T extends (...args: unknown[]) => unknown>(
         );
         
         return result;
-      } catch (error) {
+      } catch {
         monitoringService.recordError(
           error as Error,
           `callback_error_${callbackName}`
@@ -312,7 +312,7 @@ export function useApiCallMonitor<T extends (...args: unknown[]) => Promise<unkn
         );
         
         return result;
-      } catch (error) {
+      } catch {
         errorCount.current += 1;
         monitoringService.recordApiError(
           apiName,
@@ -338,7 +338,7 @@ export function useApiCallMonitor<T extends (...args: unknown[]) => Promise<unkn
 /**
  * Hook to monitor memory usage
  */
-export function useMemoryMonitor(interval: number = 5000) {
+export function useMemoryMonitor(interval = 5000) {
   useEffect(() => {
     const checkMemory = () => {
       monitoringService.recordMemoryUsage();
@@ -403,7 +403,7 @@ export function usePerformanceMark(markName: string) {
 /**
  * Hook to monitor long tasks
  */
-export function useLongTaskMonitor(threshold: number = 50) {
+export function useLongTaskMonitor(threshold = 50) {
   useEffect(() => {
     if (!('PerformanceObserver' in window)) return;
     

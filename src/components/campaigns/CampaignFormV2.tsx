@@ -211,7 +211,7 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
             description: data.description,
             domainGenerationParams: {
               patternType: mapPatternType(data.generationPattern),
-              variableLength: variableLength,
+              variableLength,
               characterSet: data.allowedCharSet || 'abcdefghijklmnopqrstuvwxyz0123456789',
               constantString: data.constantPart.trim(),
               tld: tlds[0] || '.com',
@@ -296,11 +296,12 @@ export default function CampaignFormV2({ campaignToEdit, isEditing = false }: Ca
             name: data.name,
             description: data.description,
             httpKeywordParams: {
+              sourceType: "DNSValidation",
               sourceCampaignId: data.sourceCampaignId,
-              adHocKeywords: adHocKeywords,
+              adHocKeywords,
               personaIds: [data.assignedHttpPersonaId],
-              proxyPoolId: (data.assignedProxyId && data.assignedProxyId !== CampaignFormConstants.NONE_VALUE_PLACEHOLDER) 
-                ? data.assignedProxyId 
+              proxyPoolId: (data.assignedProxyId && data.assignedProxyId !== CampaignFormConstants.NONE_VALUE_PLACEHOLDER)
+                ? data.assignedProxyId
                 : undefined,
               rotationIntervalSeconds: 300,
               processingSpeedPerMinute: 60,

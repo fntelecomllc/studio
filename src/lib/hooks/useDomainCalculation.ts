@@ -125,7 +125,7 @@ export function useDomainCalculation(
           combinations
         }
       };
-    } catch (error) {
+    } catch {
       console.error('[useDomainCalculation] Calculation error:', error);
       return { 
         total: 0, 

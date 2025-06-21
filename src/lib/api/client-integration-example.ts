@@ -38,7 +38,7 @@ export class AuthService {
     try {
       const response = await authApi.authLoginPost(loginRequest);
       return response.data;
-    } catch (error) {
+    } catch {
       console.error('Login failed:', error);
       throw error;
     }
@@ -51,7 +51,7 @@ export class AuthService {
     try {
       const response = await authApi.authMeGet();
       return response.data;
-    } catch (error) {
+    } catch {
       console.error('Failed to get current user:', error);
       throw error;
     }
@@ -79,7 +79,7 @@ export class CampaignService {
         params?.status
       );
       return response.data;
-    } catch (error) {
+    } catch {
       console.error('Failed to get campaigns:', error);
       throw error;
     }
@@ -93,7 +93,7 @@ export class CampaignService {
       // Type assertion for API compatibility - validation should be done before this call
       const response = await campaignsApi.campaignsPost(campaignData as ServicesCreateCampaignRequest);
       return response.data;
-    } catch (error) {
+    } catch {
       console.error('Failed to create campaign:', error);
       throw error;
     }
@@ -128,7 +128,7 @@ export function useAuth() {
       await AuthService.login(email, password);
       const userData = await AuthService.getCurrentUser();
       setUser(userData);
-    } catch (error) {
+    } catch {
       if (isApiError(error)) {
         throw new Error(error.response.data.message);
       }
@@ -143,7 +143,7 @@ export function useAuth() {
     try {
       const userData = await AuthService.getCurrentUser();
       setUser(userData);
-    } catch (_error) {
+    } catch {
       setUser(null);
     } finally {
       setIsLoading(false);

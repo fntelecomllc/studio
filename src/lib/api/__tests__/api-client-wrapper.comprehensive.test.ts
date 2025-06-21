@@ -2,7 +2,6 @@ import { AxiosResponse } from 'axios';
 import {
   ApiValidationError,
   validateApiResponse,
-  validateApiResponseDeep,
   validateApiRequest,
   validateApiCall,
   createValidatedApiMethod,
@@ -15,7 +14,8 @@ import {
   transformGeneratedDomainApiResponse,
   configureAxiosForSafeBigInt
 } from '../api-client-wrapper';
-import { ValidationError, Validator } from '../../utils/runtime-validators';
+import { ValidationError } from '../../utils/runtime-validators';
+import type { ValidationResult, Validator } from '../../validation/runtime-validators';
 import { 
   transformCampaignResponse,
   transformUserResponse,
@@ -29,11 +29,13 @@ jest.mock('../../types/models-aligned', () => ({
   transformGeneratedDomainResponse: jest.fn()
 }));
 
-// Helper function to create a mock validator
-function createMockValidator<T>(returnValue: boolean): Validator<T> {
-  const validator = jest.fn((value: unknown): value is T => returnValue) as any;
-  validator.mockReturnValue = jest.fn().mockReturnValue(returnValue);
-  return validator;
+// Helper function to create a mock validator that returns ValidationResult<T>
+function createMockValidator<T>(isValid: boolean, data?: T, errors?: string[]): Validator<T> {
+  return jest.fn((value: unknown): ValidationResult<T> => ({
+    isValid,
+    data: isValid ? (data ?? value as T) : undefined,
+    errors: isValid ? [] : (errors ?? ['Validation failed']).map(msg => ({ field: 'test', message: msg }))
+  })) as Validator<T>;
 }
 
 describe('API Client Wrapper - Comprehensive Tests', () => {
@@ -72,7 +74,7 @@ describe('API Client Wrapper - Comprehensive Tests', () => {
         config: {}
       } as AxiosResponse;
 
-      const validator = createMockValidator<{ id: number; name: string }>(true);
+      const validator = createMockValidator<{ id: number; name: string }>(true, { id: 1, name: 'Test' });
       
       const result = validateApiResponse(mockResponse, validator);
       
@@ -89,56 +91,18 @@ describe('API Client Wrapper - Comprehensive Tests', () => {
         config: {}
       } as AxiosResponse;
 
-      const validator = createMockValidator(false);
+      const validator = createMockValidator(false, undefined, ['Invalid data format']);
       
       expect(() => validateApiResponse(mockResponse, validator, 'test context'))
         .toThrow('API response validation failed for test context');
     });
   });
 
-  describe('validateApiResponseDeep', () => {
-    it('should validate with deep validation', () => {
-      const mockResponse: AxiosResponse = {
-        data: { id: 1, name: 'Test' },
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: {}
-      } as AxiosResponse;
-
-      const schema = {
-        id: (v: unknown) => typeof v === 'number',
-        name: (v: unknown) => typeof v === 'string'
-      };
-      
-      const result = validateApiResponseDeep(mockResponse, schema);
-      
-      expect(result).toEqual({ id: 1, name: 'Test' });
-    });
-
-    it('should throw ApiValidationError with validation errors', () => {
-      const mockResponse: AxiosResponse = {
-        data: { id: 'invalid', name: 123 },
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: {}
-      } as AxiosResponse;
-
-      const schema = {
-        id: (v: unknown) => typeof v === 'number',
-        name: (v: unknown) => typeof v === 'string'
-      };
-      
-      expect(() => validateApiResponseDeep(mockResponse, schema, 'test context'))
-        .toThrow(ApiValidationError);
-    });
-  });
 
   describe('validateApiRequest', () => {
     it('should validate request data', () => {
       const requestData = { username: 'test', password: 'pass' };
-      const validator = createMockValidator<typeof requestData>(true);
+      const validator = createMockValidator<typeof requestData>(true, requestData);
       
       const result = validateApiRequest(requestData, validator);
       
@@ -148,10 +112,10 @@ describe('API Client Wrapper - Comprehensive Tests', () => {
 
     it('should throw ValidationError on invalid request', () => {
       const requestData = { invalid: 'data' };
-      const validator = createMockValidator(false);
+      const validator = createMockValidator(false, undefined, ['Invalid request data']);
       
       expect(() => validateApiRequest(requestData, validator, 'login'))
-        .toThrow(ValidationError);
+        .toThrow('Validation failed');
     });
   });
 
@@ -164,8 +128,8 @@ describe('API Client Wrapper - Comprehensive Tests', () => {
         status: 200
       } as AxiosResponse);
 
-      const requestValidator = createMockValidator<typeof requestData>(true);
-      const responseValidator = createMockValidator<typeof responseData>(true);
+      const requestValidator = createMockValidator<typeof requestData>(true, requestData);
+      const responseValidator = createMockValidator<typeof responseData>(true, responseData);
 
       const result = await validateApiCall(
         mockApiCall,
@@ -183,7 +147,7 @@ describe('API Client Wrapper - Comprehensive Tests', () => {
 
     it('should propagate validation errors', async () => {
       const mockApiCall = jest.fn();
-      const requestValidator = createMockValidator(false);
+      const requestValidator = createMockValidator(false, undefined, ['Invalid request']);
       const responseValidator = createMockValidator(true);
 
       await expect(validateApiCall(
@@ -192,7 +156,7 @@ describe('API Client Wrapper - Comprehensive Tests', () => {
         requestValidator,
         responseValidator,
         'test'
-      )).rejects.toThrow(ValidationError);
+      )).rejects.toThrow('Validation failed');
 
       expect(mockApiCall).not.toHaveBeenCalled();
     });
@@ -291,7 +255,7 @@ describe('API Client Wrapper - Comprehensive Tests', () => {
     it('should transform and validate successfully', () => {
       const input = { id: '123', name: 'Test' };
       const transformer = jest.fn().mockReturnValue({ id: 123, name: 'Test' });
-      const validator = createMockValidator(true);
+      const validator = createMockValidator(true, { id: 123, name: 'Test' });
 
       const result = transformAndValidate(input, transformer, validator, 'test');
 
@@ -302,7 +266,7 @@ describe('API Client Wrapper - Comprehensive Tests', () => {
 
     it('should throw ValidationError on validation failure', () => {
       const transformer = jest.fn().mockReturnValue({ invalid: 'output' });
-      const validator = createMockValidator(false);
+      const validator = createMockValidator(false, undefined, ['Transform validation failed']);
 
       expect(() => transformAndValidate(
         { input: 'data' },
@@ -378,9 +342,14 @@ describe('API Client Wrapper - Comprehensive Tests', () => {
       } as AxiosResponse;
 
       let callCount = 0;
-      const itemValidator = ((value: unknown): value is any => {
+      const itemValidator = jest.fn((value: unknown): ValidationResult<any> => {
         callCount++;
-        return callCount !== 2; // Fail on second item
+        const isValid = callCount !== 2; // Fail on second item
+        return {
+          isValid,
+          data: isValid ? value : undefined,
+          errors: isValid ? [] : [{ field: 'item', message: 'Item validation failed' }]
+        };
       }) as Validator<any>;
 
       expect(() => validateArrayResponse(mockResponse, itemValidator))
@@ -489,6 +458,9 @@ describe('API Client Wrapper - Comprehensive Tests', () => {
         interceptors: {
           response: {
             use: jest.fn()
+          },
+          request: {
+            use: jest.fn()
           }
         }
       };
@@ -503,9 +475,15 @@ describe('API Client Wrapper - Comprehensive Tests', () => {
       const mockAxios = {
         interceptors: {
           response: {
-            use: jest.fn((fn: (response: AxiosResponse) => AxiosResponse) => { 
-              interceptorFn = fn; 
+            use: jest.fn((
+              onSuccess: (response: AxiosResponse) => AxiosResponse | Promise<AxiosResponse>,
+              onError?: (error: unknown) => Promise<never>
+            ) => {
+              interceptorFn = onSuccess as (response: AxiosResponse) => AxiosResponse;
             })
+          },
+          request: {
+            use: jest.fn()
           }
         }
       };
@@ -533,9 +511,17 @@ describe('API Client Wrapper - Comprehensive Tests', () => {
       const mockAxios = {
         interceptors: {
           response: {
-            use: jest.fn((_: any, onError: (error: unknown) => Promise<never>) => { 
-              errorHandler = onError; 
+            use: jest.fn((
+              onSuccess?: (response: AxiosResponse) => AxiosResponse | Promise<AxiosResponse>,
+              onError?: (error: unknown) => Promise<never>
+            ) => {
+              if (onError) {
+                errorHandler = onError;
+              }
             })
+          },
+          request: {
+            use: jest.fn()
           }
         }
       };

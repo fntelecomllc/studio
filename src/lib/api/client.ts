@@ -57,11 +57,11 @@ class SessionApiClient {
   private baseUrl: string;
   private static instance: SessionApiClient;
 
-  constructor(baseUrl: string = '') {
+  constructor(baseUrl = '') {
     this.baseUrl = baseUrl;
   }
 
-  static getInstance(baseUrl: string = ''): SessionApiClient {
+  static getInstance(baseUrl = ''): SessionApiClient {
     if (!SessionApiClient.instance) {
       SessionApiClient.instance = new SessionApiClient(baseUrl);
     }
@@ -248,7 +248,7 @@ class SessionApiClient {
             message: 'Request successful',
           };
         }
-      } catch (error) {
+      } catch {
         lastError = error as Error;
         
         // Don't retry on abort or certain errors

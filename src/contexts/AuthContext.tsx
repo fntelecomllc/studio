@@ -98,7 +98,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           
           setIsInitialized(true);
         }
-      } catch (error) {
+      } catch {
         console.error('[AuthContext] Failed to initialize auth service:', error);
         if (mountedRef.current) {
           setIsInitialized(true);

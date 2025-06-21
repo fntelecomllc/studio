@@ -26,7 +26,7 @@ export default function LogoutPage() {
       setTimeout(() => {
         router.push('/login');
       }, 2000);
-    } catch (error) {
+    } catch {
       console.error('Logout error:', error);
       setLogoutComplete(true);
     }

@@ -15,7 +15,7 @@
 
 import type { Configuration } from './configuration';
 // Some imports not used depending on template conditions
-// @ts-ignore
+// @ts-expect-error - API client type compatibility
 import type { AxiosPromise, AxiosInstance, RawAxiosRequestConfig } from 'axios';
 import globalAxios from 'axios';
 

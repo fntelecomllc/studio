@@ -249,7 +249,7 @@ function applyRuntimeOverrides(config: EnvironmentConfig): EnvironmentConfig {
       console.info('Debug mode enabled via localStorage');
     }
     
-  } catch (error) {
+  } catch {
     console.warn('Failed to apply runtime overrides:', error);
   }
   
@@ -292,7 +292,7 @@ export function setApiBaseUrlOverride(url: string | null): void {
         localStorage.removeItem('apiBaseUrlOverride');
         console.info('API base URL override removed');
       }
-    } catch (error) {
+    } catch {
       console.error('Failed to set API base URL override:', error);
     }
   }
@@ -308,7 +308,7 @@ export function setDebugModeOverride(enabled: boolean): void {
         localStorage.removeItem('debugModeOverride');
         console.info('Debug mode override disabled');
       }
-    } catch (error) {
+    } catch {
       console.error('Failed to set debug mode override:', error);
     }
   }
@@ -340,7 +340,7 @@ export function validateConfiguration(): boolean {
     }
     
     return true;
-  } catch (error) {
+  } catch {
     console.error('Configuration validation failed:', error);
     return false;
   }

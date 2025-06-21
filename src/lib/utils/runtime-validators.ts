@@ -53,7 +53,7 @@ export function validateEmail(email: unknown): boolean {
   // - No consecutive dots
   // - Must have proper domain with TLD
   // - No spaces allowed
-  const emailRegex = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   
   // Additional checks
   if (email.includes('..') || email.includes(' ')) {
@@ -66,7 +66,7 @@ export function validateEmail(email: unknown): boolean {
 /**
  * Validates that a string is not empty and meets minimum length requirements
  */
-export function validateNonEmptyString(value: string, minLength: number = 1): boolean {
+export function validateNonEmptyString(value: string, minLength = 1): boolean {
   return typeof value === 'string' && value.trim().length >= minLength;
 }
 
@@ -206,7 +206,7 @@ export function validatePartial<T>(
 export function sanitizeString(input: string): string {
   return input
     .trim()
-    .replace(/[<>\"']/g, '') // Remove basic XSS vectors
+    .replace(/[<>"']/g, '') // Remove basic XSS vectors
     .replace(/\0/g, ''); // Remove null bytes
 }
 

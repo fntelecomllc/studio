@@ -14,7 +14,7 @@ export const CampaignStatus = {
   CANCELLED: 'cancelled'
 } as const;
 
-export type CampaignStatus = typeof CampaignStatus[keyof typeof CampaignStatus];
+export type UnifiedCampaignStatus = typeof CampaignStatus[keyof typeof CampaignStatus];
 
 // Campaign Type - Aligned with backend CampaignTypeEnum
 export const CampaignType = {
@@ -23,7 +23,7 @@ export const CampaignType = {
   HTTP_KEYWORD_VALIDATION: 'http_keyword_validation'
 } as const;
 
-export type CampaignType = typeof CampaignType[keyof typeof CampaignType];
+export type UnifiedCampaignType = typeof CampaignType[keyof typeof CampaignType];
 
 // Persona Type - Aligned with backend PersonaTypeEnum
 export const PersonaType = {
@@ -31,7 +31,7 @@ export const PersonaType = {
   HTTP: 'http'
 } as const;
 
-export type PersonaType = typeof PersonaType[keyof typeof PersonaType];
+export type UnifiedPersonaType = typeof PersonaType[keyof typeof PersonaType];
 
 // Proxy Protocol - Aligned with backend ProxyProtocolEnum
 export const ProxyProtocol = {
@@ -41,7 +41,7 @@ export const ProxyProtocol = {
   SOCKS4: 'socks4'
 } as const;
 
-export type ProxyProtocol = typeof ProxyProtocol[keyof typeof ProxyProtocol];
+export type UnifiedProxyProtocol = typeof ProxyProtocol[keyof typeof ProxyProtocol];
 
 // Keyword Rule Type - Aligned with backend KeywordRuleTypeEnum
 export const KeywordRuleType = {
@@ -49,7 +49,7 @@ export const KeywordRuleType = {
   REGEX: 'regex'
 } as const;
 
-export type KeywordRuleType = typeof KeywordRuleType[keyof typeof KeywordRuleType];
+export type UnifiedKeywordRuleType = typeof KeywordRuleType[keyof typeof KeywordRuleType];
 
 // Campaign Job Status - Aligned with backend CampaignJobStatusEnum
 export const CampaignJobStatus = {
@@ -60,31 +60,31 @@ export const CampaignJobStatus = {
   RETRY: 'retry'
 } as const;
 
-export type CampaignJobStatus = typeof CampaignJobStatus[keyof typeof CampaignJobStatus];
+export type UnifiedCampaignJobStatus = typeof CampaignJobStatus[keyof typeof CampaignJobStatus];
 
 // Validation function to ensure type safety at runtime
-export function isValidCampaignStatus(status: string): status is CampaignStatus {
-  return Object.values(CampaignStatus).includes(status as CampaignStatus);
+export function isValidCampaignStatus(status: string): status is UnifiedCampaignStatus {
+  return Object.values(CampaignStatus).includes(status as UnifiedCampaignStatus);
 }
 
-export function isValidCampaignType(type: string): type is CampaignType {
-  return Object.values(CampaignType).includes(type as CampaignType);
+export function isValidCampaignType(type: string): type is UnifiedCampaignType {
+  return Object.values(CampaignType).includes(type as UnifiedCampaignType);
 }
 
-export function isValidPersonaType(type: string): type is PersonaType {
-  return Object.values(PersonaType).includes(type as PersonaType);
+export function isValidPersonaType(type: string): type is UnifiedPersonaType {
+  return Object.values(PersonaType).includes(type as UnifiedPersonaType);
 }
 
-export function isValidProxyProtocol(protocol: string): protocol is ProxyProtocol {
-  return Object.values(ProxyProtocol).includes(protocol as ProxyProtocol);
+export function isValidProxyProtocol(protocol: string): protocol is UnifiedProxyProtocol {
+  return Object.values(ProxyProtocol).includes(protocol as UnifiedProxyProtocol);
 }
 
-export function isValidKeywordRuleType(type: string): type is KeywordRuleType {
-  return Object.values(KeywordRuleType).includes(type as KeywordRuleType);
+export function isValidKeywordRuleType(type: string): type is UnifiedKeywordRuleType {
+  return Object.values(KeywordRuleType).includes(type as UnifiedKeywordRuleType);
 }
 
-export function isValidCampaignJobStatus(status: string): status is CampaignJobStatus {
-  return Object.values(CampaignJobStatus).includes(status as CampaignJobStatus);
+export function isValidCampaignJobStatus(status: string): status is UnifiedCampaignJobStatus {
+  return Object.values(CampaignJobStatus).includes(status as UnifiedCampaignJobStatus);
 }
 
 // Type guards for runtime validation

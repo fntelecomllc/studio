@@ -1,5 +1,5 @@
 /* tslint:disable */
-/* eslint-disable */
+ 
 /**
  * DomainFlow API
  * DomainFlow API for domain generation, validation, and campaign management
@@ -14,7 +14,7 @@
 
 
 // May contain unused imports in some cases
-// @ts-ignore
+// @ts-expect-error - API client type compatibility
 import type { ModelsUserAPI } from './models-user-api';
 
 /**

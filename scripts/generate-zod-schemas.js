@@ -116,7 +116,7 @@ function parseValidation(validationStr, baseType, isOptional = false) {
 /**
  * Converts Go type to Zod type
  */
-function goTypeToZodType(goType, isPointer) {
+function goTypeToZodType(goType, _isPointer) {
   // Handle array types
   if (goType.startsWith('[]')) {
     const elementType = goType.slice(2);
@@ -187,7 +187,7 @@ function extractStructs(sourceCode) {
       
       fields.push({
         name: fieldName,
-        jsonName: jsonName,
+        jsonName,
         goType,
         isPointer: isPointer || isOmitEmpty,
         validation: bindingTag || validateTag || ''

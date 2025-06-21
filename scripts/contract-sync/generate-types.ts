@@ -384,7 +384,7 @@ import * as Models from './generated-models';
   /**
    * Convert Go type to TypeScript type
    */
-  private goTypeToTypeScript(goType: string, isPointer: boolean): string {
+  private goTypeToTypeScript(goType: string, _isPointer: boolean): string {
     const typeMap: Record<string, string> = {
       'string': 'string',
       'int': 'number',
@@ -474,7 +474,7 @@ async function main() {
     await generator.generate();
     console.log('\n✅ Type generation complete!');
     process.exit(0);
-  } catch (error) {
+  } catch {
     console.error('❌ Type generation failed:', error);
     process.exit(1);
   }

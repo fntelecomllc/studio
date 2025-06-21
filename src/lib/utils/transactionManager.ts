@@ -54,7 +54,7 @@ export class TransactionManager {
           const result = await this.executeStepWithRetry(step, retryDelay, timeout);
           results.set(step.name, result);
           completedSteps.push({ step, result });
-        } catch (error) {
+        } catch {
           errors.set(step.name, error as Error);
           
           // Rollback all completed steps
@@ -76,7 +76,7 @@ export class TransactionManager {
         errors,
         rolledBack: false
       };
-    } catch (error) {
+    } catch {
       // Global error during transaction
       errors.set('transaction', error as Error);
       
@@ -116,7 +116,7 @@ export class TransactionManager {
         ]);
         
         return result;
-      } catch (error) {
+      } catch {
         lastError = error as Error;
         
         // Don't retry if it's an ApiError with specific status codes
@@ -157,7 +157,7 @@ export class TransactionManager {
         try {
           console.log(`Rolling back step: ${step.name}`);
           await step.rollback(result);
-        } catch (error) {
+        } catch {
           console.error(`Failed to rollback step '${step.name}':`, error);
           // Continue with other rollbacks even if one fails
         }

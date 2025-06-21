@@ -38,7 +38,7 @@ export function useTransformationMonitor<T extends (...args: any[]) => any>(
         );
         
         return result;
-      } catch (error) {
+      } catch {
         const duration = performance.now() - startTime;
         
         transformationMonitor.recordTransformation(
@@ -219,7 +219,7 @@ export function useTransformationBenchmark() {
     name: string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     fn: () => any | Promise<any>,
-    iterations: number = 100
+    iterations = 100
   ) => {
     setIsRunning(true);
     
@@ -231,7 +231,7 @@ export function useTransformationBenchmark() {
       setResults(prev => new Map(prev).set(name, result));
       
       return result;
-    } catch (error) {
+    } catch {
       monitoringService.recordError(
         error as Error,
         `Benchmark failed: ${name}`
@@ -285,7 +285,7 @@ export function useApiTransformationMonitor() {
         );
         
         return result;
-      } catch (error) {
+      } catch {
         const duration = performance.now() - startTime;
         
         transformationMonitor.recordTransformation(

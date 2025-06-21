@@ -109,7 +109,7 @@ export default function ProductionReadinessCheck() {
           icon: <Shield className="h-4 w-4" />
         });
       }
-    } catch (_error) {
+    } catch {
       results.push({
         name: 'Authentication System',
         status: 'failed',
@@ -139,7 +139,7 @@ export default function ProductionReadinessCheck() {
           icon: <Database className="h-4 w-4" />
         });
       }
-    } catch (_error) {
+    } catch {
       results.push({
         name: 'API Backend',
         status: 'failed',
@@ -164,7 +164,7 @@ export default function ProductionReadinessCheck() {
         const cleanup = websocketService.connectToAllCampaigns(
           (message: WebSocketMessage) => {
             const testDuration = Date.now() - testStartTime;
-            logWithTimestamp('log', '✅ WebSocket test SUCCESS: Received message in', testDuration + 'ms', message);
+            logWithTimestamp('log', '✅ WebSocket test SUCCESS: Received message in', `${testDuration  }ms`, message);
             if (!connected) {
               connected = true;
               cleanup();
@@ -176,7 +176,7 @@ export default function ProductionReadinessCheck() {
           },
           (error: Event | Error) => {
             const testDuration = Date.now() - testStartTime;
-            logWithTimestamp('error', '❌ WebSocket test ERROR after', testDuration + 'ms:', error);
+            logWithTimestamp('error', '❌ WebSocket test ERROR after', `${testDuration  }ms:`, error);
             connectionError = error instanceof Error ? error.message : 'Unknown error';
             
             cleanup();
@@ -207,7 +207,7 @@ export default function ProductionReadinessCheck() {
       const totalTestDuration = Date.now() - testStartTime;
 
       if (wsResult.connected) {
-        logWithTimestamp('log', '🎉 WebSocket connectivity test PASSED in', totalTestDuration + 'ms');
+        logWithTimestamp('log', '🎉 WebSocket connectivity test PASSED in', `${totalTestDuration  }ms`);
         results.push({
           name: 'WebSocket Connection',
           status: 'passed',
@@ -218,7 +218,7 @@ export default function ProductionReadinessCheck() {
         });
       } else {
         const testDuration = wsResult.testDuration || totalTestDuration;
-        logWithTimestamp('error', '❌ WebSocket connectivity test FAILED after', testDuration + 'ms:', wsResult);
+        logWithTimestamp('error', '❌ WebSocket connectivity test FAILED after', `${testDuration  }ms:`, wsResult);
         
         // Simplified error handling - optimized service provides better error context
         let status: 'warning' | 'failed' = 'warning';
@@ -244,7 +244,7 @@ export default function ProductionReadinessCheck() {
           isTestConnection: true
         });
       }
-    } catch (error) {
+    } catch {
       logWithTimestamp('error', '🔥 WebSocket test EXCEPTION:', error);
       results.push({
         name: 'WebSocket Connection',
@@ -277,7 +277,7 @@ export default function ProductionReadinessCheck() {
           icon: <Key className="h-4 w-4" />
         });
       }
-    } catch (_error) {
+    } catch {
       results.push({
         name: 'Session Security',
         status: 'warning',

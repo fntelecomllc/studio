@@ -18,10 +18,11 @@ export function calculateMaxTheoreticalDomains(config: DomainGenerationConfig): 
       return prefixVariableLength ? Math.pow(charSetLength, prefixVariableLength) : 0;
     case 'suffix_variable':
       return suffixVariableLength ? Math.pow(charSetLength, suffixVariableLength) : 0;
-    case 'both_variable':
+    case 'both_variable': {
       const prefixCombos = prefixVariableLength ? Math.pow(charSetLength, prefixVariableLength) : 1;
       const suffixCombos = suffixVariableLength ? Math.pow(charSetLength, suffixVariableLength) : 1;
       return prefixCombos * suffixCombos;
+    }
     default:
       return 0;
   }
@@ -33,7 +34,7 @@ export function calculateMaxTheoreticalDomains(config: DomainGenerationConfig): 
  */
 export function calculateRemainingDomains(
   config: DomainGenerationConfig,
-  currentOffset: number = 0
+  currentOffset = 0
 ): number {
   const maxTheoretical = calculateMaxTheoreticalDomains(config);
   return Math.max(0, maxTheoretical - currentOffset);

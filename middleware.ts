@@ -1,7 +1,6 @@
 // src/middleware.ts
 // Next.js middleware for session-based authentication - Cookie-only approach
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

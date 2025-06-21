@@ -132,7 +132,7 @@ export default function CreateUserPage() {
       createUserSchema.parse(formData);
       setErrors({});
       return true;
-    } catch (error) {
+    } catch {
       if (error instanceof z.ZodError) {
         const fieldErrors: Partial<Record<keyof CreateUserFormData, string>> = {};
         error.errors.forEach((err) => {
@@ -180,7 +180,7 @@ export default function CreateUserPage() {
       } else {
         setErrorMessage(result.error?.message || 'Failed to create user');
       }
-    } catch (error) {
+    } catch {
       console.error('Create user error:', error);
       setErrorMessage('An unexpected error occurred while creating user');
     } finally {

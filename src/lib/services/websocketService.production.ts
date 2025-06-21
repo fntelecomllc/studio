@@ -105,11 +105,11 @@ class ProductionWebSocketService {
         state.messageHandlers.forEach(handler => {
           try {
             handler(message);
-          } catch (error) {
+          } catch {
             console.error('[WebSocket] Error in message handler:', error);
           }
         });
-      } catch (error) {
+      } catch {
         console.error('[WebSocket] Error processing message:', error, event.data);
       }
     };
@@ -149,7 +149,7 @@ class ProductionWebSocketService {
       const message = {
         type: 'subscribe',
         data: {
-          campaignId: campaignId
+          campaignId
         },
         timestamp: new Date().toISOString()
       };
@@ -166,7 +166,7 @@ class ProductionWebSocketService {
       const message = {
         type: 'unsubscribe',
         data: {
-          campaignId: campaignId
+          campaignId
         },
         timestamp: new Date().toISOString()
       };

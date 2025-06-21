@@ -22,7 +22,7 @@ export function adaptWebSocketMessageToLegacy(message: WebSocketMessage): Campai
 
   // Handle different message types and convert to legacy format
   switch (message.type) {
-    case 'campaign_progress':
+    case 'campaign_progress': {
       const progressData = extractProgressData(message.data);
       return {
         type: 'progress',
@@ -34,10 +34,11 @@ export function adaptWebSocketMessageToLegacy(message: WebSocketMessage): Campai
         },
         message: `Campaign progress: ${progressData.progressPercentage}%`,
       };
+    }
 
-    case 'domain_generated':
-      const domain = message.data && typeof message.data === 'object' && 'domain' in message.data 
-        ? String((message.data as Record<string, unknown>).domain) 
+    case 'domain_generated': {
+      const domain = message.data && typeof message.data === 'object' && 'domain' in message.data
+        ? String((message.data as Record<string, unknown>).domain)
         : 'unknown';
       return {
         type: 'domain_generated',
@@ -47,11 +48,12 @@ export function adaptWebSocketMessageToLegacy(message: WebSocketMessage): Campai
         },
         message: `Domain generated: ${domain}`,
       };
+    }
 
     case 'dns_validation_result':
-    case 'http_validation_result':
-      const validationDomain = message.data && typeof message.data === 'object' && 'domain' in message.data 
-        ? String((message.data as Record<string, unknown>).domain) 
+    case 'http_validation_result': {
+      const validationDomain = message.data && typeof message.data === 'object' && 'domain' in message.data
+        ? String((message.data as Record<string, unknown>).domain)
         : 'unknown';
       return {
         type: 'validation_complete',
@@ -61,8 +63,9 @@ export function adaptWebSocketMessageToLegacy(message: WebSocketMessage): Campai
         },
         message: `Validation complete for ${validationDomain}`,
       };
+    }
 
-    case 'campaign_phase_complete':
+    case 'campaign_phase_complete': {
       const phaseData = extractProgressData(message.data);
       return {
         type: 'phase_complete',
@@ -73,9 +76,10 @@ export function adaptWebSocketMessageToLegacy(message: WebSocketMessage): Campai
         },
         message: `Phase ${phaseData.phase} completed`,
       };
+    }
 
-    case 'campaign_complete':
-      const finalStatus = message.data && typeof message.data === 'object' && 'finalStatus' in message.data 
+    case 'campaign_complete': {
+      const finalStatus = message.data && typeof message.data === 'object' && 'finalStatus' in message.data
         ? String((message.data as Record<string, unknown>).finalStatus)
         : 'completed';
       return {
@@ -86,9 +90,10 @@ export function adaptWebSocketMessageToLegacy(message: WebSocketMessage): Campai
         },
         message: `Campaign completed with status: ${finalStatus}`,
       };
+    }
 
-    case 'campaign_error':
-      const errorMessage = message.data && typeof message.data === 'object' && 'errorMessage' in message.data 
+    case 'campaign_error': {
+      const errorMessage = message.data && typeof message.data === 'object' && 'errorMessage' in message.data
         ? String((message.data as Record<string, unknown>).errorMessage)
         : 'Unknown error';
       return {
@@ -99,18 +104,20 @@ export function adaptWebSocketMessageToLegacy(message: WebSocketMessage): Campai
         },
         message: errorMessage,
       };
+    }
 
-    case 'connection_ack':
+    case 'connection_ack': {
       return {
         type: 'subscription_confirmed',
         campaignId: createUUID('00000000-0000-0000-0000-000000000000'),
         data: {},
         message: 'Connection acknowledged',
       };
+    }
 
     case 'system_notification':
-    case 'user_notification':
-      const notificationMessage = message.data && typeof message.data === 'object' && 'message' in message.data 
+    case 'user_notification': {
+      const notificationMessage = message.data && typeof message.data === 'object' && 'message' in message.data
         ? String((message.data as Record<string, unknown>).message)
         : 'System notification';
       return {
@@ -119,6 +126,7 @@ export function adaptWebSocketMessageToLegacy(message: WebSocketMessage): Campai
         data: {},
         message: notificationMessage,
       };
+    }
 
     default:
       console.warn('Unknown WebSocket message type:', message.type);

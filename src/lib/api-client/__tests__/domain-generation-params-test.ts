@@ -3,6 +3,7 @@
  * Tests both totalPossibleCombinations and currentOffset fields
  */
 
+import { describe, it, expect } from '@jest/globals';
 import { ServicesDomainGenerationParams } from '../models/services-domain-generation-params';
 import { ServicesDomainGenerationParamsAligned, transformToDomainGenerationParamsAligned, transformFromDomainGenerationParamsAligned } from '../models/services-domain-generation-params-aligned';
 import { createSafeBigInt } from '../../types/branded';
@@ -14,20 +15,20 @@ describe('DomainGenerationParams int64 fields (totalPossibleCombinations and cur
       constantString: 'test',
       numDomainsToGenerate: 1000,
       patternType: 'prefix' as const,
-      totalPossibleCombinations: 456976, // 26^4
-      currentOffset: 12345,
+      totalPossibleCombinations: createSafeBigInt('456976'), // 26^4
+      currentOffset: createSafeBigInt('12345'),
       tld: 'com',
       variableLength: 4
     };
     
     expect(params.totalPossibleCombinations).toBeDefined();
-    expect(params.totalPossibleCombinations).toBe(456976);
+    expect(params.totalPossibleCombinations?.toString()).toBe('456976');
     expect(params.currentOffset).toBeDefined();
-    expect(params.currentOffset).toBe(12345);
+    expect(params.currentOffset?.toString()).toBe('12345');
   });
 
   it('should transform both int64 fields to SafeBigInt in aligned version', () => {
-    const rawParams: ServicesDomainGenerationParams & { totalPossibleCombinations?: number; currentOffset?: number } = {
+    const rawParams = {
       characterSet: 'abcdefghijklmnopqrstuvwxyz',
       constantString: 'test',
       numDomainsToGenerate: 1000,
@@ -38,7 +39,7 @@ describe('DomainGenerationParams int64 fields (totalPossibleCombinations and cur
       variableLength: 4
     };
 
-    const aligned = transformToDomainGenerationParamsAligned(rawParams);
+    const aligned = transformToDomainGenerationParamsAligned(rawParams as any);
 
     expect(aligned.totalPossibleCombinations).toBeDefined();
     expect(aligned.totalPossibleCombinations?.toString()).toBe('456976');
@@ -75,7 +76,7 @@ describe('DomainGenerationParams int64 fields (totalPossibleCombinations and cur
   });
 
   it('should handle undefined int64 fields', () => {
-    const rawParams: ServicesDomainGenerationParams = {
+    const rawParams = {
       characterSet: 'abc',
       constantString: 'test',
       patternType: 'both' as const,
@@ -84,7 +85,7 @@ describe('DomainGenerationParams int64 fields (totalPossibleCombinations and cur
       // both totalPossibleCombinations and currentOffset are optional
     };
 
-    const aligned = transformToDomainGenerationParamsAligned(rawParams);
+    const aligned = transformToDomainGenerationParamsAligned(rawParams as any);
 
     expect(aligned.totalPossibleCombinations).toBeUndefined();
     expect(aligned.currentOffset).toBeUndefined();
@@ -113,7 +114,7 @@ describe('DomainGenerationParams int64 fields (totalPossibleCombinations and cur
   });
 
   it('should handle edge case: currentOffset at zero', () => {
-    const rawParams: ServicesDomainGenerationParams & { currentOffset?: number } = {
+    const rawParams = {
       characterSet: 'abc',
       constantString: 'test',
       patternType: 'both' as const,
@@ -122,7 +123,7 @@ describe('DomainGenerationParams int64 fields (totalPossibleCombinations and cur
       variableLength: 2
     };
 
-    const aligned = transformToDomainGenerationParamsAligned(rawParams);
+    const aligned = transformToDomainGenerationParamsAligned(rawParams as any);
     
     expect(aligned.currentOffset).toBeDefined();
     expect(aligned.currentOffset?.toString()).toBe('0');
@@ -147,7 +148,7 @@ describe('DomainGenerationParams int64 fields (totalPossibleCombinations and cur
   });
 
   it('should correctly handle only currentOffset being present', () => {
-    const rawParams: ServicesDomainGenerationParams & { currentOffset?: number } = {
+    const rawParams = {
       characterSet: 'xyz',
       constantString: 'prefix',
       patternType: 'prefix' as const,
@@ -157,7 +158,7 @@ describe('DomainGenerationParams int64 fields (totalPossibleCombinations and cur
       // totalPossibleCombinations is not present
     };
 
-    const aligned = transformToDomainGenerationParamsAligned(rawParams);
+    const aligned = transformToDomainGenerationParamsAligned(rawParams as any);
     
     expect(aligned.currentOffset).toBeDefined();
     expect(aligned.currentOffset?.toString()).toBe('999');
@@ -165,7 +166,7 @@ describe('DomainGenerationParams int64 fields (totalPossibleCombinations and cur
   });
 
   it('should correctly handle only totalPossibleCombinations being present', () => {
-    const rawParams: ServicesDomainGenerationParams & { totalPossibleCombinations?: number } = {
+    const rawParams = {
       characterSet: 'xyz',
       constantString: 'prefix',
       patternType: 'suffix' as const,
@@ -175,7 +176,7 @@ describe('DomainGenerationParams int64 fields (totalPossibleCombinations and cur
       // currentOffset is not present
     };
 
-    const aligned = transformToDomainGenerationParamsAligned(rawParams);
+    const aligned = transformToDomainGenerationParamsAligned(rawParams as any);
     
     expect(aligned.totalPossibleCombinations).toBeDefined();
     expect(aligned.totalPossibleCombinations?.toString()).toBe('100000');

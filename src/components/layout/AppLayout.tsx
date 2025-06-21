@@ -165,7 +165,7 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
           await authService.initialize();
           console.log('[AppLayout] ✅ Auth service initialization complete');
         }
-      } catch (error) {
+      } catch {
         if (isActive) {
           console.error('[AppLayout] ❌ Auth service initialization failed:', error);
         }
@@ -195,7 +195,7 @@ const AppLayout = memo(({ children }: AppLayoutProps) => {
       console.log('[AppLayout] Cleaning up global WebSocket services');
       try {
         websocketService.disconnectAll();
-      } catch (error) {
+      } catch {
         console.error('[AppLayout] Error during WebSocket cleanup:', error);
       }
     };

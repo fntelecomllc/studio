@@ -91,8 +91,7 @@ class GoContractExtractor {
     // Extract API endpoints
     await this.extractEndpoints();
     
-    // Extract enums
-    await this.extractEnums();
+    // Enums are extracted as part of extractConstants in parseGoFile
 
     return this.contracts;
   }
@@ -129,6 +128,8 @@ class GoContractExtractor {
       const typeName = match[1];
       const body = match[2];
       
+      if (!typeName || !body) continue;
+      
       const fields = this.parseStructFields(body);
       
       this.contracts.models.push({
@@ -144,7 +145,7 @@ class GoContractExtractor {
     const typeRegex = /type\s+(\w+)\s+(\w+)/g;
     content.match(typeRegex)?.forEach(typeDecl => {
       const parts = typeDecl.split(/\s+/);
-      if (parts.length >= 3 && !typeDecl.includes('struct')) {
+      if (parts.length >= 3 && !typeDecl.includes('struct') && parts[1] && parts[2]) {
         this.contracts.models.push({
           name: parts[1],
           package: pkg,
@@ -160,22 +161,50 @@ class GoContractExtractor {
   }
 
   /**
-   * Parse struct fields
+   * Parse struct fields with improved regex and comment handling
    */
   private parseStructFields(body: string): GoField[] {
     const fields: GoField[] = [];
-    const fieldRegex = /(\w+)\s+(\*?)([^\s`]+)\s*(`[^`]*`)?/g;
+    
+    // Clean the body - remove comments and normalize whitespace
+    const cleanBody = body
+      .split('\n')
+      .map(line => {
+        // Remove line comments
+        const commentIndex = line.indexOf('//');
+        if (commentIndex !== -1) {
+          line = line.substring(0, commentIndex);
+        }
+        return line.trim();
+      })
+      .filter(line => line.length > 0)
+      .join('\n');
+
+    // Enhanced regex to properly capture struct fields
+    // Matches: FieldName *?Type `tags`
+    const fieldRegex = /^\s*([A-Z]\w*)\s+(\*?)([^\s`]+(?:\[[^\]]*\])?)\s*(`[^`]*`)?\s*$/gm;
     let match;
 
-    while ((match = fieldRegex.exec(body)) !== null) {
+    while ((match = fieldRegex.exec(cleanBody)) !== null) {
       const fieldName = match[1];
       const isPointer = match[2] === '*';
-      const fieldType = match[3];
+      let fieldType = match[3];
       const tags = match[4] || '';
+
+      if (!fieldName || !fieldType) continue;
+
+      // Skip embedded types (fields without proper names)
+      if (fieldName.includes(' ') || fieldName.includes(':')) continue;
+
+      // Clean up field type
+      fieldType = fieldType.trim();
 
       // Parse tags
       const jsonTag = this.parseTag(tags, 'json');
       const dbTag = this.parseTag(tags, 'db');
+      
+      // Skip fields with '-' json tag (excluded from JSON)
+      if (jsonTag === '-') continue;
       
       // Check if field is required
       const required = !isPointer && !jsonTag?.includes('omitempty');
@@ -183,7 +212,7 @@ class GoContractExtractor {
       fields.push({
         name: fieldName,
         type: fieldType,
-        jsonTag: jsonTag?.split(',')[0] || fieldName,
+        jsonTag: jsonTag?.split(',')[0] || this.camelCase(fieldName),
         dbTag,
         required,
         isPointer
@@ -191,6 +220,13 @@ class GoContractExtractor {
     }
 
     return fields;
+  }
+
+  /**
+   * Convert PascalCase to camelCase for JSON field names
+   */
+  private camelCase(str: string): string {
+    return str.charAt(0).toLowerCase() + str.slice(1);
   }
 
   /**
@@ -213,8 +249,10 @@ class GoContractExtractor {
     while ((match = constBlockRegex.exec(content)) !== null) {
       const block = match[1];
       
+      if (!block) continue;
+      
       // Check if this is an enum pattern
-      const enumPattern = /(\w+)Enum/;
+      const _enumPattern = /(\w+)Enum/;
       const lines = block.split('\n').map(l => l.trim()).filter(l => l);
       
       const enumMap = new Map<string, string[]>();
@@ -224,6 +262,8 @@ class GoContractExtractor {
         if (constMatch) {
           const constName = constMatch[1];
           const constValue = constMatch[2];
+          
+          if (!constName || !constValue) return;
           
           // Try to determine enum type from name
           const enumType = this.inferEnumType(constName);
@@ -316,6 +356,8 @@ class GoContractExtractor {
         const path = match[1] === 'router' ? match[2] : match[3];
         const handler = match[1] === 'router' ? match[3] : match[4];
 
+        if (!method || !path || !handler) continue;
+
         this.contracts.endpoints.push({
           method,
           path,
@@ -328,7 +370,7 @@ class GoContractExtractor {
   /**
    * Parse handler functions
    */
-  private parseHandlers(content: string, filename: string) {
+  private parseHandlers(content: string, _filename: string) {
     // Extract handler function signatures
     const handlerRegex = /func\s+\((\w+)\s+\*\w+\)\s+(\w+)\s*\(/g;
     let match;
@@ -432,12 +474,15 @@ class GoContractExtractor {
   }
 
   /**
-   * Generate TypeScript declaration from contracts
+   * Generate TypeScript declaration from contracts with SafeBigInt imports
    */
   private generateTypeScriptDeclaration(): string {
     let output = `// Auto-generated TypeScript declarations from Go contracts
 // Generated: ${this.contracts.timestamp}
 // Go Version: ${this.contracts.goVersion}
+
+// Import branded types for type safety
+import type { SafeBigInt, UUID, ISODateString } from '../types/branded-types';
 
 `;
 
@@ -451,43 +496,141 @@ class GoContractExtractor {
       output += `}\n\n`;
     });
 
-    // Generate interfaces
+    // Generate interfaces with SafeBigInt integration
     this.contracts.models.forEach(model => {
       if (model.kind === 'struct' && model.fields) {
+        // Add JSDoc comments for int64 fields
+        const int64Fields = model.fields?.filter(f => f.type === 'int64' || f.type === 'uint64') || [];
+        if (int64Fields.length > 0) {
+          output += `/**\n * ${model.name} - Auto-generated from Go struct\n`;
+          output += ` * \n * SafeBigInt fields (int64/uint64 from Go):\n`;
+          int64Fields.forEach(field => {
+            output += ` * - ${field.jsonTag || field.name}: Requires SafeBigInt for overflow protection\n`;
+          });
+          output += ` */\n`;
+        }
+        
         output += `export interface ${model.name} {\n`;
         model.fields.forEach(field => {
           const tsType = this.goTypeToTypeScript(field.type);
           const optional = field.isPointer ? '?' : '';
           const fieldName = field.jsonTag || field.name;
+          
+          // Add comment for SafeBigInt fields
+          if (tsType.includes('SafeBigInt')) {
+            output += `  /** @description int64 field from Go - use createSafeBigInt() for construction */\n`;
+          }
+          
           output += `  ${fieldName}${optional}: ${tsType};\n`;
         });
         output += `}\n\n`;
       }
     });
 
+    // Generate utility types for API responses
+    output += `// Utility types for API integration\n`;
+    output += `export type ApiResponse<T> = {\n`;
+    output += `  data: T;\n`;
+    output += `  status: number;\n`;
+    output += `  message?: string;\n`;
+    output += `};\n\n`;
+    
+    output += `export type PaginatedResponse<T> = {\n`;
+    output += `  data: T[];\n`;
+    output += `  pagination: {\n`;
+    output += `    page: number;\n`;
+    output += `    limit: number;\n`;
+    output += `    total: SafeBigInt;\n`;
+    output += `    totalPages: number;\n`;
+    output += `  };\n`;
+    output += `};\n\n`;
+
     return output;
   }
 
   /**
-   * Convert Go type to TypeScript type
+   * Convert Go type to TypeScript type with SafeBigInt integration
    */
   private goTypeToTypeScript(goType: string): string {
+    // Clean up the type string
+    goType = goType.trim();
+
     const typeMap: Record<string, string> = {
       'string': 'string',
       'int': 'number',
       'int32': 'number',
       'int64': 'SafeBigInt',
+      'uint64': 'SafeBigInt',
       'float32': 'number',
       'float64': 'number',
       'bool': 'boolean',
       'time.Time': 'ISODateString',
       'uuid.UUID': 'UUID',
+      'uuid.NullUUID': 'UUID | null',
       'json.RawMessage': 'Record<string, unknown>',
+      'interface{}': 'Record<string, unknown>',
+      'sql.NullString': 'string | null',
+      'sql.NullInt64': 'SafeBigInt | null',
+      'sql.NullBool': 'boolean | null',
+      'sql.NullTime': 'ISODateString | null',
+      'net.IP': 'string',
       '[]string': 'string[]',
-      '[]byte': 'string'
+      '[]byte': 'string',
+      '[]int': 'number[]',
+      '[]int64': 'SafeBigInt[]',
+      '[]uint64': 'SafeBigInt[]',
+      '[]UUID': 'UUID[]',
+      '*string': 'string | null',
+      '*int': 'number | null',
+      '*int32': 'number | null',
+      '*int64': 'SafeBigInt | null',
+      '*uint64': 'SafeBigInt | null',
+      '*bool': 'boolean | null',
+      '*time.Time': 'ISODateString | null',
+      '*uuid.UUID': 'UUID | null'
     };
 
-    return typeMap[goType] || goType;
+    // Handle map types: map[string]int -> Record<string, number>
+    const mapMatch = goType.match(/^map\[([^\]]+)\](.+)$/);
+    if (mapMatch && mapMatch[1] && mapMatch[2]) {
+      const keyType = this.goTypeToTypeScript(mapMatch[1]);
+      const valueType = this.goTypeToTypeScript(mapMatch[2]);
+      return `Record<${keyType}, ${valueType}>`;
+    }
+
+    // Handle slice types: []Type -> Type[]
+    if (goType.startsWith('[]')) {
+      const elementType = goType.substring(2);
+      const tsElementType = this.goTypeToTypeScript(elementType);
+      return `${tsElementType}[]`;
+    }
+
+    // Handle pointer types: *Type -> Type | null
+    if (goType.startsWith('*')) {
+      const baseType = goType.substring(1);
+      const tsBaseType = this.goTypeToTypeScript(baseType);
+      return `${tsBaseType} | null`;
+    }
+
+    // Handle channel types: chan Type -> never (not used in API)
+    if (goType.startsWith('chan ')) {
+      return 'never';
+    }
+
+    // Direct type mapping
+    const mappedType = typeMap[goType];
+    if (mappedType) {
+      return mappedType;
+    }
+
+    // If it's a custom type name (starts with uppercase), assume it's an interface
+    if (/^[A-Z][a-zA-Z0-9]*$/.test(goType)) {
+      return goType;
+    }
+
+    // Default fallback to unknown for unmapped types
+    console.warn(`Unknown Go type: ${goType}, defaulting to 'unknown'`);
+    return 'unknown';
   }
 
   /**
@@ -514,14 +657,22 @@ async function main() {
     
     console.log('✅ Contract extraction complete!');
     process.exit(0);
-  } catch (error) {
+  } catch {
     console.error('❌ Contract extraction failed:', error);
     process.exit(1);
   }
 }
 
-if (require.main === module) {
+// ESM-compatible main module check
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+if (import.meta.url === `file://${process.argv[1]}`) {
   main();
 }
 
-export { GoContractExtractor, ExtractedContracts };
+export { GoContractExtractor };
+export type { ExtractedContracts };

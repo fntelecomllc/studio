@@ -229,7 +229,7 @@ export function validateApiResponse<T>(
       errors.push('Data does not match expected type structure');
       return { valid: false, errors };
     }
-  } catch (error) {
+  } catch {
     errors.push(`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return { valid: false, errors };
   }

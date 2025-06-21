@@ -40,7 +40,7 @@ export type WebSocketEventHandler = (event?: unknown) => void;
 class SessionWebSocketClient {
   private static instance: SessionWebSocketClient;
   private ws: WebSocket | null = null;
-  private url: string = '';
+  private url = '';
   private config: WebSocketConfig;
   private sessionConfig = getWebSocketSessionConfig();
   private performanceConfig = getWebSocketPerformanceConfig();
@@ -123,7 +123,7 @@ class SessionWebSocketClient {
       handlers.forEach(handler => {
         try {
           handler(data);
-        } catch (error) {
+        } catch {
           console.error(`Error in WebSocket event handler for ${event}:`, error);
         }
       });
@@ -154,7 +154,7 @@ class SessionWebSocketClient {
       // Setup event handlers
       this.setupWebSocketHandlers();
       
-    } catch (error) {
+    } catch {
       this.isConnecting = false;
       console.error('WebSocket connection failed:', error);
       this.emit('error', error);
@@ -237,7 +237,7 @@ class SessionWebSocketClient {
         }
         
         this.emit('message', message);
-      } catch (error) {
+      } catch {
         console.error('Error parsing WebSocket message:', error);
       }
     };
@@ -260,7 +260,7 @@ class SessionWebSocketClient {
       }
       
       this.lastSessionValidation = Date.now();
-    } catch (error) {
+    } catch {
       console.error('Session validation failed:', error);
       this.handleSessionExpired();
     }
@@ -374,7 +374,7 @@ class SessionWebSocketClient {
       };
       
       this.ws!.send(JSON.stringify(messageWithTimestamp));
-    } catch (error) {
+    } catch {
       console.error('Error sending WebSocket message:', error);
       this.queueMessage(message);
     }

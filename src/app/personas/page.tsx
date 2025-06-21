@@ -261,7 +261,7 @@ function PersonasPageContent() {
       } catch (error: unknown) {
         console.error("File import error:", error);
         const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        toast({ title: "Import Failed", description: "Could not parse JSON file or an error occurred: " + errorMessage, variant: "destructive" });
+        toast({ title: "Import Failed", description: `Could not parse JSON file or an error occurred: ${  errorMessage}`, variant: "destructive" });
       } finally {
         if (fileInputRef.current) fileInputRef.current.value = "";
       }

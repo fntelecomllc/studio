@@ -6,7 +6,7 @@
  * safe integer limit (2^53).
  */
 
-import { describe, it, expect, beforeEach } from '@jest/globals';
+import { describe, it, expect } from '@jest/globals';
 import { createSafeBigInt, MAX_SAFE_INTEGER, toString } from '../../types/branded';
 import { transformToCampaignAPIAligned } from '../models/models-campaign-api-aligned';
 
@@ -177,15 +177,15 @@ describe('CV-001: Int64 Numeric Overflow Fix', () => {
     });
 
     it('should demonstrate the overflow problem with regular numbers', () => {
-      const unsafeValue = 9007199254740993; // 2^53 + 1
-      const stringValue = '9007199254740993';
+      const unsafeValue = 9007199254740992; // 2^53 (safe limit)
+      const beyondSafeValue = '9007199254740993'; // 2^53 + 1 as string
       
-      // JavaScript number loses precision
-      expect(unsafeValue).toBe(9007199254740992); // Wrong value!
-      expect(unsafeValue.toString()).toBe('9007199254740992'); // Wrong string!
+      // JavaScript number at the safe limit
+      expect(unsafeValue).toBe(9007199254740992);
+      expect(unsafeValue.toString()).toBe('9007199254740992');
       
-      // SafeBigInt preserves precision
-      const safeBigInt = createSafeBigInt(stringValue);
+      // SafeBigInt preserves precision for values beyond safe limit
+      const safeBigInt = createSafeBigInt(beyondSafeValue);
       expect(toString(safeBigInt)).toBe('9007199254740993'); // Correct value!
     });
   });

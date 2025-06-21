@@ -146,15 +146,17 @@ export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: B
         let response: ProxyActionResponse | ProxyDeleteResponse;
         
         switch (action) {
-          case 'enable':
+          case 'enable': {
             const enablePayload: UpdateProxyPayload = { isEnabled: true };
             response = await updateProxy(proxy.id, enablePayload);
             break;
+          }
             
-          case 'disable':
+          case 'disable': {
             const disablePayload: UpdateProxyPayload = { isEnabled: false };
             response = await updateProxy(proxy.id, disablePayload);
             break;
+          }
             
           case 'test':
             response = await testProxy(proxy.id);
@@ -179,7 +181,7 @@ export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: B
           errorCount++;
           errors.push(`${proxy.address}: ${response.message}`);
         }
-      } catch (error) {
+      } catch {
         errorCount++;
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         errors.push(`${proxy.address}: ${errorMessage}`);
@@ -256,7 +258,7 @@ export function BulkOperations({ proxies, onProxiesUpdate, disabled = false }: B
       // Refresh proxy data
       onProxiesUpdate();
       
-    } catch (error) {
+    } catch {
       console.error('Bulk operation failed:', error);
       toast({
         title: "Bulk Operation Failed",

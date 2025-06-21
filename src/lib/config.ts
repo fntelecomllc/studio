@@ -51,7 +51,7 @@ async function fetchAppConfig(): Promise<AppConfig> {
       }
       loadedConfig = config;
       return config;
-    } catch (error) {
+    } catch {
       console.warn(
         `Error fetching or parsing configuration: ${error}. Using fallback API base URL: ${FALLBACK_API_BASE_URL}`
       );
@@ -73,7 +73,7 @@ export async function getApiBaseUrl(): Promise<string> {
     // Use new environment configuration system
     const apiConfig = getApiConfig();
     return apiConfig.baseUrl;
-  } catch (error) {
+  } catch {
     console.warn('Failed to get API URL from environment config, falling back to legacy method:', error);
     
     // Fallback to legacy method

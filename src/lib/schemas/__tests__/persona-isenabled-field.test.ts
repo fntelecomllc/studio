@@ -1,7 +1,6 @@
 import { describe, test, expect } from '@jest/globals';
 import { personaSchema } from '../generated/validationSchemas';
 import { createPersonaRequestSchema, updatePersonaRequestSchema } from '../alignedValidationSchemas';
-import { z } from 'zod';
 
 describe('Persona isEnabled Field Tests', () => {
   describe('personaSchema validation', () => {

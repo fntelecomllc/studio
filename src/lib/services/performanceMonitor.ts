@@ -114,7 +114,7 @@ class PerformanceMonitor {
         resourceObserver.observe({ entryTypes: ['resource'] });
         this.observers.push(resourceObserver);
 
-      } catch (error) {
+      } catch {
         console.warn('Performance Observer not fully supported:', error);
       }
     }

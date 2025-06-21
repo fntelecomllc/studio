@@ -3,8 +3,7 @@
  * Handles conversion of domain-related responses with SafeBigInt for offsetIndex
  */
 
-import type { SafeBigInt, UUID, ISODateString } from '@/lib/types/branded';
-import { createSafeBigInt, createUUID, createISODateString } from '@/lib/types/branded';
+import { createSafeBigInt, createUUID, createISODateString, type SafeBigInt, type UUID, type ISODateString } from '@/lib/types/branded';
 
 /**
  * Generated Domain API model with properly typed fields

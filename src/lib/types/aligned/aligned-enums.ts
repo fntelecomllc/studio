@@ -29,7 +29,7 @@ export const CampaignStatusEnum = {
   CANCELLED: 'cancelled'
 } as const;
 
-export type CampaignStatusEnum = typeof CampaignStatusEnum[keyof typeof CampaignStatusEnum];
+export type CampaignStatus = typeof CampaignStatusEnum[keyof typeof CampaignStatusEnum];
 
 /**
  * Campaign Type Enum
@@ -43,7 +43,7 @@ export const CampaignTypeEnum = {
   HTTP_KEYWORD_VALIDATION: 'http_keyword_validation'
 } as const;
 
-export type CampaignTypeEnum = typeof CampaignTypeEnum[keyof typeof CampaignTypeEnum];
+export type CampaignType = typeof CampaignTypeEnum[keyof typeof CampaignTypeEnum];
 
 /**
  * HTTP Source Type Enum
@@ -56,7 +56,7 @@ export const HTTPSourceTypeEnum = {
   DNS_VALIDATION: 'DNSValidation'
 } as const;
 
-export type HTTPSourceTypeEnum = typeof HTTPSourceTypeEnum[keyof typeof HTTPSourceTypeEnum];
+export type HTTPSourceType = typeof HTTPSourceTypeEnum[keyof typeof HTTPSourceTypeEnum];
 
 // ============================================
 // DOMAIN GENERATION ENUMS
@@ -72,7 +72,7 @@ export const DomainPatternTypeEnum = {
   HYBRID: 'hybrid'
 } as const;
 
-export type DomainPatternTypeEnum = typeof DomainPatternTypeEnum[keyof typeof DomainPatternTypeEnum];
+export type DomainPatternType = typeof DomainPatternTypeEnum[keyof typeof DomainPatternTypeEnum];
 
 // ============================================
 // JOB ENUMS
@@ -90,7 +90,7 @@ export const JobStatusEnum = {
   RETRYING: 'retrying'
 } as const;
 
-export type JobStatusEnum = typeof JobStatusEnum[keyof typeof JobStatusEnum];
+export type JobStatus = typeof JobStatusEnum[keyof typeof JobStatusEnum];
 
 // ============================================
 // PERSONA ENUMS
@@ -105,7 +105,7 @@ export const PersonaTypeEnum = {
   HTTP: 'http'
 } as const;
 
-export type PersonaTypeEnum = typeof PersonaTypeEnum[keyof typeof PersonaTypeEnum];
+export type PersonaType = typeof PersonaTypeEnum[keyof typeof PersonaTypeEnum];
 
 // ============================================
 // PROXY ENUMS
@@ -122,7 +122,7 @@ export const ProxyProtocolEnum = {
   SOCKS4: 'socks4'
 } as const;
 
-export type ProxyProtocolEnum = typeof ProxyProtocolEnum[keyof typeof ProxyProtocolEnum];
+export type ProxyProtocol = typeof ProxyProtocolEnum[keyof typeof ProxyProtocolEnum];
 
 // ============================================
 // DNS ENUMS
@@ -144,7 +144,7 @@ export const DNSRecordTypeEnum = {
   SRV: 'SRV'
 } as const;
 
-export type DNSRecordTypeEnum = typeof DNSRecordTypeEnum[keyof typeof DNSRecordTypeEnum];
+export type DNSRecordType = typeof DNSRecordTypeEnum[keyof typeof DNSRecordTypeEnum];
 
 // ============================================
 // AUTH ENUMS
@@ -161,7 +161,7 @@ export const UserRoleEnum = {
   VIEWER: 'viewer'
 } as const;
 
-export type UserRoleEnum = typeof UserRoleEnum[keyof typeof UserRoleEnum];
+export type UserRole = typeof UserRoleEnum[keyof typeof UserRoleEnum];
 
 /**
  * Permission Action Enum
@@ -177,7 +177,7 @@ export const PermissionActionEnum = {
   EXPORT: 'export'
 } as const;
 
-export type PermissionActionEnum = typeof PermissionActionEnum[keyof typeof PermissionActionEnum];
+export type PermissionAction = typeof PermissionActionEnum[keyof typeof PermissionActionEnum];
 
 /**
  * Permission Resource Enum
@@ -192,7 +192,7 @@ export const PermissionResourceEnum = {
   REPORT: 'report'
 } as const;
 
-export type PermissionResourceEnum = typeof PermissionResourceEnum[keyof typeof PermissionResourceEnum];
+export type PermissionResource = typeof PermissionResourceEnum[keyof typeof PermissionResourceEnum];
 
 // ============================================
 // VALIDATION HELPERS
@@ -221,35 +221,35 @@ export function getEnumKey<T extends Record<string, string>>(
 /**
  * Validate campaign status
  */
-export function isValidCampaignStatus(value: unknown): value is CampaignStatusEnum {
+export function isValidCampaignStatus(value: unknown): value is CampaignStatus {
   return isValidEnumValue(CampaignStatusEnum, value);
 }
 
 /**
  * Validate campaign type
  */
-export function isValidCampaignType(value: unknown): value is CampaignTypeEnum {
+export function isValidCampaignType(value: unknown): value is CampaignType {
   return isValidEnumValue(CampaignTypeEnum, value);
 }
 
 /**
  * Validate HTTP source type
  */
-export function isValidHTTPSourceType(value: unknown): value is HTTPSourceTypeEnum {
+export function isValidHTTPSourceType(value: unknown): value is HTTPSourceType {
   return isValidEnumValue(HTTPSourceTypeEnum, value);
 }
 
 /**
  * Validate persona type
  */
-export function isValidPersonaType(value: unknown): value is PersonaTypeEnum {
+export function isValidPersonaType(value: unknown): value is PersonaType {
   return isValidEnumValue(PersonaTypeEnum, value);
 }
 
 /**
  * Validate proxy protocol
  */
-export function isValidProxyProtocol(value: unknown): value is ProxyProtocolEnum {
+export function isValidProxyProtocol(value: unknown): value is ProxyProtocol {
   return isValidEnumValue(ProxyProtocolEnum, value);
 }
 
@@ -260,7 +260,7 @@ export function isValidProxyProtocol(value: unknown): value is ProxyProtocolEnum
 /**
  * Convert legacy campaign type values
  */
-export function normalizeCampaignType(value: string): CampaignTypeEnum | null {
+export function normalizeCampaignType(value: string): CampaignType | null {
   switch (value.toLowerCase()) {
     case 'domain_generation':
     case 'domaingeneration':
@@ -283,7 +283,7 @@ export function normalizeCampaignType(value: string): CampaignTypeEnum | null {
 /**
  * Convert snake_case HTTP source type to PascalCase
  */
-export function normalizeHTTPSourceType(value: string): HTTPSourceTypeEnum | null {
+export function normalizeHTTPSourceType(value: string): HTTPSourceType | null {
   switch (value.toLowerCase()) {
     case 'domain_generation':
     case 'domaingeneration':

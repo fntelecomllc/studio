@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-06-21T03:18:33.700Z",
+  "passed": true,
+  "issueCount": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0
+  },
+  "issues": [],
+  "recommendations": [
+    "Set up automated contract validation in CI/CD pipeline",
+    "Use backend as single source of truth for type generation"
+  ]
+}

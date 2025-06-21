@@ -205,7 +205,7 @@ class AlertingService {
   /**
    * Start monitoring thresholds
    */
-  startMonitoring(intervalMs: number = 10000): void {
+  startMonitoring(intervalMs = 10000): void {
     if (this.checkInterval) {
       return; // Already monitoring
     }
@@ -376,7 +376,7 @@ class AlertingService {
     const promises = Array.from(this.handlers).map(handler => {
       try {
         return Promise.resolve(handler(alert));
-      } catch (error) {
+      } catch {
         console.error('Error in alert handler:', error);
         return Promise.resolve();
       }

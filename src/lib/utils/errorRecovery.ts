@@ -67,7 +67,7 @@ export class RetryManager {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         return await fn();
-      } catch (error) {
+      } catch {
         lastError = error as Error;
 
         // Check if error is retryable
@@ -166,7 +166,7 @@ export class CircuitBreaker {
       const result = await fn();
       this.onSuccess();
       return result;
-    } catch (error) {
+    } catch {
       this.onFailure();
       throw error;
     }
@@ -263,7 +263,7 @@ export class FallbackManager {
       }
       
       return result;
-    } catch (error) {
+    } catch {
       // Try to get from cache first
       const cacheKey = this.generateCacheKey(fn);
       const cached = this.cache.get(cacheKey);

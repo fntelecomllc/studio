@@ -17,17 +17,17 @@ import type { Configuration } from '../configuration';
 import type { AxiosPromise, AxiosInstance, RawAxiosRequestConfig } from 'axios';
 import globalAxios from 'axios';
 // Some imports not used depending on template conditions
-// @ts-ignore
+// @ts-expect-error - API client type compatibility
 import { DUMMY_BASE_URL, assertParamExists, setApiKeyToObject, setBasicAuthToObject, setBearerAuthToObject, setOAuthToObject, setSearchParams, serializeDataIfNeeded, toPathString, createRequestFunction } from '../common';
-// @ts-ignore
+// @ts-expect-error - API client type compatibility
 import { BASE_PATH, COLLECTION_FORMATS, type RequestArgs, BaseAPI, RequiredError, operationServerMap } from '../base';
-// @ts-ignore
+// @ts-expect-error - API client type compatibility
 import type { ErrorResponse } from '../models';
-// @ts-ignore
+// @ts-expect-error - API client type compatibility
 import type { ModelsLoginRequest } from '../models';
-// @ts-ignore
+// @ts-expect-error - API client type compatibility
 import type { ModelsLoginResponseAPI } from '../models';
-// @ts-ignore
+// @ts-expect-error - API client type compatibility
 import type { ModelsUserAPI } from '../models';
 /**
  * AuthenticationApi - axios parameter creator

@@ -41,10 +41,6 @@ export interface SessionEventDetails {
   setup_duration?: number;
   auto_refresh_enabled?: boolean;
   session_check_enabled?: boolean;
-  metadata?: Record<string, string | number | boolean>;
-}
-
-export interface SessionEventDetails {
   session_valid?: boolean;
   tokenSource?: string;
   expectedToken?: string;

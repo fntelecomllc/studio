@@ -119,10 +119,10 @@ export function validateSafeBigInt(value: unknown): ValidationResult<SafeBigInt>
   } catch (error) {
     return {
       isValid: false,
-      errors: [{ 
-        field: 'bigint', 
+      errors: [{
+        field: 'bigint',
         message: error instanceof Error ? error.message : 'Invalid BigInt value',
-        value 
+        value
       }]
     };
   }
@@ -176,7 +176,7 @@ export function validateURL(value: unknown): ValidationResult<BrandedURL> {
 // ENUM VALIDATORS
 // ============================================================================
 
-export const CampaignStatus = {
+export const CampaignStatusEnum = {
   DRAFT: 'draft',
   RUNNING: 'running',
   PAUSED: 'paused',
@@ -185,7 +185,7 @@ export const CampaignStatus = {
   CANCELLED: 'cancelled'
 } as const;
 
-export type CampaignStatus = typeof CampaignStatus[keyof typeof CampaignStatus];
+export type CampaignStatus = typeof CampaignStatusEnum[keyof typeof CampaignStatusEnum];
 
 export function validateCampaignStatus(value: unknown): ValidationResult<CampaignStatus> {
   if (!isString(value)) {
@@ -195,7 +195,7 @@ export function validateCampaignStatus(value: unknown): ValidationResult<Campaig
     };
   }
 
-  const validStatuses = Object.values(CampaignStatus);
+  const validStatuses = Object.values(CampaignStatusEnum);
   if (!validStatuses.includes(value as CampaignStatus)) {
     return {
       isValid: false,
@@ -214,13 +214,13 @@ export function validateCampaignStatus(value: unknown): ValidationResult<Campaig
   };
 }
 
-export const UserRole = {
+export const UserRoleEnum = {
   ADMIN: 'admin',
   USER: 'user',
   VIEWER: 'viewer'
 } as const;
 
-export type UserRole = typeof UserRole[keyof typeof UserRole];
+export type UserRole = typeof UserRoleEnum[keyof typeof UserRoleEnum];
 
 export function validateUserRole(value: unknown): ValidationResult<UserRole> {
   if (!isString(value)) {
@@ -230,7 +230,7 @@ export function validateUserRole(value: unknown): ValidationResult<UserRole> {
     };
   }
 
-  const validRoles = Object.values(UserRole);
+  const validRoles = Object.values(UserRoleEnum);
   if (!validRoles.includes(value as UserRole)) {
     return {
       isValid: false,
@@ -349,10 +349,10 @@ export function validateCampaignResponse(value: unknown): ValidationResult<Model
   } catch (error) {
     return {
       isValid: false,
-      errors: [{ 
-        field: 'campaign', 
+      errors: [{
+        field: 'campaign',
         message: error instanceof Error ? error.message : 'Invalid campaign data',
-        value 
+        value
       }]
     };
   }
@@ -381,10 +381,10 @@ export function validateUserResponse(value: unknown): ValidationResult<ModelsUse
   } catch (error) {
     return {
       isValid: false,
-      errors: [{ 
-        field: 'user', 
+      errors: [{
+        field: 'user',
         message: error instanceof Error ? error.message : 'Invalid user data',
-        value 
+        value
       }]
     };
   }
@@ -413,10 +413,10 @@ export function validateGeneratedDomainResponse(value: unknown): ValidationResul
   } catch (error) {
     return {
       isValid: false,
-      errors: [{ 
-        field: 'domain', 
+      errors: [{
+        field: 'domain',
         message: error instanceof Error ? error.message : 'Invalid domain data',
-        value 
+        value
       }]
     };
   }

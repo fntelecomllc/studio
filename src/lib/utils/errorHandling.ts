@@ -74,7 +74,7 @@ export function hasFieldErrors(apiResponse: any): boolean {
  * @param apiFieldErrors - Field errors from API response
  * @returns Combined error state
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export function combineValidationErrors(zodError?: unknown, apiFieldErrors?: FormErrorState): FormErrorState {
   const combined: FormErrorState = {};
   

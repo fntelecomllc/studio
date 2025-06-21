@@ -42,7 +42,7 @@ export interface StandardizedErrorResponse {
  */
 export function transformErrorResponse(
     error: unknown,
-    statusCode: number = 500,
+    statusCode = 500,
     path?: string
 ): StandardizedErrorResponse {
     const timestamp = new Date().toISOString();

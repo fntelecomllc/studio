@@ -1,8 +1,7 @@
 "use client";
 
 import { Button } from '@/components/ui/button';
-import type { LucideIcon } from 'lucide-react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, type LucideIcon } from 'lucide-react';
 
 interface PhaseGateButtonProps {
   label: string;

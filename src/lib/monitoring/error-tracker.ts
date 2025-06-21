@@ -320,7 +320,7 @@ class ErrorTracker {
     try {
       // Placeholder for actual implementation
       console.log(`Sending ${errors.length} errors to tracking service`);
-    } catch (error) {
+    } catch {
       console.error('Failed to send errors to tracking service:', error);
     }
   }

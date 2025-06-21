@@ -16,8 +16,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import chalk from 'chalk';
-import { z } from 'zod';
-// @ts-ignore - inquirer types not critical for script
+import { z as _z } from 'zod';
+// @ts-expect-error - inquirer types not critical for script
 import inquirer from 'inquirer';
 
 // Template type definitions
@@ -61,7 +61,7 @@ class CodeGenerator {
       
       console.log(chalk.green.bold('\n✅ Code generation completed successfully!\n'));
       this.printNextSteps(config);
-    } catch (error) {
+    } catch {
       console.error(chalk.red.bold('\n❌ Code generation failed:'), error);
       process.exit(1);
     }
@@ -173,7 +173,7 @@ class CodeGenerator {
     const hasMonitoring = config.features?.includes(ComponentFeatures.MONITORING);
     const hasAccessibility = config.features?.includes(ComponentFeatures.ACCESSIBILITY);
 
-    let imports = [`import React${isMemo ? ', { memo' : ''}${hasState ? ', { useState, useEffect }' : ''}${hasForwardRef ? ', { forwardRef }' : ''} from 'react';`];
+    const imports = [`import React${isMemo ? ', { memo' : ''}${hasState ? ', { useState, useEffect }' : ''}${hasForwardRef ? ', { forwardRef }' : ''} from 'react';`];
     
     if (hasMonitoring) {
       imports.push(`import { usePerformanceMonitor } from '@/lib/hooks/usePerformanceMonitor';`);
@@ -379,7 +379,7 @@ export async function GET(request: NextRequest) {
       success: true,
       data
     } satisfies ResponseBody);
-  } catch (error) {
+  } catch {
     errorTracker.trackError(error as Error, {
       url: '/api/${routeName}',
       method: 'GET'
@@ -426,7 +426,7 @@ export async function POST(request: NextRequest) {
       success: true,
       data
     } satisfies ResponseBody);
-  } catch (error) {
+  } catch {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { success: false, error: 'Invalid request data', details: error.errors },
@@ -522,7 +522,7 @@ class ${serviceName}Service {
       performanceMonitor.measureApiCall('get_all_${this.camelCase(config.name)}s', Date.now() - startTime);
       
       return data;
-    } catch (error) {
+    } catch {
       errorTracker.trackError(error as Error, {
         component: '${serviceName}Service',
         method: 'getAll'
@@ -552,7 +552,7 @@ class ${serviceName}Service {
       performanceMonitor.measureApiCall('get_${this.camelCase(config.name)}_by_id', Date.now() - startTime);
       
       return data;
-    } catch (error) {
+    } catch {
       if ((error as any).response?.status === 404) {
         return null;
       }
@@ -584,7 +584,7 @@ class ${serviceName}Service {
       performanceMonitor.measureApiCall('create_${this.camelCase(config.name)}', Date.now() - startTime);
       
       return created;
-    } catch (error) {
+    } catch {
       errorTracker.trackError(error as Error, {
         component: '${serviceName}Service',
         method: 'create'
@@ -612,7 +612,7 @@ class ${serviceName}Service {
       performanceMonitor.measureApiCall('update_${this.camelCase(config.name)}', Date.now() - startTime);
       
       return updated;
-    } catch (error) {
+    } catch {
       errorTracker.trackError(error as Error, {
         component: '${serviceName}Service',
         method: 'update',
@@ -638,7 +638,7 @@ class ${serviceName}Service {
       
       // Track performance
       performanceMonitor.measureApiCall('delete_${this.camelCase(config.name)}', Date.now() - startTime);
-    } catch (error) {
+    } catch {
       errorTracker.trackError(error as Error, {
         component: '${serviceName}Service',
         method: 'delete',
@@ -1080,7 +1080,7 @@ describe('${this.titleCase(config.name)}', () => {
     }
     
     if (config.type === 'api') {
-      console.log(chalk.gray('4. Test the endpoint: curl http://localhost:3000/api/' + this.kebabCase(config.name)));
+      console.log(chalk.gray(`4. Test the endpoint: curl http://localhost:3000/api/${  this.kebabCase(config.name)}`));
     }
     
     console.log(chalk.gray('\nGenerated files:'));

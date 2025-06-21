@@ -59,7 +59,7 @@ function valueToString(value: SafeBigInt | string | number | bigint | null | und
 /**
  * Validates if a string represents a valid integer
  */
-function isValidInteger(value: string, allowNegative: boolean = false): boolean {
+function isValidInteger(value: string, allowNegative = false): boolean {
   if (!value) return true; // Empty is valid
   
   const pattern = allowNegative ? /^-?\d+$/ : /^\d+$/;

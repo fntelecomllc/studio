@@ -7,9 +7,8 @@ import { Progress } from '@/components/ui/progress';
 import { AlertCircle, CheckCircle, Clock, Pause, Wifi, WifiOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { websocketService } from '@/lib/services/websocketService.simple';
+import { websocketService, type WebSocketMessage } from '@/lib/services/websocketService.simple';
 import type { CampaignViewModel, CampaignPhase, CampaignStatus } from '@/lib/types';
-import type { WebSocketMessage } from '@/lib/services/websocketService.simple';
 import { normalizeStatus, getStatusColor } from '@/lib/utils/statusMapping';
 import { adaptWebSocketMessage } from '@/lib/utils/websocketMessageAdapter';
 
@@ -111,7 +110,7 @@ const CampaignProgressMonitor = memo(({
         });
         break;
 
-      case 'domain_generated':
+      case 'domain_generated': {
         const domainData = message.data as { domains?: string[] };
         if (domainData.domains && domainData.domains.length > 0) {
           setRealtimeData(prev => ({
@@ -122,6 +121,7 @@ const CampaignProgressMonitor = memo(({
           domainData.domains.forEach((domain: string) => onDomainReceived?.(domain));
         }
         break;
+      }
 
       case 'progress':
         if (typeof message.data.progress === 'number') {
@@ -154,7 +154,7 @@ const CampaignProgressMonitor = memo(({
         }
         break;
 
-      case 'error':
+      case 'error': {
         const errorData = message.data as { error?: string };
         const errorMsg = errorData.error || message.message || 'Unknown error occurred';
         setRealtimeData(prev => ({
@@ -168,6 +168,7 @@ const CampaignProgressMonitor = memo(({
           variant: "destructive"
         });
         break;
+      }
 
       default:
         console.log('Unknown WebSocket message type:', message.type);

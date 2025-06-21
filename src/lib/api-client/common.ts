@@ -44,7 +44,7 @@ export const setApiKeyToObject = async function (object: unknown, keyParamName: 
         const localVarApiKeyValue = typeof configuration.apiKey === 'function'
             ? await configuration.apiKey(keyParamName)
             : await configuration.apiKey;
-        object[keyParamName] = localVarApiKeyValue;
+        (object as Record<string, unknown>)[keyParamName] = localVarApiKeyValue;
     }
 }
 
@@ -54,7 +54,7 @@ export const setApiKeyToObject = async function (object: unknown, keyParamName: 
  */
 export const setBasicAuthToObject = function (object: unknown, configuration?: Configuration) {
     if (configuration && (configuration.username || configuration.password)) {
-        object["auth"] = { username: configuration.username, password: configuration.password };
+        (object as Record<string, unknown>)["auth"] = { username: configuration.username, password: configuration.password };
     }
 }
 
@@ -67,7 +67,7 @@ export const setBearerAuthToObject = async function (object: unknown, configurat
         const accessToken = typeof configuration.accessToken === 'function'
             ? await configuration.accessToken()
             : await configuration.accessToken;
-        object["Authorization"] = "Bearer " + accessToken;
+        (object as Record<string, unknown>)["Authorization"] = "Bearer " + accessToken;
     }
 }
 
@@ -80,7 +80,7 @@ export const setOAuthToObject = async function (object: unknown, name: string, s
         const localVarAccessTokenValue = typeof configuration.accessToken === 'function'
             ? await configuration.accessToken(name, scopes)
             : await configuration.accessToken;
-        object["Authorization"] = "Bearer " + localVarAccessTokenValue;
+        (object as Record<string, unknown>)["Authorization"] = "Bearer " + localVarAccessTokenValue;
     }
 }
 
@@ -89,19 +89,19 @@ function setFlattenedQueryParams(urlSearchParams: URLSearchParams, parameter: un
     if (typeof parameter === "object") {
         if (Array.isArray(parameter)) {
             (parameter as unknown[]).forEach(item => setFlattenedQueryParams(urlSearchParams, item, key));
-        } 
+        }
         else {
-            Object.keys(parameter).forEach(currentKey => 
-                setFlattenedQueryParams(urlSearchParams, parameter[currentKey], `${key}${key !== '' ? '.' : ''}${currentKey}`)
+            Object.keys(parameter as Record<string, unknown>).forEach(currentKey =>
+                setFlattenedQueryParams(urlSearchParams, (parameter as Record<string, unknown>)[currentKey], `${key}${key !== '' ? '.' : ''}${currentKey}`)
             );
         }
-    } 
+    }
     else {
         if (urlSearchParams.has(key)) {
-            urlSearchParams.append(key, parameter);
-        } 
+            urlSearchParams.append(key, String(parameter));
+        }
         else {
-            urlSearchParams.set(key, parameter);
+            urlSearchParams.set(key, String(parameter));
         }
     }
 }
@@ -123,7 +123,7 @@ export const setSearchParams = function (url: URL, ...objects: unknown[]) {
 export const serializeDataIfNeeded = function (value: unknown, requestOptions: unknown, configuration?: Configuration) {
     const nonString = typeof value !== 'string';
     const needsSerialization = nonString && configuration && configuration.isJsonMime
-        ? configuration.isJsonMime(requestOptions.headers['Content-Type'])
+        ? configuration.isJsonMime((requestOptions as { headers?: Record<string, string> })?.headers?.['Content-Type'] ?? '')
         : nonString;
     return needsSerialization
         ? JSON.stringify(value !== undefined ? value : {})

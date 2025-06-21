@@ -169,7 +169,7 @@ export function ProtectedRoute({
       if (success) {
         setSessionWarningDismissed(false);
       }
-    } catch (error) {
+    } catch {
       console.error('Session refresh failed:', error);
     } finally {
       setIsRefreshingSession(false);
@@ -382,7 +382,7 @@ export function withProtectedRoute<T extends object>(
 export function useRouteAccess(
   requiredPermissions: string[] = [],
   requiredRoles: string[] = [],
-  requireAnyRole: boolean = false
+  requireAnyRole = false
 ) {
   const { 
     isAuthenticated, 

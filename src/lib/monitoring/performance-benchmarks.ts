@@ -119,7 +119,7 @@ export class PerformanceBenchmarkRunner {
   /**
    * Run all benchmarks
    */
-  async runAllBenchmarks(iterations: number = 1000): Promise<BenchmarkSuite> {
+  async runAllBenchmarks(iterations = 1000): Promise<BenchmarkSuite> {
     const startTime = Date.now();
     const results: BenchmarkResult[] = [];
 
@@ -380,7 +380,7 @@ export class PerformanceBenchmarkRunner {
    * Report benchmark results
    */
   private reportResults(suite: BenchmarkSuite): void {
-    console.log('\n' + '='.repeat(80));
+    console.log(`\n${  '='.repeat(80)}`);
     console.log(`Performance Benchmark Results - ${new Date(suite.timestamp).toLocaleString()}`);
     console.log('='.repeat(80));
     console.log(`Total Duration: ${suite.totalDuration}ms\n`);
@@ -417,7 +417,7 @@ export class PerformanceBenchmarkRunner {
       });
     });
 
-    console.log('\n' + '='.repeat(80));
+    console.log(`\n${  '='.repeat(80)}`);
 
     // Record to monitoring service
     performanceMonitor.recordCustomMetric(
@@ -435,7 +435,7 @@ export class PerformanceBenchmarkRunner {
    * Compare two benchmark suites
    */
   compareSuites(suite1: BenchmarkSuite, suite2: BenchmarkSuite): void {
-    console.log('\n' + '='.repeat(80));
+    console.log(`\n${  '='.repeat(80)}`);
     console.log('Benchmark Comparison');
     console.log('='.repeat(80));
     console.log(`Suite 1: ${suite1.name}`);
@@ -469,7 +469,7 @@ export class PerformanceBenchmarkRunner {
       );
     });
 
-    console.log('\n' + '='.repeat(80));
+    console.log(`\n${  '='.repeat(80)}`);
   }
 
   /**
@@ -531,7 +531,7 @@ export function criticalPath(target: any, propertyKey: string, descriptor: Prope
       );
       
       return result;
-    } catch (error) {
+    } catch {
       performance.mark(endMark);
       
       const duration = performance.now() - startTime;

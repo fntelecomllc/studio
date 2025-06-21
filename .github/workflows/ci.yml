@@ -1,18 +1,19 @@
-name: Node.js CI
+name: TypeScript CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ] # Or your default branch
+    branches: [ main, develop, cleanup/cicd-enforcement ]
   pull_request:
-    branches: [ main ] # Or your default branch
+    branches: [ main, develop ]
 
 jobs:
-  build_and_test:
+  typescript_strict_validation:
     runs-on: ubuntu-latest
-
+    name: TypeScript Strict Mode Validation
+    
     strategy:
       matrix:
-        node-version: [18.x, 20.x] # Test against current LTS versions
+        node-version: [18.x, 20.x]
 
     steps:
     - name: Checkout repository
@@ -22,37 +23,145 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-        cache: 'npm' # or 'yarn' if you use yarn
+        cache: 'npm'
 
     - name: Install dependencies
-      run: npm ci # Use 'npm ci' for cleaner installs in CI, or 'yarn install --frozen-lockfile'
+      run: npm ci
+
+    - name: TypeScript Strict Mode Check
+      run: npm run typecheck:strict
+      
+    - name: Regular TypeCheck (Fallback)
+      if: failure()
+      run: npm run typecheck
+      
+    - name: Type Safety Validation Report
+      if: failure()
+      run: |
+        echo "❌ TypeScript strict mode validation failed!"
+        echo "Current error count exceeds production readiness threshold."
+        echo "Run 'npm run typecheck:strict' locally to see detailed errors."
+        exit 1
+
+  build_and_test:
+    runs-on: ubuntu-latest
+    needs: typescript_strict_validation
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Lint code
+      run: npm run lint
 
     - name: Build project
       run: npm run build
 
-    - name: Run tests
-      run: npm test -- --coverage # Runs Jest and generates coverage report
+    - name: Run tests with coverage
+      run: npm test -- --coverage
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4
-      # env:
-      #   CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }} # Token is not required for public repositories
       with:
-        files: ./coverage/clover.xml,./coverage/lcov.info # Adjust based on generated files, clover is common for Codecov
-        fail_ci_if_error: true # Optional: fails CI if Codecov upload fails
-        verbose: true # Optional: for debugging
-      # If you don't use Codecov or a similar service, you can upload the report as an artifact:
-      # - name: Upload coverage report artifact
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: coverage-report-${{ matrix.node-version }}
-      #     path: ./coverage
-      #     retention-days: 7
+        files: ./coverage/clover.xml,./coverage/lcov.info
+        fail_ci_if_error: true
+        verbose: true
 
-    # Optional: Lint check
-    # - name: Lint code
-    #   run: npm run lint
+  contract_sync_validation:
+    runs-on: ubuntu-latest
+    name: Contract Synchronization Validation
+    needs: typescript_strict_validation
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-    # Optional: Type check
-    # - name: Type check
-    #   run: npm run typecheck
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Setup Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Extract Go contracts (if backend exists)
+      run: |
+        if [ -d "backend" ]; then
+          npm run contracts:extract
+        else
+          echo "⚠️  Backend directory not found - skipping Go contract extraction"
+        fi
+      continue-on-error: true
+
+    - name: Validate contract alignment
+      run: npm run contracts:validate
+      
+    - name: Upload contract validation report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: contract-validation-report
+        path: |
+          ./validation-report.json
+          ./validation-report.md
+          ./extracted-contracts.json
+        retention-days: 30
+
+  deployment_readiness:
+    runs-on: ubuntu-latest
+    name: Production Deployment Readiness Check
+    needs: [typescript_strict_validation, build_and_test, contract_sync_validation]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Comprehensive Validation Suite
+      run: npm run ci:validate
+
+    - name: Production Readiness Report
+      if: success()
+      run: |
+        echo "✅ Production Deployment Readiness: PASSED"
+        echo "- TypeScript strict mode: ✅ 0 errors"
+        echo "- Test coverage: ✅ Passing"
+        echo "- Contract alignment: ✅ Validated"
+        echo "- Build process: ✅ Successful"
+        echo ""
+        echo "🚀 Ready for production deployment!"
+
+    - name: Deployment Gate Failure
+      if: failure()
+      run: |
+        echo "❌ Production Deployment Readiness: FAILED"
+        echo "This build is not ready for production deployment."
+        echo "Please review the failed checks above."
+        exit 1

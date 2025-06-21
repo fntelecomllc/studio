@@ -4,8 +4,7 @@
  */
 
 import type { ModelsCampaignAPI } from '@/lib/api-client/models/models-campaign-api';
-import type { SafeBigInt, UUID, ISODateString } from '@/lib/types/branded';
-import { createSafeBigInt, createUUID, createISODateString } from '@/lib/types/branded';
+import { createSafeBigInt, createUUID, createISODateString, type SafeBigInt, type UUID, type ISODateString } from '@/lib/types/branded';
 
 /**
  * Campaign API model with properly typed fields

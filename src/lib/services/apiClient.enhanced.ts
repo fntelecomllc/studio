@@ -61,11 +61,11 @@ class EnhancedApiClient {
   private baseUrl: string;
   private static instance: EnhancedApiClient;
 
-  constructor(baseUrl: string = '') {
+  constructor(baseUrl = '') {
     this.baseUrl = baseUrl;
   }
 
-  static getInstance(baseUrl: string = ''): EnhancedApiClient {
+  static getInstance(baseUrl = ''): EnhancedApiClient {
     if (!EnhancedApiClient.instance) {
       EnhancedApiClient.instance = new EnhancedApiClient(baseUrl);
     }
@@ -262,7 +262,7 @@ class EnhancedApiClient {
             message: 'Request successful',
           };
         }
-      } catch (error) {
+      } catch {
         lastError = error as Error;
         
         // Don't retry on abort or certain errors

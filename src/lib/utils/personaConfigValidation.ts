@@ -55,7 +55,7 @@ export const httpPersonaConfigSchema = z.object({
 export function validateDnsPersonaConfig(rawConfig: unknown): DnsPersonaConfig {
   try {
     return dnsPersonaConfigSchema.parse(rawConfig);
-  } catch (error) {
+  } catch {
     console.error('DNS persona config validation failed:', error);
     throw new Error(`Invalid DNS persona configuration: ${error instanceof z.ZodError ? error.message : 'Unknown validation error'}`);
   }
@@ -67,7 +67,7 @@ export function validateDnsPersonaConfig(rawConfig: unknown): DnsPersonaConfig {
 export function validateHttpPersonaConfig(rawConfig: unknown): HttpPersonaConfig {
   try {
     return httpPersonaConfigSchema.parse(rawConfig);
-  } catch (error) {
+  } catch {
     console.error('HTTP persona config validation failed:', error);
     throw new Error(`Invalid HTTP persona configuration: ${error instanceof z.ZodError ? error.message : 'Unknown validation error'}`);
   }
@@ -79,7 +79,7 @@ export function validateHttpPersonaConfig(rawConfig: unknown): HttpPersonaConfig
 export function serializePersonaConfig(config: DnsPersonaConfig | HttpPersonaConfig): string {
   try {
     return JSON.stringify(config);
-  } catch (error) {
+  } catch {
     console.error('Persona config serialization failed:', error);
     throw new Error('Failed to serialize persona configuration');
   }
@@ -97,7 +97,7 @@ export function deserializePersonaConfig(configJson: string | object, personaTyp
     } else {
       return validateHttpPersonaConfig(config);
     }
-  } catch (error) {
+  } catch {
     console.error('Persona config deserialization failed:', error);
     throw new Error(`Failed to deserialize ${personaType} persona configuration: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }

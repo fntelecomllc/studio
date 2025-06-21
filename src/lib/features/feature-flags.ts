@@ -56,7 +56,7 @@ class FeatureFlagsService {
   private flags: Map<string, FeatureFlag> = new Map();
   private config: Required<FeatureFlagsConfig>;
   private userContext: UserContext = {};
-  private cacheTimestamp: number = 0;
+  private cacheTimestamp = 0;
   private abTestAssignments: Map<string, string> = new Map();
 
   constructor(config: FeatureFlagsConfig = {}) {
@@ -286,7 +286,7 @@ class FeatureFlagsService {
       if (this.config.enableDebugMode) {
         console.log('Feature flags updated:', flags);
       }
-    } catch (error) {
+    } catch {
       console.error('Error fetching feature flags:', error);
     }
   }
@@ -366,7 +366,7 @@ class FeatureFlagsService {
       };
       
       localStorage.setItem('domainflow_feature_flags', JSON.stringify(data));
-    } catch (error) {
+    } catch {
       console.error('Error saving feature flags to localStorage:', error);
     }
   }
@@ -402,7 +402,7 @@ class FeatureFlagsService {
       }
 
       this.cacheTimestamp = data.timestamp;
-    } catch (error) {
+    } catch {
       console.error('Error loading feature flags from localStorage:', error);
     }
   }

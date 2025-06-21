@@ -220,7 +220,7 @@ export default function LatestActivityTable() {
         .slice(0, MAX_ITEMS_DISPLAY_INITIAL_LOAD); // Apply cap after sorting all potential activities
 
       setAllActivityData(sortedData);
-    } catch (error) {
+    } catch {
       console.error("Failed to load or process activity data:", error);
        setAllActivityData([]); // Clear on major error
     } finally {

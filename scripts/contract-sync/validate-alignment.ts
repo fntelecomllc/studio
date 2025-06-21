@@ -11,7 +11,8 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { execSync } from 'child_process';
+import { execSync as _execSync } from 'child_process';
+import { fileURLToPath as _fileURLToPath } from 'url';
 
 interface ValidationIssue {
   severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
@@ -52,8 +53,8 @@ class ContractValidator {
    * Load contracts from various sources
    */
   private loadContracts() {
-    // Load extracted Go contracts
-    const contractsPath = path.join(__dirname, 'extracted-contracts.json');
+    // Load extracted Go contracts - use project root instead of script location
+    const contractsPath = path.join(process.cwd(), 'extracted-contracts.json');
     if (fs.existsSync(contractsPath)) {
       this.extractedContracts = JSON.parse(fs.readFileSync(contractsPath, 'utf-8'));
     }
@@ -69,33 +70,28 @@ class ContractValidator {
    * Extract database schema using psql
    */
   private extractDatabaseSchema(): any {
-    try {
-      // This would connect to the database and extract schema
-      // For now, we'll use a mock structure
-      return {
-        tables: {
-          campaigns: {
-            columns: {
-              id: { type: 'uuid', nullable: false },
-              name: { type: 'text', nullable: false },
-              campaign_type: { type: 'text', nullable: false },
-              status: { type: 'text', nullable: false },
-              total_items: { type: 'bigint', nullable: true, default: '0' },
-              processed_items: { type: 'bigint', nullable: true, default: '0' },
-              successful_items: { type: 'bigint', nullable: true, default: '0' },
-              failed_items: { type: 'bigint', nullable: true, default: '0' }
-            },
-            constraints: {
-              campaigns_status_check: ['pending', 'queued', 'running', 'pausing', 'paused', 'completed', 'failed', 'cancelled'],
-              campaigns_campaign_type_check: ['domain_generation', 'dns_validation', 'http_keyword_validation']
-            }
+    // This would connect to the database and extract schema
+    // For now, we'll use a mock structure
+    return {
+      tables: {
+        campaigns: {
+          columns: {
+            id: { type: 'uuid', nullable: false },
+            name: { type: 'text', nullable: false },
+            campaign_type: { type: 'text', nullable: false },
+            status: { type: 'text', nullable: false },
+            total_items: { type: 'bigint', nullable: true, default: '0' },
+            processed_items: { type: 'bigint', nullable: true, default: '0' },
+            successful_items: { type: 'bigint', nullable: true, default: '0' },
+            failed_items: { type: 'bigint', nullable: true, default: '0' }
+          },
+          constraints: {
+            campaigns_status_check: ['pending', 'queued', 'running', 'pausing', 'paused', 'completed', 'failed', 'cancelled', 'archived'],
+            campaigns_campaign_type_check: ['domain_generation', 'dns_validation', 'http_keyword_validation']
           }
         }
-      };
-    } catch (error) {
-      console.error('Failed to extract database schema:', error);
-      return {};
-    }
+      }
+    };
   }
 
   /**
@@ -112,12 +108,14 @@ class ContractValidator {
     if (fs.existsSync(modelsPath)) {
       const content = fs.readFileSync(modelsPath, 'utf-8');
       
-      // Extract interfaces
-      const interfaceRegex = /export interface (\w+) {([^}]+)}/g;
+      // Extract interfaces with better regex that handles nested braces
+      const interfaceRegex = /export interface (\w+) \{([\s\S]*?)\n\}/g;
       let match;
       while ((match = interfaceRegex.exec(content)) !== null) {
         const interfaceName = match[1];
         const body = match[2];
+        if (!interfaceName || !body) continue;
+        
         types.interfaces[interfaceName] = this.parseTypeScriptInterface(body);
       }
 
@@ -126,6 +124,7 @@ class ContractValidator {
       while ((match = enumRegex.exec(content)) !== null) {
         const enumName = match[1];
         const body = match[2];
+        if (!enumName || !body) continue;
         types.enums[enumName] = this.parseTypeScriptEnum(body);
       }
     }
@@ -138,13 +137,24 @@ class ContractValidator {
    */
   private parseTypeScriptInterface(body: string): any {
     const fields: any = {};
-    const fieldRegex = /(\w+)(\?)?:\s*([^;]+);/g;
+    
+    // Clean up the body - remove comments and extra whitespace
+    const cleanBody = body
+      .replace(/\/\/.*$/gm, '') // Remove single-line comments
+      .replace(/\/\*[\s\S]*?\*\//g, '') // Remove multi-line comments
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+    
+    // More robust field regex that handles various patterns
+    const fieldRegex = /(\w+)(\?)?:\s*([^;,}]+);/g;
     let match;
 
-    while ((match = fieldRegex.exec(body)) !== null) {
+    while ((match = fieldRegex.exec(cleanBody)) !== null) {
       const fieldName = match[1];
       const optional = match[2] === '?';
-      const fieldType = match[3].trim();
+      const fieldType = match[3]?.trim();
+      
+      if (!fieldName || !fieldType) continue;
       
       fields[fieldName] = {
         type: fieldType,
@@ -164,7 +174,9 @@ class ContractValidator {
     let match;
 
     while ((match = valueRegex.exec(body)) !== null) {
-      values.push(match[1]);
+      const value = match[1];
+      if (!value) continue;
+      values.push(value);
     }
 
     return values;
@@ -200,15 +212,15 @@ class ContractValidator {
    */
   private validateInt64Fields() {
     const int64Fields = [
-      { model: 'Campaign', fields: ['totalItems', 'processedItems', 'successfulItems', 'failedItems'] },
-      { model: 'DomainGenerationParams', fields: ['totalPossibleCombinations', 'currentOffset'] },
-      { model: 'GeneratedDomain', fields: ['offsetIndex'] }
+      { tsModel: 'Campaign', goModel: 'Campaign', fields: ['totalItems', 'processedItems', 'successfulItems', 'failedItems'] },
+      { tsModel: 'DomainGenerationParams', goModel: 'DomainGenerationCampaignParams', fields: ['totalPossibleCombinations', 'currentOffset'] },
+      { tsModel: 'GeneratedDomain', goModel: 'GeneratedDomain', fields: ['offsetIndex'] }
     ];
 
-    int64Fields.forEach(({ model, fields }) => {
+    int64Fields.forEach(({ tsModel, goModel, fields }) => {
       fields.forEach(field => {
         // Check database type
-        const dbTable = this.camelToSnake(model);
+        const dbTable = this.camelToSnake(tsModel);
         const dbField = this.camelToSnake(field);
         const dbColumn = this.databaseSchema.tables[dbTable]?.columns[dbField];
 
@@ -217,7 +229,7 @@ class ContractValidator {
             severity: 'CRITICAL',
             layer: 'database',
             type: 'int64_type_mismatch',
-            field: `${model}.${field}`,
+            field: `${tsModel}.${field}`,
             expected: 'bigint',
             actual: dbColumn.type,
             description: `Database column ${dbTable}.${dbField} should be BIGINT for int64 safety`
@@ -225,7 +237,7 @@ class ContractValidator {
         }
 
         // Check TypeScript type
-        const tsInterface = this.typeScriptTypes.interfaces[model];
+        const tsInterface = this.typeScriptTypes.interfaces[tsModel];
         if (tsInterface && tsInterface[field]) {
           const tsType = tsInterface[field].type;
           if (tsType !== 'SafeBigInt') {
@@ -233,10 +245,27 @@ class ContractValidator {
               severity: 'CRITICAL',
               layer: 'frontend',
               type: 'int64_type_mismatch',
-              field: `${model}.${field}`,
+              field: `${tsModel}.${field}`,
               expected: 'SafeBigInt',
               actual: tsType,
               description: `TypeScript field should use SafeBigInt for int64 values`
+            });
+          }
+        }
+
+        // Check Go model has int64 type
+        const goModelData = this.extractedContracts?.models.find((m: any) => m.name === goModel);
+        if (goModelData) {
+          const goField = goModelData.fields?.find((f: any) => f.jsonTag === field);
+          if (goField && goField.type !== 'int64') {
+            this.addIssue({
+              severity: 'CRITICAL',
+              layer: 'backend',
+              type: 'int64_type_mismatch',
+              field: `${goModel}.${field}`,
+              expected: 'int64',
+              actual: goField.type,
+              description: `Go field should use int64 type for large numeric values`
             });
           }
         }
@@ -317,43 +346,45 @@ class ContractValidator {
     // Check for missing critical fields
     const criticalFields = [
       {
-        model: 'DomainGenerationParams',
+        tsModel: 'DomainGenerationParams',
+        goModel: 'DomainGenerationCampaignParams',
         fields: ['totalPossibleCombinations', 'currentOffset']
       },
       {
-        model: 'HTTPKeywordParams',
+        tsModel: 'HTTPKeywordParams',
+        goModel: 'HTTPKeywordCampaignParams',
         fields: ['sourceType']
       }
     ];
 
-    criticalFields.forEach(({ model, fields }) => {
-      const goModel = this.extractedContracts?.models.find((m: any) => m.name === model);
-      const tsInterface = this.typeScriptTypes.interfaces[model];
+    criticalFields.forEach(({ tsModel, goModel, fields }) => {
+      const goModelData = this.extractedContracts?.models.find((m: any) => m.name === goModel);
+      const tsInterface = this.typeScriptTypes.interfaces[tsModel];
 
       fields.forEach(field => {
-        // Check Go model
-        if (goModel && !goModel.fields?.find((f: any) => f.name === field)) {
+        // Check Go model (using camelCase field names as they appear in JSON tags)
+        if (goModelData && !goModelData.fields?.find((f: any) => f.jsonTag === field)) {
           this.addIssue({
             severity: 'CRITICAL',
             layer: 'backend',
             type: 'missing_required_field',
-            field: `${model}.${field}`,
+            field: `${goModel}.${field}`,
             expected: 'present',
             actual: 'missing',
-            description: `Required field ${field} missing from Go model ${model}`
+            description: `Required field ${field} missing from Go model ${goModel}`
           });
         }
 
-        // Check TypeScript interface
+        // Check TypeScript interface (more robust field checking)
         if (tsInterface && !tsInterface[field]) {
           this.addIssue({
             severity: 'CRITICAL',
             layer: 'frontend',
             type: 'missing_required_field',
-            field: `${model}.${field}`,
+            field: `${tsModel}.${field}`,
             expected: 'present',
             actual: 'missing',
-            description: `Required field ${field} missing from TypeScript interface ${model}`
+            description: `Required field ${field} missing from TypeScript interface ${tsModel}`
           });
         }
       });
@@ -365,10 +396,10 @@ class ContractValidator {
    */
   private validateAPIEndpoints() {
     const requiredEndpoints = [
-      { method: 'GET', path: '/api/v2/admin/users', description: 'List users' },
-      { method: 'POST', path: '/api/v2/admin/users', description: 'Create user' },
-      { method: 'PUT', path: '/api/v2/admin/users/:id', description: 'Update user' },
-      { method: 'DELETE', path: '/api/v2/admin/users/:id', description: 'Delete user' }
+      { method: 'GET', path: '/users', description: 'List users' },
+      { method: 'POST', path: '/users', description: 'Create user' },
+      { method: 'PUT', path: '/users/:userId', description: 'Update user' },
+      { method: 'DELETE', path: '/users/:userId', description: 'Delete user' }
     ];
 
     requiredEndpoints.forEach(required => {
@@ -549,7 +580,10 @@ class ContractValidator {
    * Utility: Convert snake_case to camelCase
    */
   private snakeToCamel(str: string): string {
-    return str.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+    return str.replace(/_([a-z])/g, (g) => {
+      const char = g[1];
+      return char ? char.toUpperCase() : '';
+    });
   }
 }
 
@@ -568,14 +602,16 @@ async function main() {
       console.log(`\n❌ Contract validation failed with ${report.issueCount.critical} critical and ${report.issueCount.high} high severity issues`);
       process.exit(1);
     }
-  } catch (error) {
+  } catch {
     console.error('❌ Validation failed:', error);
     process.exit(1);
   }
 }
 
+// CommonJS main module check
 if (require.main === module) {
   main();
 }
 
-export { ContractValidator, ValidationReport };
+export { ContractValidator };
+export type { ValidationReport };

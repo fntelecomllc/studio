@@ -15,7 +15,7 @@
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as os from 'os';
+import * as _os from 'os';
 import chalk from 'chalk';
 
 interface SystemRequirement {
@@ -86,7 +86,7 @@ class DevSetup {
             }
           }
         }
-      } catch (error) {
+      } catch {
         const msg = `${req.name} is not installed`;
         if (req.required) {
           this.errors.push(msg);
@@ -126,7 +126,7 @@ class DevSetup {
       });
 
       console.log(chalk.green('✓ Dependencies installed successfully'));
-    } catch (error) {
+    } catch {
       this.errors.push('Failed to install dependencies');
       console.log(chalk.red('✗ Failed to install dependencies'));
     }
@@ -262,7 +262,7 @@ npx commitlint --edit $1
       );
 
       console.log(chalk.green('✓ Git hooks configured'));
-    } catch (error) {
+    } catch {
       this.warnings.push('Failed to setup git hooks');
       console.log(chalk.yellow('⚠ Failed to setup git hooks'));
     }
@@ -283,7 +283,7 @@ npx commitlint --edit $1
           stdio: 'pipe'
         });
         console.log(chalk.green(`✓ ${validation.name} passed`));
-      } catch (error) {
+      } catch {
         this.warnings.push(`${validation.name} failed`);
         console.log(chalk.yellow(`⚠ ${validation.name} failed`));
       }
@@ -334,7 +334,7 @@ npx commitlint --edit $1
     console.log('  2. Start the development server: npm run dev');
     console.log('  3. Open http://localhost:3000 in your browser');
     console.log('  4. Check the monitoring dashboard for real-time metrics');
-    console.log('\n' + chalk.gray('For more information, see the documentation at docs/'));
+    console.log(`\n${  chalk.gray('For more information, see the documentation at docs/')}`);
   }
 }
 

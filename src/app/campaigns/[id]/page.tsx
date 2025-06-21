@@ -14,8 +14,7 @@ import type { Campaign, CampaignViewModel, CampaignStatus, StartCampaignPhasePay
 import { safeBigIntToNumber } from '@/lib/types/branded';
 import { CAMPAIGN_PHASES_ORDERED, getFirstPhase } from '@/lib/constants';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, Briefcase, Dna, Network, Globe, Play, RefreshCw, CheckCircle, Download, PauseCircle, PlayCircle, StopCircle, HelpCircle, Search, ShieldQuestion, ExternalLink, XCircle, Clock, Loader2, ChevronLeft, ChevronRight, Percent } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { AlertCircle, Briefcase, Dna, Network, Globe, Play, RefreshCw, CheckCircle, Download, PauseCircle, PlayCircle, StopCircle, HelpCircle, Search, ShieldQuestion, ExternalLink, XCircle, Clock, Loader2, ChevronLeft, ChevronRight, Percent, type LucideIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { getCampaignById, startCampaign as startCampaignPhase, pauseCampaign, resumeCampaign, cancelCampaign as stopCampaign, getGeneratedDomains as getGeneratedDomainsForCampaign, getDNSValidationResults as getDnsCampaignDomains, getHTTPKeywordResults as getHttpCampaignItems } from '@/lib/services/campaignService.production';
@@ -501,13 +500,6 @@ export default function CampaignDashboardPage() {
     } else if (campaign.campaignType === 'http_keyword_validation') {
         itemsToMap = httpCampaignItems;
         itemType = 'http';
-    } else if (campaign.campaignType === 'http_keyword_validation') {
-        // For Lead Gen, the "base" list of domains might come from its HTTP validated input
-        // or its own generation if that was the source.
-        // This needs more specific handling based on how Lead Gen sources its domains.
-        // For now, assume it operates on httpValidatedDomains if available, or campaign.domains if internal gen.
-        itemsToMap = httpCampaignItems.map(d => ({domainName: d.domainName, id: d.id})) || [];
-        itemType = 'lead_gen_base'; // Indicates we're showing base domains, lead status applied
     }
 
     if (itemType === 'dns' || itemType === 'http') {

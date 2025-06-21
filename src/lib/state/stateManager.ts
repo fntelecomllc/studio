@@ -61,7 +61,7 @@ class StateManager {
   private subscribers: Map<string, Set<(data: unknown) => void>> = new Map();
   private rollbackQueue: OptimisticUpdate[] = [];
   private syncQueue: StateSyncMessage[] = [];
-  private isOnline: boolean = true;
+  private isOnline = true;
   private tabId: string;
 
   constructor() {
@@ -213,7 +213,7 @@ class StateManager {
       // Remove from rollback queue on success
       this.rollbackQueue = this.rollbackQueue.filter(u => u.id !== updateId);
       return true;
-    } catch (error) {
+    } catch {
       console.error(`[StateManager] Retry failed for update ${updateId}:`, error);
       return false;
     }
@@ -255,7 +255,7 @@ class StateManager {
   }
 
   // Cache Management
-  updateCache<T>(entityType: string, entityId: string, data: T, ttl: number = 300000): void {
+  updateCache<T>(entityType: string, entityId: string, data: T, ttl = 300000): void {
     const cacheKey = `${entityType}:${entityId}`;
     const entry: CacheEntry<T> = {
       data,
@@ -377,7 +377,7 @@ class StateManager {
       subscribers.forEach(callback => {
         try {
           callback(data);
-        } catch (error) {
+        } catch {
           console.error(`[StateManager] Error in subscriber callback for ${entityType}:`, error);
         }
       });

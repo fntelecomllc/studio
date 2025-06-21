@@ -73,7 +73,7 @@ export function transformBackendTimestamp(
     }
     
     return createISODateString(date.toISOString());
-  } catch (error) {
+  } catch {
     console.error('Error transforming timestamp:', error, timestamp);
     return undefined;
   }
@@ -102,7 +102,7 @@ export function formatISODate(
     };
     
     return new Intl.DateTimeFormat('en-US', options).format(date);
-  } catch (error) {
+  } catch {
     console.error('Error formatting date:', error, isoDate);
     return isoDate; // Fallback to raw ISO string
   }
@@ -136,7 +136,7 @@ export function getRelativeTime(
     } else {
       return rtf.format(-diffSeconds, 'second');
     }
-  } catch (error) {
+  } catch {
     console.error('Error getting relative time:', error, isoDate);
     return formatISODate(isoDate);
   }
@@ -156,7 +156,7 @@ export function toUTCISOString(
       return undefined;
     }
     return createISODateString(dateObj.toISOString());
-  } catch (error) {
+  } catch {
     console.error('Error converting to UTC ISO string:', error, date);
     return undefined;
   }
@@ -176,7 +176,7 @@ export function parseISODate(
       return undefined;
     }
     return date;
-  } catch (error) {
+  } catch {
     console.error('Error parsing ISO date:', error, isoDate);
     return undefined;
   }

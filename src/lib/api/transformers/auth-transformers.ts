@@ -5,8 +5,7 @@
 
 import type { ModelsUserAPI } from '@/lib/api-client/models/models-user-api';
 import type { ModelsLoginResponseAPI } from '@/lib/api-client/models/models-login-response-api';
-import type { UUID, ISODateString } from '@/lib/types/branded';
-import { createUUID, createISODateString } from '@/lib/types/branded';
+import { createUUID, createISODateString, type UUID, type ISODateString } from '@/lib/types/branded';
 
 /**
  * User API model with properly typed fields

@@ -118,7 +118,7 @@ export class PerformanceMonitor {
         });
         lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
         this.observers.push(lcpObserver);
-      } catch (error) {
+      } catch {
         console.warn('[PerformanceMonitor] LCP observer not supported:', error);
       }
 
@@ -138,7 +138,7 @@ export class PerformanceMonitor {
         });
         fidObserver.observe({ entryTypes: ['first-input'] });
         this.observers.push(fidObserver);
-      } catch (error) {
+      } catch {
         console.warn('[PerformanceMonitor] FID observer not supported:', error);
       }
 
@@ -163,7 +163,7 @@ export class PerformanceMonitor {
         });
         clsObserver.observe({ entryTypes: ['layout-shift'] });
         this.observers.push(clsObserver);
-      } catch (error) {
+      } catch {
         console.warn('[PerformanceMonitor] CLS observer not supported:', error);
       }
     }
@@ -245,7 +245,7 @@ export class PerformanceMonitor {
         });
         resourceObserver.observe({ entryTypes: ['resource'] });
         this.observers.push(resourceObserver);
-      } catch (error) {
+      } catch {
         console.warn('[PerformanceMonitor] Resource observer not supported:', error);
       }
     }
@@ -332,7 +332,7 @@ export class PerformanceMonitor {
             sessionId: this.sessionId,
           }),
         });
-      } catch (error) {
+      } catch {
         console.warn('[PerformanceMonitor] Failed to send metrics:', error);
         // Re-add reports to buffer on failure
         this.buffer.unshift(...reports);

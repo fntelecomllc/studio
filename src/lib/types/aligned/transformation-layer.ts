@@ -10,16 +10,16 @@
 
 import {
   SafeBigInt,
-  UUID,
-  ISODateString,
-  Email,
-  createSafeBigInt,
+  UUID as _UUID,
+  ISODateString as _ISODateString,
+  Email as _Email,
+  createSafeBigInt as _createSafeBigInt,
   createUUID,
   createISODateString,
   createEmail,
-  tryCreateSafeBigInt,
+  tryCreateSafeBigInt as _tryCreateSafeBigInt,
   transformInt64Fields,
-  prepareForSerialization
+  prepareForSerialization as _prepareForSerialization
 } from '../branded';
 
 import {
@@ -38,7 +38,7 @@ import {
   DNSValidationParams,
   HTTPKeywordParams,
   GeneratedDomain,
-  IPAddress,
+  IPAddress as _IPAddress,
   createIPAddress
 } from './aligned-models';
 
@@ -532,8 +532,8 @@ export function safeTransform<T>(
       return fallback;
     }
     return transformer(raw as Record<string, unknown>);
-  } catch (error) {
-    console.error('Transformation error:', error);
+  } catch {
+    console.error('Transformation error:', `error`);
     return fallback;
   }
 }

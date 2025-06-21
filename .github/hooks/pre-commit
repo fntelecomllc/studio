@@ -1,0 +1,83 @@
+#!/bin/bash
+
+#
+# Pre-commit hook for TypeScript strict mode enforcement
+# Prevents commits with TypeScript strict mode violations
+#
+
+set -e
+
+echo "🔍 Running pre-commit TypeScript strict mode validation..."
+
+# Check if this is a TypeScript-related commit
+if git diff --cached --name-only | grep -E '\.(ts|tsx)$' > /dev/null; then
+    echo "📝 TypeScript files detected in commit"
+    
+    # Run TypeScript strict mode check
+    echo "⚡ Running TypeScript strict mode check..."
+    
+    if npm run typecheck:strict > /dev/null 2>&1; then
+        echo "✅ TypeScript strict mode validation passed"
+    else
+        echo "❌ TypeScript strict mode validation failed!"
+        echo ""
+        echo "🚫 COMMIT BLOCKED: TypeScript strict mode violations detected"
+        echo ""
+        echo "Please fix the following TypeScript errors before committing:"
+        echo "----------------------------------------"
+        npm run typecheck:strict 2>&1 | head -20
+        echo "----------------------------------------"
+        echo ""
+        echo "💡 Tips:"
+        echo "  • Run 'npm run typecheck:strict' to see full error list"
+        echo "  • Run 'npm run typecheck' for regular typecheck (less strict)"
+        echo "  • Fix type errors or use proper type assertions"
+        echo ""
+        echo "🎯 This project enforces zero TypeScript strict mode errors"
+        echo "   for production-ready type safety."
+        echo ""
+        exit 1
+    fi
+    
+    # Check for SafeBigInt pattern compliance in new/modified files
+    echo "🔢 Checking SafeBigInt pattern compliance..."
+    
+    BIGINT_VIOLATIONS=""
+    for file in $(git diff --cached --name-only | grep -E '\.(ts|tsx)$'); do
+        if [ -f "$file" ]; then
+            # Check for potential int64 numeric overflow issues
+            if grep -n -E "(totalItems|processedItems|successfulItems|failedItems|totalPossibleCombinations|currentOffset|offsetIndex).*: number" "$file" > /dev/null; then
+                BIGINT_VIOLATIONS="$BIGINT_VIOLATIONS\n  - $file: Contains int64 fields using 'number' instead of 'SafeBigInt'"
+            fi
+            
+            # Check for raw BigInt usage instead of SafeBigInt
+            if grep -n "BigInt(" "$file" | grep -v "createSafeBigInt\|SafeBigInt" > /dev/null; then
+                BIGINT_VIOLATIONS="$BIGINT_VIOLATIONS\n  - $file: Contains raw BigInt usage - use createSafeBigInt() instead"
+            fi
+        fi
+    done
+    
+    if [ -n "$BIGINT_VIOLATIONS" ]; then
+        echo "⚠️  SafeBigInt pattern violations detected:"
+        echo -e "$BIGINT_VIOLATIONS"
+        echo ""
+        echo "💡 Consider using SafeBigInt for int64 fields to prevent numeric overflow"
+        echo "   Replace 'number' with 'SafeBigInt' and use createSafeBigInt() for construction"
+        echo ""
+        echo "🔧 This is a warning - commit will proceed, but please review"
+    else
+        echo "✅ SafeBigInt pattern compliance verified"
+    fi
+    
+else
+    echo "⏭️  No TypeScript files in commit - skipping validation"
+fi
+
+# Check for contract sync files
+if git diff --cached --name-only | grep -E 'contract-sync|api-client' > /dev/null; then
+    echo "🔄 Contract-related files detected - consider running contract sync"
+    echo "💡 Run 'npm run contracts:sync' to validate alignment after commit"
+fi
+
+echo "✅ Pre-commit validation completed successfully"
+echo ""

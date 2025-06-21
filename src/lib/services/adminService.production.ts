@@ -66,7 +66,7 @@ class AdminService {
       const response = await apiClient.get<User[]>('/api/v2/admin/users', { params: filters });
       console.log('[AdminService] Get users response:', response);
       return response;
-    } catch (error) {
+    } catch {
       console.error('[AdminService] Failed to get users:', error);
       throw error;
     }
@@ -78,7 +78,7 @@ class AdminService {
       const response = await apiClient.get<User>(`/api/v2/admin/users/${userId}`);
       console.log('[AdminService] Get user response:', response);
       return response;
-    } catch (error) {
+    } catch {
       console.error('[AdminService] Failed to get user:', error);
       throw error;
     }
@@ -90,7 +90,7 @@ class AdminService {
       const response = await apiClient.post<User>('/api/v2/admin/users', userData);
       console.log('[AdminService] Create user response:', response);
       return response;
-    } catch (error) {
+    } catch {
       console.error('[AdminService] Failed to create user:', error);
       throw error;
     }
@@ -102,7 +102,7 @@ class AdminService {
       const response = await apiClient.put<User>(`/api/v2/admin/users/${userId}`, userData);
       console.log('[AdminService] Update user response:', response);
       return response;
-    } catch (error) {
+    } catch {
       console.error('[AdminService] Failed to update user:', error);
       throw error;
     }
@@ -114,7 +114,7 @@ class AdminService {
       const response = await apiClient.delete<null>(`/api/v2/admin/users/${userId}`);
       console.log('[AdminService] Delete user response:', response);
       return response;
-    } catch (error) {
+    } catch {
       console.error('[AdminService] Failed to delete user:', error);
       throw error;
     }
@@ -126,7 +126,7 @@ class AdminService {
     try {
       console.log('[AdminService] Activating user:', userId);
       return await this.updateUser(userId, { isActive: true });
-    } catch (error) {
+    } catch {
       console.error('[AdminService] Failed to activate user:', error);
       throw error;
     }
@@ -136,7 +136,7 @@ class AdminService {
     try {
       console.log('[AdminService] Deactivating user:', userId);
       return await this.updateUser(userId, { isActive: false });
-    } catch (error) {
+    } catch {
       console.error('[AdminService] Failed to deactivate user:', error);
       throw error;
     }
@@ -146,7 +146,7 @@ class AdminService {
     try {
       console.log('[AdminService] Locking user:', userId);
       return await this.updateUser(userId, { isLocked: true });
-    } catch (error) {
+    } catch {
       console.error('[AdminService] Failed to lock user:', error);
       throw error;
     }
@@ -156,7 +156,7 @@ class AdminService {
     try {
       console.log('[AdminService] Unlocking user:', userId);
       return await this.updateUser(userId, { isLocked: false });
-    } catch (error) {
+    } catch {
       console.error('[AdminService] Failed to unlock user:', error);
       throw error;
     }
@@ -166,7 +166,7 @@ class AdminService {
     try {
       console.log('[AdminService] Updating user roles:', userId, roles);
       return await this.updateUser(userId, { roles });
-    } catch (error) {
+    } catch {
       console.error('[AdminService] Failed to update user roles:', error);
       throw error;
     }
@@ -176,7 +176,7 @@ class AdminService {
     try {
       console.log('[AdminService] Updating user permissions:', userId, permissions);
       return await this.updateUser(userId, { permissions });
-    } catch (error) {
+    } catch {
       console.error('[AdminService] Failed to update user permissions:', error);
       throw error;
     }

@@ -125,7 +125,7 @@ class ProductionDeployment {
         warnings: this.warnings,
         metrics: await this.collectMetrics()
       };
-    } catch (error) {
+    } catch {
       const duration = Date.now() - this.startTime;
       const version = this.getCurrentVersion();
 
@@ -159,7 +159,7 @@ class ProductionDeployment {
       if (gitStatus.trim() && !this.config.force) {
         throw new Error('Uncommitted changes detected. Commit or stash changes before deploying.');
       }
-    } catch (error) {
+    } catch {
       if (!this.config.force) {
         throw error;
       }
@@ -204,7 +204,7 @@ class ProductionDeployment {
       }
 
       console.log(chalk.green('✓ Tests passed'));
-    } catch (error) {
+    } catch {
       throw new Error('Tests failed. Fix failing tests before deploying.');
     }
   }
@@ -218,7 +218,7 @@ class ProductionDeployment {
         stdio: 'inherit'
       });
       console.log(chalk.green('✓ Type check passed'));
-    } catch (error) {
+    } catch {
       throw new Error('Type check failed. Fix TypeScript errors before deploying.');
     }
   }
@@ -232,7 +232,7 @@ class ProductionDeployment {
         stdio: 'inherit'
       });
       console.log(chalk.green('✓ Linting passed'));
-    } catch (error) {
+    } catch {
       throw new Error('Linting failed. Fix linting errors before deploying.');
     }
   }
@@ -263,7 +263,7 @@ class ProductionDeployment {
 
       const buildTime = Date.now() - buildStart;
       console.log(chalk.green(`✓ Build completed in ${(buildTime / 1000).toFixed(2)}s`));
-    } catch (error) {
+    } catch {
       throw new Error('Build failed. Check build errors and try again.');
     }
   }
@@ -336,7 +336,7 @@ class ProductionDeployment {
       try {
         // This would make actual HTTP requests to verify endpoints
         console.log(chalk.green(`✓ Health check passed: ${endpoint}`));
-      } catch (error) {
+      } catch {
         throw new Error(`Health check failed for ${endpoint}`);
       }
     }
@@ -352,7 +352,7 @@ class ProductionDeployment {
       // });
 
       console.log(chalk.green('✓ Performance benchmark completed'));
-    } catch (error) {
+    } catch {
       this.warnings.push('Performance benchmark failed');
     }
   }
@@ -361,7 +361,7 @@ class ProductionDeployment {
     try {
       // Implement rollback logic based on deployment platform
       console.log(chalk.green('✓ Rollback completed'));
-    } catch (error) {
+    } catch {
       console.error(chalk.red('❌ Rollback failed:'), error);
     }
   }

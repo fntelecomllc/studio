@@ -50,7 +50,7 @@ function runTypeCheck(): boolean {
     console.log(chalk.blue('\n🔍 Running TypeScript type check...\n'));
     execSync('npx tsc --noEmit', { stdio: 'inherit' });
     return true;
-  } catch (error) {
+  } catch {
     return false;
   }
 }
@@ -107,7 +107,7 @@ function validateDefaultValues() {
         passed: content.includes(`export function ${exportName}`) || content.includes(`export const ${exportName}`)
       });
     });
-  } catch (error) {
+  } catch {
     logResult({
       category: 'Default Values',
       test: 'read default-values.ts',
@@ -143,7 +143,7 @@ function validateDateTransformations() {
         passed: content.includes(`export function ${exportName}`)
       });
     });
-  } catch (error) {
+  } catch {
     logResult({
       category: 'Date Transformations',
       test: 'read date-transformations.ts',
@@ -179,7 +179,7 @@ function validateEnumHelpers() {
         passed: content.includes(`export function ${exportName}`)
       });
     });
-  } catch (error) {
+  } catch {
     logResult({
       category: 'Enum Helpers',
       test: 'read enum-helpers.ts',
@@ -215,7 +215,7 @@ function validateArrayOperations() {
         passed: content.includes(`export function ${exportName}`)
       });
     });
-  } catch (error) {
+  } catch {
     logResult({
       category: 'Array Operations',
       test: 'read array-operations.ts',
@@ -256,7 +256,7 @@ function validateEnhancedApiClient() {
         passed: feature.pattern.test(content)
       });
     });
-  } catch (error) {
+  } catch {
     logResult({
       category: 'Enhanced API Client',
       test: 'read enhanced-api-client.ts',
@@ -301,7 +301,7 @@ function validatePerformanceUtilities() {
       test: 'monitoring service has recordCustomMetric',
       passed: content.includes('recordCustomMetric')
     });
-  } catch (error) {
+  } catch {
     logResult({
       category: 'Performance',
       test: 'monitoring service check',
@@ -341,7 +341,7 @@ function validateDocumentation() {
           passed: lines > 50,
           message: `${lines} lines`
         });
-      } catch (error) {
+      } catch {
         // Skip content check if can't read
       }
     }
@@ -384,7 +384,7 @@ function checkBundleSize() {
     });
     
     // TODO: Add actual bundle size analysis if needed
-  } catch (error) {
+  } catch {
     logResult({
       category: 'Bundle',
       test: 'Build successful',

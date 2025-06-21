@@ -172,7 +172,7 @@ export const validateAndTransformFormData = <T extends Record<string, unknown>>(
   try {
     const validatedData = schema.parse(data);
     return { success: true, data: validatedData };
-  } catch (error) {
+  } catch {
     if (error instanceof z.ZodError) {
       return { success: false, errors: error };
     }

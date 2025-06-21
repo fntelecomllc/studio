@@ -6,10 +6,9 @@
  */
 
 import apiClient from './apiClient.production';
-import { transformUserResponse } from '@/lib/types/models-aligned';
+import { transformUserResponse, type ModelsUserAPI } from '@/lib/types/models-aligned';
 import { transformErrorResponse, ApiError } from '@/lib/api/transformers/error-transformers';
 import { validateUserResponse, validateOrThrow } from '@/lib/validation/runtime-validators';
-import type { ModelsUserAPI } from '@/lib/types/models-aligned';
 import type { UUID, SafeBigInt } from '@/lib/types/branded';
 
 /**

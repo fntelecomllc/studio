@@ -195,7 +195,7 @@ export function LoginForm({
       loginSchema.parse(formData);
       errorManager.clearErrors();
       return true;
-    } catch (error) {
+    } catch {
       if (error instanceof z.ZodError) {
         errorManager.handleValidationError(error);
       }
@@ -258,7 +258,7 @@ export function LoginForm({
           }
         }
       }
-    } catch (error) {
+    } catch {
       console.error('Login error:', error);
       setLoginError('An unexpected error occurred. Please try again.');
       handleSecurityLockout(securityState.failedAttempts);

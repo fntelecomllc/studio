@@ -17,20 +17,20 @@ import {
   HTTPKeywordParams,
   User,
   PublicUser,
-  Role,
-  Permission,
+  Role as _Role,
+  Permission as _Permission,
   Persona,
   PersonaType,
   Proxy,
   GeneratedDomain,
-  createSafeBigInt
+  createSafeBigInt as _createSafeBigInt
 } from './aligned-models';
 
 import {
   UUID,
   SafeBigInt,
   ISODateString,
-  Email as EmailString
+  Email as _EmailString
 } from '../branded';
 
 // ============================================

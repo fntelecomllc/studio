@@ -64,11 +64,11 @@ class ProductionApiClient {
   private baseUrl: string;
   private static instance: ProductionApiClient;
 
-  constructor(baseUrl: string = '') {
+  constructor(baseUrl = '') {
     this.baseUrl = baseUrl;
   }
 
-  static getInstance(baseUrl: string = ''): ProductionApiClient {
+  static getInstance(baseUrl = ''): ProductionApiClient {
     if (!ProductionApiClient.instance) {
       ProductionApiClient.instance = new ProductionApiClient(baseUrl);
     }
@@ -253,7 +253,7 @@ class ProductionApiClient {
             message: 'Request successful',
           };
         }
-      } catch (error) {
+      } catch {
         lastError = error as Error;
         
         // Don't retry on abort or certain errors

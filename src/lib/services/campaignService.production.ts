@@ -84,7 +84,7 @@ class CampaignService {
         ...response,
         data: transformedData as unknown as Campaign[]
       };
-    } catch (error) {
+    } catch {
       console.error('[CampaignService] Failed to get campaigns:', error);
       const standardizedError = transformErrorResponse(error, 500, '/api/v2/campaigns');
       throw new ApiError(standardizedError);
@@ -104,7 +104,7 @@ class CampaignService {
         ...response,
         data: transformedData as unknown as Campaign
       };
-    } catch (error) {
+    } catch {
       console.error('[CampaignService] Failed to get campaign:', error);
       const standardizedError = transformErrorResponse(error, 500, `/api/v2/campaigns/${campaignId}`);
       throw new ApiError(standardizedError);
@@ -170,7 +170,7 @@ class CampaignService {
         ...response,
         data: transformedData as unknown as Campaign
       };
-    } catch (error) {
+    } catch {
       console.error('[CampaignService] Start campaign error:', error);
       const standardizedError = transformErrorResponse(error, 500, `/api/v2/campaigns/${campaignId}/start`);
       throw new ApiError(standardizedError);
@@ -190,7 +190,7 @@ class CampaignService {
         ...response,
         data: transformedData as unknown as Campaign
       };
-    } catch (error) {
+    } catch {
       console.error('[CampaignService] Pause campaign error:', error);
       const standardizedError = transformErrorResponse(error, 500, `/api/v2/campaigns/${campaignId}/pause`);
       throw new ApiError(standardizedError);
@@ -210,7 +210,7 @@ class CampaignService {
         ...response,
         data: transformedData as unknown as Campaign
       };
-    } catch (error) {
+    } catch {
       console.error('[CampaignService] Resume campaign error:', error);
       const standardizedError = transformErrorResponse(error, 500, `/api/v2/campaigns/${campaignId}/resume`);
       throw new ApiError(standardizedError);
@@ -230,7 +230,7 @@ class CampaignService {
         ...response,
         data: transformedData as unknown as Campaign
       };
-    } catch (error) {
+    } catch {
       console.error('[CampaignService] Cancel campaign error:', error);
       const standardizedError = transformErrorResponse(error, 500, `/api/v2/campaigns/${campaignId}/cancel`);
       throw new ApiError(standardizedError);
@@ -251,7 +251,7 @@ class CampaignService {
         try {
           const result = await this.cancelCampaign(campaignId);
           return result.data || null;
-        } catch (error) {
+        } catch {
           // If already cancelled, continue
           console.warn('[CampaignService] Campaign may already be cancelled:', error);
           return null;
@@ -307,7 +307,7 @@ class CampaignService {
         ...response,
         data: transformedData as unknown as GeneratedDomain[]
       };
-    } catch (error) {
+    } catch {
       console.error('[CampaignService] Failed to get generated domains:', error);
       const standardizedError = transformErrorResponse(error, 500, `/api/v2/campaigns/${campaignId}/results/generated-domains`);
       throw new ApiError(standardizedError);
@@ -336,7 +336,7 @@ class CampaignService {
         ...response,
         data: validationItems as unknown as CampaignValidationItem[]
       };
-    } catch (error) {
+    } catch {
       console.error('[CampaignService] Failed to get DNS validation results:', error);
       const standardizedError = transformErrorResponse(error, 500, `/api/v2/campaigns/${campaignId}/results/dns-validation`);
       throw new ApiError(standardizedError);
@@ -365,7 +365,7 @@ class CampaignService {
         ...response,
         data: validationItems as unknown as CampaignValidationItem[]
       };
-    } catch (error) {
+    } catch {
       console.error('[CampaignService] Failed to get HTTP keyword results:', error);
       const standardizedError = transformErrorResponse(error, 500, `/api/v2/campaigns/${campaignId}/results/http-keyword`);
       throw new ApiError(standardizedError);

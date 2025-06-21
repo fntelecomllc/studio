@@ -301,7 +301,7 @@ class ABTestingService {
 
     // Check percentage rollout
     if (experiment.targeting.percentage < 100) {
-      const hash = this.hashString(experiment.id + ':' + (userId || 'anonymous'));
+      const hash = this.hashString(`${experiment.id  }:${  userId || 'anonymous'}`);
       if ((hash % 100) >= experiment.targeting.percentage) {
         return false;
       }
@@ -325,7 +325,7 @@ class ABTestingService {
     const totalWeight = experiment.variants.reduce((sum, v) => sum + v.weight, 0);
     if (totalWeight === 0) return null;
 
-    const hash = this.hashString(experiment.id + ':' + (userId || 'anonymous'));
+    const hash = this.hashString(`${experiment.id  }:${  userId || 'anonymous'}`);
     const roll = hash % totalWeight;
 
     let cumulativeWeight = 0;
@@ -450,7 +450,7 @@ class ABTestingService {
     try {
       // This would fetch from your API
       // For now, we'll use local experiments
-    } catch (error) {
+    } catch {
       errorTracker.trackError(error as Error, {
         component: 'ABTestingService',
         url: '/api/experiments',
@@ -486,7 +486,7 @@ class ABTestingService {
       //   headers: { 'Content-Type': 'application/json' },
       //   body: JSON.stringify({ events })
       // });
-    } catch (error) {
+    } catch {
       // Re-queue events on failure
       this.analyticsQueue.unshift(...events);
       errorTracker.trackError(error as Error, {
@@ -512,7 +512,7 @@ class ABTestingService {
       };
       
       localStorage.setItem(this.storageKey, JSON.stringify(data));
-    } catch (error) {
+    } catch {
       console.error('Failed to save A/B test data:', error);
     }
   }
@@ -541,7 +541,7 @@ class ABTestingService {
       data.conversions?.forEach(([id, events]: [string, ConversionEvent[]]) => {
         this.conversions.set(id, events);
       });
-    } catch (error) {
+    } catch {
       console.error('Failed to load A/B test data:', error);
     }
   }

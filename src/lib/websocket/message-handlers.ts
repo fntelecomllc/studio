@@ -155,9 +155,10 @@ function extractCampaignId(message: TypedWebSocketMessage): UUID | null {
     case WebSocketMessageTypes.HTTP_VALIDATION_RESULT:
       return (message.data as { campaignId: string }).campaignId as UUID;
     
-    case WebSocketMessageTypes.PROXY_STATUS:
+    case WebSocketMessageTypes.PROXY_STATUS: {
       const proxyData = message.data as { campaignId?: string };
       return proxyData.campaignId ? proxyData.campaignId as UUID : null;
+    }
     
     default:
       return null;

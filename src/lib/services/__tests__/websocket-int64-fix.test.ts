@@ -4,7 +4,7 @@
  */
 
 import { WebSocketService } from '../websocketService.simple';
-import { SafeBigInt, createSafeBigInt, isSafeBigInt } from '@/lib/types/branded';
+import { createSafeBigInt, isSafeBigInt } from '@/lib/types/branded';
 
 describe('CV-009: WebSocket Int64 Field Handling', () => {
   let service: WebSocketService;

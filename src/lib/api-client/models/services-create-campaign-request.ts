@@ -14,13 +14,13 @@
 
 
 // May contain unused imports in some cases
-// @ts-ignore
+// @ts-expect-error - API client type compatibility
 import type { ServicesDnsValidationParams } from './services-dns-validation-params';
 // May contain unused imports in some cases
-// @ts-ignore
+// @ts-expect-error - API client type compatibility
 import type { ServicesDomainGenerationParams } from './services-domain-generation-params';
 // May contain unused imports in some cases
-// @ts-ignore
+// @ts-expect-error - API client type compatibility
 import type { ServicesHttpKeywordParams } from './services-http-keyword-params';
 
 /**

@@ -1,10 +1,11 @@
 /**
  * Test for H-005: Campaign Status Enum - Remove 'archived' status
- * 
+ *
  * Backend doesn't include 'archived' in CampaignStatusEnum,
  * but frontend was including it, causing contract violation.
  */
 
+import { describe, it, expect } from '@jest/globals';
 import { ModelsCampaignStatusEnum } from '../models-campaign-status-enum';
 
 describe('H-005: Campaign Status Enum Contract Alignment', () => {
@@ -61,6 +62,6 @@ describe('H-005: Campaign Status Enum Contract Alignment', () => {
 
     // This would cause a TypeScript error if 'archived' was a valid value
     // @ts-expect-error - 'archived' is not a valid status
-    const invalidStatus: StatusType = 'archived';
+    const _invalidStatus: StatusType = 'archived';
   });
 });

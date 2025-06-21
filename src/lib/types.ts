@@ -922,8 +922,8 @@ export interface CampaignDomainDetail {
   leadDetails?: Lead;
 }
 
-// Campaign Validation Item
-export interface CampaignValidationItem {
+// Campaign Validation Item Result
+export interface CampaignValidationItemResult {
   id: string;
   domain: string;
   status: ValidationStatus;
@@ -975,8 +975,8 @@ export interface ExtractedContentItem {
   metadata?: Record<string, unknown>;
 }
 
-// Lead interface for campaign results
-export interface Lead {
+// Lead Result interface for campaign results
+export interface LeadResult {
   id: string;
   name?: string;
   email?: string;

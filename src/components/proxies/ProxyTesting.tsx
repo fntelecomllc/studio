@@ -145,7 +145,7 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
       // Refresh proxy data
       onProxiesUpdate();
 
-    } catch (error) {
+    } catch {
       console.error('Testing session failed:', error);
       toast({
         title: "Testing Failed",
@@ -193,7 +193,7 @@ export function ProxyTesting({ proxies, onProxiesUpdate, disabled = false }: Pro
         };
       });
 
-    } catch (error) {
+    } catch {
       const result: TestResult = {
         proxyId: proxy.id,
         success: false,

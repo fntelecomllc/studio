@@ -325,7 +325,7 @@ export function withApiErrorHandling<T extends (...args: unknown[]) => Promise<u
   return (async (...args: Parameters<T>) => {
     try {
       return await apiFunction(...args);
-    } catch (error) {
+    } catch {
       console.error('API call failed:', error);
       
       // Re-throw with additional context

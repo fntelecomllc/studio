@@ -56,7 +56,7 @@ class EnhancedWebSocketService {
       this.ws.onmessage = this.handleMessage.bind(this);
       this.ws.onerror = this.handleError.bind(this);
       this.ws.onclose = this.handleClose.bind(this);
-    } catch (error) {
+    } catch {
       console.error('Failed to create WebSocket connection:', error);
       this.handleError(new Event('error'));
     }
@@ -96,7 +96,7 @@ class EnhancedWebSocketService {
       }
       
       this.options.onMessage?.(transformedMessage);
-    } catch (error) {
+    } catch {
       console.error('Failed to parse WebSocket message:', error);
       this.options.onError?.(new Error('Failed to parse WebSocket message'));
     }
@@ -182,7 +182,7 @@ class EnhancedWebSocketService {
         : transformApiRequest(message);
       
       this.ws.send(JSON.stringify(transformedMessage));
-    } catch (error) {
+    } catch {
       console.error('Failed to send WebSocket message:', error);
       this.options.onError?.(new Error('Failed to send message'));
     }

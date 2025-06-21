@@ -38,8 +38,8 @@ export enum CampaignStatus {
   PAUSED = 'paused',
   COMPLETED = 'completed',
   FAILED = 'failed',
+  ARCHIVED = 'archived',  // Added - present in Go backend
   CANCELLED = 'cancelled'
-  // NOTE: 'archived' is NOT a valid status in backend
 }
 
 export enum CampaignType {

@@ -4,8 +4,7 @@
  * Ensures alignment with backend initialization patterns
  */
 
-import { createSafeBigInt } from '@/lib/types/branded';
-import type { SafeBigInt, UUID, ISODateString } from '@/lib/types/branded';
+import { createSafeBigInt, type SafeBigInt, type UUID, type ISODateString } from '@/lib/types/branded';
 
 /**
  * Default value constants aligned with backend
@@ -57,7 +56,7 @@ export function normalizeOptionalValue<T>(
  */
 export function normalizeArray<T>(
   value: T[] | null | undefined,
-  defaultToEmpty: boolean = true
+  defaultToEmpty = true
 ): T[] | undefined {
   if (value === null || value === undefined) {
     return defaultToEmpty ? [] : undefined;
@@ -70,7 +69,7 @@ export function normalizeArray<T>(
  */
 export function normalizeBoolean(
   value: boolean | null | undefined,
-  defaultValue: boolean = false
+  defaultValue = false
 ): boolean {
   if (value === null || value === undefined) {
     return defaultValue;
@@ -83,8 +82,8 @@ export function normalizeBoolean(
  */
 export function normalizeNumeric(
   value: number | string | bigint | null | undefined,
-  defaultValue: number = 0,
-  useSafeBigInt: boolean = false
+  defaultValue = 0,
+  useSafeBigInt = false
 ): number | SafeBigInt | undefined {
   if (value === null || value === undefined) {
     return useSafeBigInt ? createSafeBigInt(defaultValue) : defaultValue;

@@ -17,7 +17,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
 import chalk from 'chalk';
-import { z } from 'zod';
+import { z as _z } from 'zod';
 
 interface CleanupResult {
   unusedDependencies: string[];
@@ -92,7 +92,7 @@ class ProjectCleanup {
           await this.performCleanup();
         }
       }
-    } catch (error) {
+    } catch {
       console.error(chalk.red('❌ Cleanup failed:'), error);
       process.exit(1);
     }
@@ -131,7 +131,7 @@ class ProjectCleanup {
       );
 
       console.log(chalk.green(`✓ Found ${this.result.unusedDependencies.length} potentially unused dependencies`));
-    } catch (error) {
+    } catch {
       console.warn(chalk.yellow('⚠ Dependency analysis skipped (depcheck not available)'));
     }
   }
@@ -264,7 +264,7 @@ class ProjectCleanup {
       });
 
       console.log(chalk.green('✓ Import cleanup completed'));
-    } catch (error) {
+    } catch {
       console.warn(chalk.yellow('⚠ Import cleanup skipped'));
     }
   }
@@ -351,7 +351,7 @@ class ProjectCleanup {
       delete packageJson[key];
     }
 
-    fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
+    fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)  }\n`);
     console.log(chalk.green('✓ package.json optimized'));
   }
 

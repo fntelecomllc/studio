@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     const stats = await response.json();
     return NextResponse.json(stats);
 
-  } catch (error) {
+  } catch {
     console.error('Database stats error:', error);
     
     // Return fallback stats if there's an error

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import PageHeader from '../PageHeader';
 import { Home } from 'lucide-react';
@@ -7,17 +7,17 @@ import { Home } from 'lucide-react';
 describe('PageHeader', () => {
   it('renders the title', () => {
     render(<PageHeader title="Test Title" />);
-    expect(screen.getByText('Test Title')).toBeInTheDocument();
+    expect(render(<PageHeader title="Test Title" />).getByText('Test Title')).toBeInTheDocument();
   });
 
   it('renders the description when provided', () => {
-    render(<PageHeader title="Test Title" description="Test Description" />);
-    expect(screen.getByText('Test Description')).toBeInTheDocument();
+    const { getByText } = render(<PageHeader title="Test Title" description="Test Description" />);
+    expect(getByText('Test Description')).toBeInTheDocument();
   });
 
   it('does not render description when not provided', () => {
-    render(<PageHeader title="Test Title" />);
-    expect(screen.queryByText('Test Description')).not.toBeInTheDocument();
+    const { queryByText } = render(<PageHeader title="Test Title" />);
+    expect(queryByText('Test Description')).not.toBeInTheDocument();
   });
 
   it('renders the icon when provided', () => {
@@ -29,8 +29,8 @@ describe('PageHeader', () => {
 
   it('renders action buttons when provided', () => {
     const ActionButton = () => <button>Click Me</button>;
-    render(<PageHeader title="Test Title" actionButtons={<ActionButton />} />);
-    expect(screen.getByText('Click Me')).toBeInTheDocument();
+    const { getByText } = render(<PageHeader title="Test Title" actionButtons={<ActionButton />} />);
+    expect(getByText('Click Me')).toBeInTheDocument();
   });
 
   it('matches snapshot', () => {

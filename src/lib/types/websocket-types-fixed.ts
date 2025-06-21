@@ -323,7 +323,7 @@ export function parseWebSocketMessage(raw: string): TypedWebSocketMessage | null
         // For other message types, no transformation needed
         return parsed as TypedWebSocketMessage;
     }
-  } catch (error) {
+  } catch {
     console.error('Failed to parse WebSocket message:', error);
     return null;
   }

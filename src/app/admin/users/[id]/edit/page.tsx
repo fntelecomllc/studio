@@ -129,7 +129,7 @@ export default function EditUserPage() {
       } else {
         setErrorMessage(result.error?.message || 'Failed to load user');
       }
-    } catch (error) {
+    } catch {
       console.error('Load user error:', error);
       setErrorMessage('An unexpected error occurred while loading user');
     } finally {
@@ -164,7 +164,7 @@ export default function EditUserPage() {
       updateUserSchema.parse(formData);
       setErrors({});
       return true;
-    } catch (error) {
+    } catch {
       if (error instanceof z.ZodError) {
         const fieldErrors: Partial<Record<keyof UpdateUserFormData, string>> = {};
         error.errors.forEach((err) => {
@@ -217,7 +217,7 @@ export default function EditUserPage() {
       } else {
         setErrorMessage(result.error?.message || 'Failed to update user');
       }
-    } catch (error) {
+    } catch {
       console.error('Update user error:', error);
       setErrorMessage('An unexpected error occurred while updating user');
     } finally {

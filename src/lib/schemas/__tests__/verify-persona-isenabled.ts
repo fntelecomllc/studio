@@ -2,6 +2,7 @@
 import { personaSchema } from '../generated/validationSchemas';
 import type { Persona } from '../../types';
 import type { Persona as AlignedPersona } from '../../types/aligned/aligned-models';
+import { createUUID, createISODateString } from '../../types/branded';
 
 // Test 1: Verify Zod schema includes isEnabled
 const testPersonaData = {
@@ -23,7 +24,7 @@ if (!validationResult.success) {
 
 // Test 2: Verify TypeScript types include isEnabled
 const typedPersona: Persona = {
-  id: '123e4567-e89b-12d3-a456-426614174000',
+  id: createUUID('123e4567-e89b-12d3-a456-426614174000'),
   name: 'Test Persona',
   personaType: 'dns',
   configDetails: {
@@ -41,21 +42,21 @@ const typedPersona: Persona = {
   },
   isEnabled: true,  // This field should be recognized
   status: 'active',
-  createdAt: '2025-06-20T12:00:00Z',
-  updatedAt: '2025-06-20T12:00:00Z'
+  createdAt: createISODateString('2025-06-20T12:00:00Z'),
+  updatedAt: createISODateString('2025-06-20T12:00:00Z')
 };
 
 // Test 3: Verify aligned types include isEnabled
 const alignedPersona: AlignedPersona = {
-  id: '123e4567-e89b-12d3-a456-426614174000' as any,
+  id: createUUID('123e4567-e89b-12d3-a456-426614174000'),
   name: 'Test Persona',
   personaType: 'dns' as any,
   configDetails: {
     resolvers: ['8.8.8.8']
   } as any,
   isEnabled: true,  // This field should be recognized
-  createdAt: '2025-06-20T12:00:00Z' as any,
-  updatedAt: '2025-06-20T12:00:00Z' as any
+  createdAt: createISODateString('2025-06-20T12:00:00Z'),
+  updatedAt: createISODateString('2025-06-20T12:00:00Z')
 };
 
 console.log('TypeScript type check for Persona:', typedPersona.isEnabled !== undefined ? 'PASS' : 'FAIL');

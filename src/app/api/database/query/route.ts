@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(queryResult);
 
-  } catch (error) {
+  } catch {
     console.error('Database query error:', error);
     return NextResponse.json(
       { error: 'Internal server error executing query' },

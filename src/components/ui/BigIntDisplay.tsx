@@ -21,7 +21,7 @@ interface BigIntDisplayProps {
 function formatBigIntValue(
   value: SafeBigInt | string | number | bigint | null | undefined,
   format: 'decimal' | 'formatted' | 'abbreviated' | 'bytes',
-  precision: number = 2
+  precision = 2
 ): string {
   if (value === null || value === undefined) {
     return '';
@@ -47,7 +47,7 @@ function formatBigIntValue(
       const strValue = String(value);
       bigIntValue = BigInt(strValue);
     }
-  } catch (error) {
+  } catch {
     console.error('Error converting value to BigInt:', value, error);
     return 'Invalid';
   }
@@ -125,7 +125,7 @@ function formatBytes(bytes: bigint): string {
   }
 
   const formatted = unitIndex === 0 ? numValue.toString() : numValue.toFixed(2).replace(/\\.?0+$/, '');
-  return sign + formatted + ' ' + units[unitIndex];
+  return `${sign + formatted  } ${  units[unitIndex]}`;
 }
 
 /**

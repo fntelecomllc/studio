@@ -93,7 +93,7 @@ class RaceConditionPrevention {
     return requestId;
   }
 
-  completeRequest(requestId: string, success: boolean = true): void {
+  completeRequest(requestId: string, success = true): void {
     const request = this.activeRequests.get(requestId);
     if (!request) return;
 
@@ -283,7 +283,7 @@ class RaceConditionPrevention {
   debounceUpdate(
     entityKey: string, 
     updateFn: () => void, 
-    delay: number = 300
+    delay = 300
   ): void {
     // Clear existing timer
     const existingTimer = this.debounceTimers.get(entityKey);
@@ -306,7 +306,7 @@ class RaceConditionPrevention {
   async deduplicateRequest<T>(
     signature: string,
     requestFn: () => Promise<T>,
-    ttl: number = 5000
+    ttl = 5000
   ): Promise<T> {
     const existing = this.requestSignatures.get(signature);
     
@@ -415,7 +415,7 @@ export function withRaceConditionPrevention(
         const result = await originalMethod.apply(this, args);
         raceConditionPrevention.completeRequest(requestId, true);
         return result;
-      } catch (error) {
+      } catch {
         raceConditionPrevention.completeRequest(requestId, false);
         throw error;
       }

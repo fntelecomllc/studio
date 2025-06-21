@@ -1,6 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import type { ServicesHttpKeywordParams } from '../services-http-keyword-params';
-import { ServicesHttpKeywordParamsSourceTypeEnum } from '../services-http-keyword-params';
+import { ServicesHttpKeywordParamsSourceTypeEnum, type ServicesHttpKeywordParams } from '../services-http-keyword-params';
 
 describe('ServicesHttpKeywordParams sourceType field', () => {
   it('should include sourceType as a required field', () => {

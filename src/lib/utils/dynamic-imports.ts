@@ -13,7 +13,7 @@ export function createLazyComponent<T extends ComponentType<Record<string, unkno
     try {
       const importedModule = await importFn();
       return importedModule;
-    } catch (error) {
+    } catch {
       console.error('Failed to load component:', error);
       // Return a simple error component
       const ErrorComponent = () => {
@@ -169,7 +169,7 @@ export const analyzeBundleChunks = async () => {
           size: parseInt(response.headers.get('content-length') || '0'),
           type: getChunkType(src),
         });
-      } catch (error) {
+      } catch {
         console.warn('Failed to analyze chunk:', src, error);
       }
     }

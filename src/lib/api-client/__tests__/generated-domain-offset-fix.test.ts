@@ -170,8 +170,8 @@ describe('CV-008: GeneratedDomain offsetIndex SafeBigInt Fix', () => {
 
       const transformed = rawDomains.map(transformToModelsGeneratedDomain);
 
-      expect(transformed[0].offsetIndex).toBe(BigInt(1));
-      expect(transformed[1].offsetIndex).toBe(BigInt('9007199254740993'));
+      expect(transformed[0]?.offsetIndex).toBe(BigInt(1));
+      expect(transformed[1]?.offsetIndex).toBe(BigInt('9007199254740993'));
       expect(transformed.every(d => typeof d.offsetIndex === 'bigint')).toBe(true);
     });
   });

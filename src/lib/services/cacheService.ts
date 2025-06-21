@@ -48,7 +48,7 @@ export class MemoryCache {
       const value = await fetcher();
       this.set(key, value, ttl);
       return value;
-    } catch (error) {
+    } catch {
       // Remove stale entry if fetch fails
       this.delete(key);
       throw error;
@@ -152,13 +152,13 @@ export class StorageCache {
       }
 
       return entry.value;
-    } catch (error) {
+    } catch {
       console.error('Storage cache get error:', error);
       return undefined;
     }
   }
 
-  set<T>(key: string, value: T, ttl: number = 3600000): void { // 1 hour default
+  set<T>(key: string, value: T, ttl = 3600000): void { // 1 hour default
     try {
       const entry: CacheEntry<T> = {
         value,
@@ -167,7 +167,7 @@ export class StorageCache {
       };
       
       localStorage.setItem(`${this.storageKey}_${key}`, JSON.stringify(entry));
-    } catch (error) {
+    } catch {
       console.error('Storage cache set error:', error);
       // Handle quota exceeded error
       if (error instanceof DOMException && error.code === 22) {
@@ -213,7 +213,7 @@ export class StorageCache {
               localStorage.removeItem(key);
             }
           }
-        } catch (_error) {
+        } catch {
           // Remove corrupted entries
           localStorage.removeItem(key);
         }

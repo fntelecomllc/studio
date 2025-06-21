@@ -4,7 +4,7 @@
 
 import { ServicesDomainGenerationParams } from '../models/services-domain-generation-params';
 import { ServicesDomainGenerationParamsAligned } from '../models/services-domain-generation-params-aligned';
-import { createSafeBigInt } from '../../types/branded';
+import { createSafeBigInt, SafeBigInt } from '../../types/branded';
 
 // Test 1: Verify currentOffset exists in base ServicesDomainGenerationParams
 const baseParams: ServicesDomainGenerationParams = {
@@ -14,8 +14,8 @@ const baseParams: ServicesDomainGenerationParams = {
   tld: 'com',
   variableLength: 4,
   numDomainsToGenerate: 1000,
-  totalPossibleCombinations: 456976,
-  currentOffset: 12345 // This should compile without errors
+  totalPossibleCombinations: createSafeBigInt('456976'),
+  currentOffset: createSafeBigInt('12345') // This should compile without errors
 };
 
 // Test 2: Verify currentOffset exists in aligned type
@@ -26,8 +26,8 @@ const alignedParams: ServicesDomainGenerationParamsAligned = {
   tld: 'com',
   variableLength: 4,
   numDomainsToGenerate: 1000,
-  totalPossibleCombinations: createSafeBigInt(456976),
-  currentOffset: createSafeBigInt(12345) // This should compile without errors
+  totalPossibleCombinations: createSafeBigInt('456976'),
+  currentOffset: createSafeBigInt('12345') // This should compile without errors
 };
 
 // Test 3: Verify both fields are optional
@@ -41,15 +41,15 @@ const minimalParams: ServicesDomainGenerationParams = {
 };
 
 // Test 4: Type assertions to verify field presence
-type AssertCurrentOffsetInBase = ServicesDomainGenerationParams extends { currentOffset?: number } ? true : false;
-type AssertTotalPossibleInBase = ServicesDomainGenerationParams extends { totalPossibleCombinations?: number } ? true : false;
+type AssertCurrentOffsetInBase = ServicesDomainGenerationParams extends { currentOffset?: SafeBigInt } ? true : false;
+type AssertTotalPossibleInBase = ServicesDomainGenerationParams extends { totalPossibleCombinations?: SafeBigInt } ? true : false;
 
 const _testBase1: AssertCurrentOffsetInBase = true;
 const _testBase2: AssertTotalPossibleInBase = true;
 
 // Test 5: Type assertions for aligned version
-type AssertCurrentOffsetInAligned = ServicesDomainGenerationParamsAligned extends { currentOffset?: any } ? true : false;
-type AssertTotalPossibleInAligned = ServicesDomainGenerationParamsAligned extends { totalPossibleCombinations?: any } ? true : false;
+type AssertCurrentOffsetInAligned = ServicesDomainGenerationParamsAligned extends { currentOffset?: SafeBigInt } ? true : false;
+type AssertTotalPossibleInAligned = ServicesDomainGenerationParamsAligned extends { totalPossibleCombinations?: SafeBigInt } ? true : false;
 
 const _testAligned1: AssertCurrentOffsetInAligned = true;
 const _testAligned2: AssertTotalPossibleInAligned = true;

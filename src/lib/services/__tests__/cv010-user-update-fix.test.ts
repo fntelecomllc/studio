@@ -6,10 +6,9 @@
  * from CONTRACT_VIOLATIONS_MATRIX.
  */
 
-import { adminService, updateUser } from '@/lib/services/adminService';
+import { adminService, updateUser, type UpdateUserRequest } from '@/lib/services/adminService';
 import apiClient from '@/lib/services/apiClient.production';
 import type { UUID } from '@/lib/types/branded';
-import type { UpdateUserRequest } from '@/lib/services/adminService';
 
 // Mock the API client
 jest.mock('@/lib/services/apiClient.production', () => ({
